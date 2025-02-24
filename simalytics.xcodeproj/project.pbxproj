@@ -35,16 +35,6 @@
 			path = simalytics;
 			sourceTree = "<group>";
 		};
-		3427C2FE2D6D20C70064B137 /* simalyticsTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = simalyticsTests;
-			sourceTree = "<group>";
-		};
-		3427C3082D6D20C70064B137 /* simalyticsUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = simalyticsUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,8 +66,6 @@
 			isa = PBXGroup;
 			children = (
 				3427C2EC2D6D20C60064B137 /* simalytics */,
-				3427C2FE2D6D20C70064B137 /* simalyticsTests */,
-				3427C3082D6D20C70064B137 /* simalyticsUITests */,
 				3427C2EB2D6D20C60064B137 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -130,9 +118,6 @@
 			dependencies = (
 				3427C2FD2D6D20C70064B137 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				3427C2FE2D6D20C70064B137 /* simalyticsTests */,
-			);
 			name = simalyticsTests;
 			packageProductDependencies = (
 			);
@@ -152,9 +137,6 @@
 			);
 			dependencies = (
 				3427C3072D6D20C70064B137 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				3427C3082D6D20C70064B137 /* simalyticsUITests */,
 			);
 			name = simalyticsUITests;
 			packageProductDependencies = (
@@ -396,6 +378,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Simalytics;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -435,6 +419,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Simalytics;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
