@@ -6,6 +6,7 @@
 //
 
 import AuthenticationServices
+import SimpleKeychain
 import SwiftUI
 
 struct SettingsView: View {
@@ -41,10 +42,43 @@ struct SettingsView: View {
 
               if token.isEmpty {
                 showErrorAlert = true
+                return
               }
 
-              print("Token: \(token)")
-              // TODO: Save token to Keychain or something similar
+              /// Make request to get access token
+              struct AccessTokenResponse: Decodable {
+                let access_token: String
+              }
+              var AccessTokenURLComponents = URLComponents()
+              AccessTokenURLComponents.scheme = "https"
+              AccessTokenURLComponents.host = "api.simalytics.kyter.com"
+              AccessTokenURLComponents.path = "/oauth"
+
+              var request = URLRequest(url: AccessTokenURLComponents.url!)
+              request.httpMethod = "POST"
+              request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+              let body: [String: String] = ["code": token]
+              request.httpBody = try JSONSerialization.data(withJSONObject: body)
+              let (data, response) = try await URLSession.shared.data(for: request)
+
+              guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200
+              else {
+                showErrorAlert = true
+                return
+              }
+
+              let accessTokenResponse = try JSONDecoder().decode(
+                AccessTokenResponse.self, from: data)
+              let accessToken = accessTokenResponse.access_token
+              if accessToken.isEmpty {
+                showErrorAlert = true
+                return
+              }
+
+              let simpleKeychain = SimpleKeychain()
+              try simpleKeychain.set(accessToken, forKey: "simkl-access-token")
+
+              // TODO: Loading indicator during the access token request
             } catch {
               showErrorAlert = true
             }
@@ -52,6 +86,8 @@ struct SettingsView: View {
         }
         .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {
           Button("OK", role: .cancel) {}
+        } message: {
+          Text("We've been alerted of the error. Please try again later.")
         }
       }
       .navigationTitle("Settings")

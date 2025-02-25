@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		34CE995A2D6E528500580AE8 /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = 34CE99592D6E528500580AE8 /* SimpleKeychain */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		3427C2EA2D6D20C60064B137 /* Simalytics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Simalytics.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				34CE995A2D6E528500580AE8 /* SimpleKeychain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = simalytics;
 			packageProductDependencies = (
+				34CE99592D6E528500580AE8 /* SimpleKeychain */,
 			);
 			productName = simalytics;
 			productReference = 3427C2EA2D6D20C60064B137 /* Simalytics.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 3427C2E12D6D20C60064B137;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				34CE99582D6E528500580AE8 /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3427C2EB2D6D20C60064B137 /* Products */;
 			projectDirPath = "";
@@ -347,6 +356,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		34CE99582D6E528500580AE8 /* XCRemoteSwiftPackageReference "SimpleKeychain" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/auth0/SimpleKeychain";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		34CE99592D6E528500580AE8 /* SimpleKeychain */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 34CE99582D6E528500580AE8 /* XCRemoteSwiftPackageReference "SimpleKeychain" */;
+			productName = SimpleKeychain;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3427C2E22D6D20C60064B137 /* Project object */;
 }
