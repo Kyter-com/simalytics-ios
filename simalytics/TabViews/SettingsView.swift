@@ -10,8 +10,15 @@ import SwiftUI
 struct SettingsView: View {
   var body: some View {
     NavigationView {
-      Text("Settings View!")
-        .navigationTitle("Settings")
+      VStack {
+        Text("Settings View!")
+        Button(action: {
+
+        }) {
+          Text("Login to Simkl")
+        }
+      }
+      .navigationTitle("Settings")
     }
   }
 }
