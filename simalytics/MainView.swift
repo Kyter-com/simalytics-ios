@@ -28,6 +28,10 @@ struct MainView: View {
         }
         .tag(2)
     }
+    .onChange(of: selectedTab) {
+      let generator = UIImpactFeedbackGenerator(style: .light)
+      generator.impactOccurred()
+    }
   }
 }
 
