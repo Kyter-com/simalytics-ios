@@ -10,16 +10,28 @@ import SimpleKeychain
 import SwiftUI
 
 struct SettingsView: View {
+  @EnvironmentObject private var auth: Auth
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
   @State private var showErrorAlert = false
+  @State private var loadingAccessToken: Bool = false
 
   var body: some View {
     NavigationView {
       VStack {
+        Text(auth.simklAccessToken)
         Text("Settings View!")
+        Button("Sign Out") {
+          Task {
+            let simpleKeychain = SimpleKeychain()
+            try simpleKeychain.deleteItem(forKey: "simkl-access-token")
+            auth.simklAccessToken = ""
+          }
+        }
         Button("Sign In") {
           Task {
             do {
+              loadingAccessToken = true
+
               var OAuthURLComponents = URLComponents()
               OAuthURLComponents.scheme = "https"
               OAuthURLComponents.host = "simkl.com"
@@ -76,10 +88,14 @@ struct SettingsView: View {
 
               let simpleKeychain = SimpleKeychain()
               try simpleKeychain.set(accessToken, forKey: "simkl-access-token")
+              auth.simklAccessToken = accessToken
+
+              loadingAccessToken = false
 
               // TODO: Loading indicator during the access token request
               // TODO: Save token to global state
             } catch {
+              loadingAccessToken = false
               showErrorAlert = true
             }
           }
