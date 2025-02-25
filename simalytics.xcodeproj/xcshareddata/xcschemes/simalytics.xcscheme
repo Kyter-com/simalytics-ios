@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3427C2E92D6D20C60064B137"
-               BuildableName = "simalytics.app"
+               BuildableName = "Simalytics.app"
                BlueprintName = "simalytics"
                ReferencedContainer = "container:simalytics.xcodeproj">
             </BuildableReference>
@@ -69,7 +69,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3427C2E92D6D20C60064B137"
-            BuildableName = "simalytics.app"
+            BuildableName = "Simalytics.app"
             BlueprintName = "simalytics"
             ReferencedContainer = "container:simalytics.xcodeproj">
          </BuildableReference>
@@ -86,7 +86,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3427C2E92D6D20C60064B137"
-            BuildableName = "simalytics.app"
+            BuildableName = "Simalytics.app"
             BlueprintName = "simalytics"
             ReferencedContainer = "container:simalytics.xcodeproj">
          </BuildableReference>
