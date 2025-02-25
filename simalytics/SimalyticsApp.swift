@@ -24,10 +24,12 @@ class Auth: ObservableObject {
 
 @main
 struct SimalyticsApp: App {
+  @StateObject private var auth = Auth()
+
   var body: some Scene {
     WindowGroup {
       MainView()
-        .environmentObject(Auth())
+        .environmentObject(auth)
     }
   }
 }
