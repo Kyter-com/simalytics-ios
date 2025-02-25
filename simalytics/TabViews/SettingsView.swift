@@ -57,9 +57,6 @@ struct SettingsView: View {
                 return
               }
 
-              struct AccessTokenResponse: Decodable {
-                let access_token: String
-              }
               var AccessTokenURLComponents = URLComponents()
               AccessTokenURLComponents.scheme = "https"
               AccessTokenURLComponents.host = "api.simalytics.kyter.com"
@@ -78,6 +75,9 @@ struct SettingsView: View {
                 return
               }
 
+              struct AccessTokenResponse: Decodable {
+                let access_token: String
+              }
               let accessTokenResponse = try JSONDecoder().decode(
                 AccessTokenResponse.self, from: data)
               let accessToken = accessTokenResponse.access_token
