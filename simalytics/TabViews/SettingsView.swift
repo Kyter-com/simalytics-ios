@@ -45,7 +45,6 @@ struct SettingsView: View {
                 return
               }
 
-              /// Make request to get access token
               struct AccessTokenResponse: Decodable {
                 let access_token: String
               }
@@ -79,6 +78,7 @@ struct SettingsView: View {
               try simpleKeychain.set(accessToken, forKey: "simkl-access-token")
 
               // TODO: Loading indicator during the access token request
+              // TODO: Save token to global state
             } catch {
               showErrorAlert = true
             }
@@ -86,6 +86,7 @@ struct SettingsView: View {
         }
         .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {
           Button("OK", role: .cancel) {}
+          // TODO: Save to Sentry
         } message: {
           Text("We've been alerted of the error. Please try again later.")
         }
