@@ -9,15 +9,12 @@ import SwiftUI
 
 struct HomeView: View {
   @EnvironmentObject private var auth: Auth
-  @State private var shows: [Int] = []
+  @State private var shows: [Show] = []
 
   var body: some View {
     NavigationView {
-      VStack {
-        Text("Home View!")
-        List(shows, id: \.self) { show in
-          Text("show \(show)")
-        }
+      List(shows, id: \.show.ids.simkl) { showItem in
+        Text(showItem.show.title)
       }
       .task {
         do {
@@ -37,10 +34,22 @@ struct HomeView: View {
             request.setValue(
               "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
               forHTTPHeaderField: "simkl-api-key")
-            request.setValue(auth.simklAccessToken, forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200
             else {
+              shows = []
+              return
+            }
+
+            let decoder = JSONDecoder()
+            let showsResponse = try decoder.decode(ShowsResponse.self, from: data)
+            let filteredShows = showsResponse.shows.filter {
+              $0.next_to_watch_info?.title?.isEmpty == false
+            }
+            if filteredShows.count > 0 {
+              shows = filteredShows
+            } else {
               shows = []
             }
           } else {
