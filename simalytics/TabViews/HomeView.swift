@@ -14,7 +14,23 @@ struct HomeView: View {
   var body: some View {
     NavigationView {
       List(shows, id: \.show.ids.simkl) { showItem in
-        Text(showItem.show.title)
+        HStack {
+          if let posterURL = URL(
+            string: "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_c.webp")
+          {
+            AsyncImage(url: posterURL) { image in
+              image
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: 84, maxHeight: 124)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            } placeholder: {
+              ProgressView()
+            }
+          }
+          Text(showItem.show.title)
+            .font(.headline)
+        }
       }
       .task {
         do {
