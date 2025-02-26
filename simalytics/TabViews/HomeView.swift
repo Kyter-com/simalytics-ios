@@ -11,10 +11,22 @@ import SwiftUI
 struct HomeView: View {
   @EnvironmentObject private var auth: Auth
   @State private var shows: [Show] = []
+  @State private var searchText: String = ""
+
+  var filteredShows: [Show] {
+    if searchText.isEmpty {
+      return shows
+    } else {
+      return shows.filter { show in
+        show.show.title.localizedCaseInsensitiveContains(searchText)
+          || (show.next_to_watch_info?.title?.localizedCaseInsensitiveContains(searchText) ?? false)
+      }
+    }
+  }
 
   var body: some View {
     NavigationView {
-      List(shows, id: \.show.ids.simkl) { showItem in
+      List(filteredShows, id: \.show.ids.simkl) { showItem in
         HStack {
           KFImage(
             URL(
@@ -28,7 +40,7 @@ struct HomeView: View {
             radius: .widthFraction(0.1)
           )
           .serialize(as: .JPEG)
-          .frame(width: 84, height: 124)
+          .frame(width: 60, height: 90)
 
           VStack(alignment: .leading) {
             Text(showItem.show.title)
@@ -52,55 +64,60 @@ struct HomeView: View {
             Spacer()
           }
         }
+        .searchable(text: $searchText, placement: .automatic)
       }
       .task {
-        do {
-          if !auth.simklAccessToken.isEmpty {
-            var UpNextURLComponents = URLComponents()
-            UpNextURLComponents.scheme = "https"
-            UpNextURLComponents.host = "api.simkl.com"
-            UpNextURLComponents.path = "/sync/all-items/shows/watching"
-            UpNextURLComponents.queryItems = [
-              URLQueryItem(name: "episode_watched_at", value: "yes"),
-              URLQueryItem(name: "memos", value: "yes"),
-              URLQueryItem(name: "next_watch_info", value: "yes"),
-            ]
-            var request = URLRequest(url: UpNextURLComponents.url!)
-            request.httpMethod = "GET"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue(
-              "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
-              forHTTPHeaderField: "simkl-api-key")
-            request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200
-            else {
-              shows = []
-              return
-            }
-
-            let decoder = JSONDecoder()
-            let showsResponse = try decoder.decode(ShowsResponse.self, from: data)
-            let filteredShows = showsResponse.shows.filter {
-              $0.next_to_watch_info?.title?.isEmpty == false
-            }
-            if filteredShows.count > 0 {
-              shows = filteredShows
-            } else {
-              shows = []
-            }
-          } else {
-            shows = []
-          }
-        } catch {
-          shows = []
-        }
+        await fetchShows()
       }
       .navigationTitle("Home")
+    }
+  }
+
+  private func fetchShows() async {
+    do {
+      if !auth.simklAccessToken.isEmpty {
+        var UpNextURLComponents = URLComponents()
+        UpNextURLComponents.scheme = "https"
+        UpNextURLComponents.host = "api.simkl.com"
+        UpNextURLComponents.path = "/sync/all-items/shows/watching"
+        UpNextURLComponents.queryItems = [
+          URLQueryItem(name: "episode_watched_at", value: "yes"),
+          URLQueryItem(name: "memos", value: "yes"),
+          URLQueryItem(name: "next_watch_info", value: "yes"),
+        ]
+        var request = URLRequest(url: UpNextURLComponents.url!)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(
+          "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
+          forHTTPHeaderField: "simkl-api-key")
+        request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+          shows = []
+          return
+        }
+
+        let decoder = JSONDecoder()
+        let showsResponse = try decoder.decode(ShowsResponse.self, from: data)
+        let filteredShows = showsResponse.shows.filter {
+          $0.next_to_watch_info?.title?.isEmpty == false
+        }
+        if filteredShows.count > 0 {
+          shows = filteredShows
+        } else {
+          shows = []
+        }
+      } else {
+        shows = []
+      }
+    } catch {
+      shows = []
     }
   }
 }
 
 #Preview {
   HomeView()
+    .environmentObject(Auth())
 }
