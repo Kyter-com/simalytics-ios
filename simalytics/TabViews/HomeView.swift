@@ -17,7 +17,7 @@ struct HomeView: View {
       List(shows, id: \.show.ids.simkl) { showItem in
         HStack {
           if let posterURL = URL(
-            string: "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_cm.jpg")
+            string: "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_c.jpg")
           {
             KFImage(posterURL)
               .resizable()
