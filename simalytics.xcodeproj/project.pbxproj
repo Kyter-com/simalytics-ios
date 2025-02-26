@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3484E2DF2D6FA411005D6775 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 3484E2DE2D6FA411005D6775 /* Kingfisher */; };
 		34CE995A2D6E528500580AE8 /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = 34CE99592D6E528500580AE8 /* SimpleKeychain */; };
 /* End PBXBuildFile section */
 
@@ -27,6 +28,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3484E2DF2D6FA411005D6775 /* Kingfisher in Frameworks */,
 				34CE995A2D6E528500580AE8 /* SimpleKeychain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -71,6 +73,7 @@
 			name = simalytics;
 			packageProductDependencies = (
 				34CE99592D6E528500580AE8 /* SimpleKeychain */,
+				3484E2DE2D6FA411005D6775 /* Kingfisher */,
 			);
 			productName = simalytics;
 			productReference = 3427C2EA2D6D20C60064B137 /* Simalytics.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				34CE99582D6E528500580AE8 /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
+				3484E2DD2D6FA411005D6775 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3427C2EB2D6D20C60064B137 /* Products */;
@@ -358,6 +362,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		3484E2DD2D6FA411005D6775 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.2.0;
+			};
+		};
 		34CE99582D6E528500580AE8 /* XCRemoteSwiftPackageReference "SimpleKeychain" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/auth0/SimpleKeychain";
@@ -369,6 +381,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		3484E2DE2D6FA411005D6775 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3484E2DD2D6FA411005D6775 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
 		34CE99592D6E528500580AE8 /* SimpleKeychain */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 34CE99582D6E528500580AE8 /* XCRemoteSwiftPackageReference "SimpleKeychain" */;

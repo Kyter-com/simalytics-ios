@@ -5,6 +5,7 @@
 //  Created by Nick Reisenauer on 2/24/25.
 //
 
+import Kingfisher
 import SwiftUI
 
 struct HomeView: View {
@@ -16,20 +17,22 @@ struct HomeView: View {
       List(shows, id: \.show.ids.simkl) { showItem in
         HStack {
           if let posterURL = URL(
-            string: "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_c.webp")
+            string: "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_cm.jpg")
           {
-            AsyncImage(url: posterURL) { image in
-              image
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: 84, maxHeight: 124)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            } placeholder: {
-              ProgressView()
-            }
+            KFImage(posterURL)
+              .resizable()
+              .roundCorner(
+                radius: .widthFraction(0.1)
+              )
+              .serialize(as: .JPEG)
+              .frame(width: 84, height: 124)
           }
-          Text(showItem.show.title)
-            .font(.headline)
+          VStack(alignment: .leading) {
+            Text(showItem.show.title)
+              .font(.headline)
+              .padding(.top, 8)
+            Spacer()
+          }
         }
       }
       .task {
