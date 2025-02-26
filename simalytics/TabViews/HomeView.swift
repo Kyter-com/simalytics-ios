@@ -16,21 +16,39 @@ struct HomeView: View {
     NavigationView {
       List(shows, id: \.show.ids.simkl) { showItem in
         HStack {
-          if let posterURL = URL(
-            string: "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_c.jpg")
-          {
-            KFImage(posterURL)
-              .resizable()
-              .roundCorner(
-                radius: .widthFraction(0.1)
-              )
-              .serialize(as: .JPEG)
-              .frame(width: 84, height: 124)
+          KFImage(
+            URL(
+              string: "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_c.jpg")
+          )
+          .placeholder {
+            ProgressView()
           }
+          .resizable()
+          .roundCorner(
+            radius: .widthFraction(0.1)
+          )
+          .serialize(as: .JPEG)
+          .frame(width: 84, height: 124)
+
           VStack(alignment: .leading) {
             Text(showItem.show.title)
               .font(.headline)
               .padding(.top, 8)
+            if let title = showItem.next_to_watch_info?.title {
+              Text(title)
+                .font(.subheadline)
+            }
+            Spacer()
+            if let season = showItem.next_to_watch_info?.season {
+              Text("Season \(season)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            }
+            if let episode = showItem.next_to_watch_info?.episode {
+              Text("Episode \(episode)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            }
             Spacer()
           }
         }
