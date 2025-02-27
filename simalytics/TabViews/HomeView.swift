@@ -12,6 +12,7 @@ struct HomeView: View {
   @EnvironmentObject private var auth: Auth
   @State private var shows: [Show] = []
   @State private var searchText: String = ""
+  @State private var showErrorAlert = false
 
   var filteredShows: [Show] {
     if searchText.isEmpty {
@@ -66,12 +67,77 @@ struct HomeView: View {
             Spacer()
           }
         }
+        .swipeActions(edge: .trailing) {
+          Button {
+            Task {
+              await markAsWatched(show: showItem)
+            }
+          } label: {
+            Label("Watched", systemImage: "checkmark.circle")
+          }
+          .tint(.green)
+        }
       }
       .searchable(text: $searchText, placement: .automatic)
       .task {
         await fetchShows()
       }
       .navigationTitle("Up Next")
+      .alert("Error Marking as Watched", isPresented: $showErrorAlert) {
+        Button("OK", role: .cancel) {}
+        // TODO: Save to Sentry
+      } message: {
+        Text("We've been alerted of the error. Please try again later.")
+      }
+    }
+  }
+
+  private func markAsWatched(show: Show) async {
+    do {
+      var MarkWatchedURLComponents = URLComponents()
+      MarkWatchedURLComponents.scheme = "https"
+      MarkWatchedURLComponents.host = "api.simkl.com"
+      MarkWatchedURLComponents.path = "/sync/history"
+
+      var request = URLRequest(url: MarkWatchedURLComponents.url!)
+      request.httpMethod = "POST"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.setValue(
+        "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
+        forHTTPHeaderField: "simkl-api-key")
+      request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
+
+      let formatter = ISO8601DateFormatter()
+      let dateString = formatter.string(from: Date())
+      let body: [String: Any] = [
+        "title": show.show.title,
+        "ids": [
+          "simkl": show.show.ids.simkl
+        ],
+        "seasons": [
+          [
+            "number": show.next_to_watch_info?.season ?? 0,
+            "episodes": [
+              [
+                "number": show.next_to_watch_info?.episode ?? 0,
+                "watched_at": dateString,
+              ]
+            ],
+          ]
+        ],
+      ]
+      // Log out the JSON body
+      print(String(data: try JSONSerialization.data(withJSONObject: body), encoding: .utf8)!)
+      request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+      let (data, response) = try await URLSession.shared.data(for: request)
+
+      // Log out data and response in readable format
+
+      print(String(data: data, encoding: .utf8)!)
+      await fetchShows()
+    } catch {
+      showErrorAlert = true
     }
   }
 

@@ -91,9 +91,6 @@ struct SettingsView: View {
               auth.simklAccessToken = accessToken
 
               loadingAccessToken = false
-
-              // TODO: Loading indicator during the access token request
-              // TODO: Save token to global state
             } catch {
               loadingAccessToken = false
               showErrorAlert = true
