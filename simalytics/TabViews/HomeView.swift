@@ -36,11 +36,13 @@ struct HomeView: View {
             ProgressView()
           }
           .resizable()
-          .roundCorner(
-            radius: .widthFraction(0.1)
-          )
           .serialize(as: .JPEG)
-          .frame(width: 60, height: 90)
+          .frame(width: 75, height: 110.71)
+          .clipShape(RoundedRectangle(cornerRadius: 8))
+          .background(
+            RoundedRectangle(cornerRadius: 8)
+              .fill(Color(UIColor.systemBackground))
+          )
 
           VStack(alignment: .leading) {
             Text(showItem.show.title)
@@ -64,12 +66,12 @@ struct HomeView: View {
             Spacer()
           }
         }
-        .searchable(text: $searchText, placement: .automatic)
       }
+      .searchable(text: $searchText, placement: .automatic)
       .task {
         await fetchShows()
       }
-      .navigationTitle("Home")
+      .navigationTitle("Up Next")
     }
   }
 
