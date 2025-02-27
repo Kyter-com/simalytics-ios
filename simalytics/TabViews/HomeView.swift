@@ -79,6 +79,9 @@ struct HomeView: View {
         }
       }
       .searchable(text: $searchText, placement: .automatic)
+      .refreshable {
+        await fetchShows()
+      }
       .task {
         await fetchShows()
       }
