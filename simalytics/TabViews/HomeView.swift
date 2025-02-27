@@ -110,34 +110,38 @@ struct HomeView: View {
       let formatter = ISO8601DateFormatter()
       let dateString = formatter.string(from: Date())
       let body: [String: Any] = [
-        "title": show.show.title,
-        "ids": [
-          "simkl": show.show.ids.simkl
-        ],
-        "seasons": [
+        "shows": [
           [
-            "number": show.next_to_watch_info?.season ?? 0,
-            "episodes": [
+            "title": show.show.title,
+            "ids": [
+              "simkl": show.show.ids.simkl
+            ],
+            "seasons": [
               [
-                "number": show.next_to_watch_info?.episode ?? 0,
-                "watched_at": dateString,
+                "number": show.next_to_watch_info?.season ?? 0,
+                "episodes": [
+                  [
+                    "number": show.next_to_watch_info?.episode ?? 0,
+                    "watched_at": dateString,
+                  ]
+                ],
               ]
             ],
           ]
-        ],
+        ]
       ]
-      // Log out the JSON body
-      print(String(data: try JSONSerialization.data(withJSONObject: body), encoding: .utf8)!)
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
       let (data, response) = try await URLSession.shared.data(for: request)
-
-      // Log out data and response in readable format
-
-      print(String(data: data, encoding: .utf8)!)
+      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201
+      else {
+        showErrorAlert = true
+        return
+      }
       await fetchShows()
+      return
     } catch {
       showErrorAlert = true
+      return
     }
   }
 
