@@ -105,7 +105,6 @@ struct HomeView: View {
           Text("We've been alerted of the error. Please try again later.")
         }
       }
-
     }
   }
 

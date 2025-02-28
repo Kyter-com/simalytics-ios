@@ -5,6 +5,7 @@
 //  Created by Nick Reisenauer on 2/24/25.
 //
 
+import Kingfisher
 import SwiftUI
 
 struct ExploreView: View {
@@ -18,7 +19,7 @@ struct ExploreView: View {
           ContentUnavailableView {
             ProgressView()
           } description: {
-            Text("Give us a second to load trending data!")
+            Text("Loading Trending Data")
           }
           .onAppear {
             Task {
@@ -26,8 +27,25 @@ struct ExploreView: View {
             }
           }
         } else {
-          List(trendingShows, id: \.ids.simkl_id) { show in
-            Text("Show Name: \(show.title)")
+          List(trendingShows, id: \.ids.simkl_id) { showItem in
+            HStack {
+              KFImage(
+                URL(
+                  string:
+                    "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.poster)_c.jpg")
+              )
+              .placeholder {
+                ProgressView()
+              }
+              .resizable()
+              .serialize(as: .JPEG)
+              .frame(width: 75, height: 110.71)
+              .clipShape(RoundedRectangle(cornerRadius: 8))
+              .background(
+                RoundedRectangle(cornerRadius: 8)
+                  .fill(Color(UIColor.systemBackground))
+              )
+            }
           }
         }
       }
