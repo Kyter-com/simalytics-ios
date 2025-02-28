@@ -27,71 +27,85 @@ struct HomeView: View {
 
   var body: some View {
     NavigationView {
-      List(filteredShows, id: \.show.ids.simkl) { showItem in
-        HStack {
-          KFImage(
-            URL(
-              string: "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_c.jpg")
-          )
-          .placeholder {
-            ProgressView()
-          }
-          .resizable()
-          .serialize(as: .JPEG)
-          .frame(width: 75, height: 110.71)
-          .clipShape(RoundedRectangle(cornerRadius: 8))
-          .background(
-            RoundedRectangle(cornerRadius: 8)
-              .fill(Color(UIColor.systemBackground))
-          )
+      if auth.simklAccessToken.isEmpty {
+        ContentUnavailableView {
+          Label("Not logged in to Simkl", systemImage: "person.badge.shield.exclamationmark")
+        } description: {
+          Text("Go to Settings to log in to Simkl!")
+        } actions: {
+          NavigationLink("Settings", destination: SettingsView())
+            .buttonStyle(.borderedProminent)
+        }
+        .navigationTitle("Up Next")
+      } else {
+        List(filteredShows, id: \.show.ids.simkl) { showItem in
+          HStack {
+            KFImage(
+              URL(
+                string:
+                  "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_c.jpg")
+            )
+            .placeholder {
+              ProgressView()
+            }
+            .resizable()
+            .serialize(as: .JPEG)
+            .frame(width: 75, height: 110.71)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .background(
+              RoundedRectangle(cornerRadius: 8)
+                .fill(Color(UIColor.systemBackground))
+            )
 
-          VStack(alignment: .leading) {
-            Text(showItem.show.title)
-              .font(.headline)
-              .padding(.top, 8)
-            if let title = showItem.next_to_watch_info?.title {
-              Text(title)
-                .font(.subheadline)
+            VStack(alignment: .leading) {
+              Text(showItem.show.title)
+                .font(.headline)
+                .padding(.top, 8)
+              if let title = showItem.next_to_watch_info?.title {
+                Text(title)
+                  .font(.subheadline)
+              }
+              Spacer()
+              if let season = showItem.next_to_watch_info?.season {
+                Text("Season \(season)")
+                  .font(.subheadline)
+                  .foregroundColor(.secondary)
+              }
+              if let episode = showItem.next_to_watch_info?.episode {
+                Text("Episode \(episode)")
+                  .font(.subheadline)
+                  .foregroundColor(.secondary)
+              }
+              Spacer()
             }
-            Spacer()
-            if let season = showItem.next_to_watch_info?.season {
-              Text("Season \(season)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+          }
+          .swipeActions(edge: .trailing) {
+            Button {
+              Task {
+                await markAsWatched(show: showItem)
+              }
+            } label: {
+              Label("Watched", systemImage: "checkmark.circle")
             }
-            if let episode = showItem.next_to_watch_info?.episode {
-              Text("Episode \(episode)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            }
-            Spacer()
+            .tint(.green)
           }
         }
-        .swipeActions(edge: .trailing) {
-          Button {
-            Task {
-              await markAsWatched(show: showItem)
-            }
-          } label: {
-            Label("Watched", systemImage: "checkmark.circle")
-          }
-          .tint(.green)
+        .searchable(text: $searchText, placement: .automatic)
+        .refreshable {
+          await fetchShows()
+        }
+        .task {
+          await fetchShows()
+        }
+        .navigationTitle("Up Next")
+        .alert("Error Marking as Watched", isPresented: $showErrorAlert) {
+          Button("OK", role: .cancel) {}
+          // TODO: Save to Sentry
+        } message: {
+          Text("We've been alerted of the error. Please try again later.")
         }
       }
-      .searchable(text: $searchText, placement: .automatic)
-      .refreshable {
-        await fetchShows()
-      }
-      .task {
-        await fetchShows()
-      }
-      .navigationTitle("Up Next")
-      .alert("Error Marking as Watched", isPresented: $showErrorAlert) {
-        Button("OK", role: .cancel) {}
-        // TODO: Save to Sentry
-      } message: {
-        Text("We've been alerted of the error. Please try again later.")
-      }
+
     }
   }
 
