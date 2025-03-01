@@ -9,16 +9,16 @@ struct TrendingMovie: Codable {
   let poster: String
   let fanart: String?
   let ids: TrendingMoviesIDs
-  let releaseDate: String?
+  let release_date: String?
   let rank: Int?
-  let dropRate: String?
+  let drop_rate: String?
   let watched: Int
-  let planToWatch: Int?
+  let plan_to_watch: Int?
   let ratings: TrendingMoviesRatings
   let country: String
   let runtime: String?
   let status: String
-  let dvdDate: String?
+  let dvd_date: String?
   let metadata: String
   let overview: String
   let genres: [String]
@@ -32,11 +32,11 @@ struct TrendingMoviesIDs: Codable {
 }
 
 struct TrendingMoviesRatings: Codable {
-  let simkl: Rating
-  let imdb: Rating?
+  let simkl: TrendingMoviesRating
+  let imdb: TrendingMoviesRating?
 }
 
-struct Rating: Codable {
+struct TrendingMoviesRating: Codable {
   let rating: Double?
   let votes: Int?
 }

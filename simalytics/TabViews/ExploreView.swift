@@ -12,100 +12,148 @@ struct ExploreView: View {
   @EnvironmentObject private var auth: Auth
   @State private var trendingShows: [TrendingShow] = []
   @State private var trendingMovies: [TrendingMovie] = []
+  @State private var trendingAnimes: [TrendingAnime] = []
 
   var body: some View {
     NavigationView {
-      VStack(alignment: .leading) {
-
-        if trendingShows.isEmpty || trendingShows.isEmpty {
-          ContentUnavailableView {
-            ProgressView()
-          } description: {
-            Text("Loading Trending Data")
-          }
-          .onAppear {
-            Task {
-              await getTrendingShows()
-              await getTrendingMovies()
+      ScrollView {
+        VStack(alignment: .leading) {
+          if trendingShows.isEmpty && trendingMovies.isEmpty && trendingAnimes.isEmpty {
+            ContentUnavailableView {
+              ProgressView()
+            } description: {
+              Text("Loading Trending Data")
             }
-          }
-        } else {
-          Text("Trending Shows")
-            .font(.title2)
-            .bold()
-            .padding([.top, .leading])
-          ScrollView(.horizontal, showsIndicators: true) {
-            HStack(spacing: 16) {
-              ForEach(trendingShows, id: \.ids.simkl_id) { showItem in
-                VStack {
-                  KFImage(
-                    URL(
-                      string:
-                        "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.poster)_m.jpg")
-                  )
-                  .placeholder {
-                    ProgressView()
-                  }
-                  .resizable()
-                  .serialize(as: .JPEG)
-                  .frame(width: 100, height: 147.62)
-                  .clipShape(RoundedRectangle(cornerRadius: 8))
-                  .background(
-                    RoundedRectangle(cornerRadius: 8)
-                      .fill(Color(UIColor.systemBackground))
-                  )
-                  Text(showItem.title)
-                    .font(.subheadline)
-                    .padding(.top, 4)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(width: 100)
-                }
+            .onAppear {
+              Task {
+                await getTrendingShows()
+                await getTrendingMovies()
+                await getTrendingAnimes()
               }
             }
-            .padding([.leading, .trailing, .bottom])
-          }
-
-          Text("Trending Movies")
-            .font(.title2)
-            .bold()
-            .padding([.top, .leading])
-          ScrollView(.horizontal, showsIndicators: true) {
-            HStack(spacing: 16) {
-              ForEach(trendingMovies, id: \.ids.simkl_id) { movieItem in
-                VStack {
-                  KFImage(
-                    URL(
-                      string:
-                        "https://wsrv.nl/?url=https://simkl.in/posters/\(movieItem.poster)_m.jpg")
-                  )
-                  .placeholder {
-                    ProgressView()
+          } else {
+            Group {
+              Text("Trending Shows")
+                .font(.title2)
+                .bold()
+                .padding([.top, .leading])
+              ScrollView(.horizontal, showsIndicators: true) {
+                HStack(spacing: 16) {
+                  ForEach(trendingShows, id: \.ids.simkl_id) { showItem in
+                    VStack {
+                      KFImage(
+                        URL(
+                          string:
+                            "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.poster)_m.jpg"
+                        )
+                      )
+                      .placeholder {
+                        ProgressView()
+                      }
+                      .resizable()
+                      .serialize(as: .JPEG)
+                      .frame(width: 100, height: 147.62)
+                      .clipShape(RoundedRectangle(cornerRadius: 8))
+                      .background(
+                        RoundedRectangle(cornerRadius: 8)
+                          .fill(Color(UIColor.systemBackground))
+                      )
+                      Text(showItem.title)
+                        .font(.subheadline)
+                        .padding(.top, 4)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(width: 100)
+                    }
                   }
-                  .resizable()
-                  .serialize(as: .JPEG)
-                  .frame(width: 100, height: 147.62)
-                  .clipShape(RoundedRectangle(cornerRadius: 8))
-                  .background(
-                    RoundedRectangle(cornerRadius: 8)
-                      .fill(Color(UIColor.systemBackground))
-                  )
-                  Text(movieItem.title)
-                    .font(.subheadline)
-                    .padding(.top, 4)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(width: 100)
                 }
+                .padding([.leading, .trailing, .bottom])
               }
             }
-            .padding([.leading, .trailing, .bottom])
+
+            Group {
+              Text("Trending Movies")
+                .font(.title2)
+                .bold()
+                .padding([.top, .leading])
+              ScrollView(.horizontal, showsIndicators: true) {
+                HStack(spacing: 16) {
+                  ForEach(trendingMovies, id: \.ids.simkl_id) { movieItem in
+                    VStack {
+                      KFImage(
+                        URL(
+                          string:
+                            "https://wsrv.nl/?url=https://simkl.in/posters/\(movieItem.poster)_m.jpg"
+                        )
+                      )
+                      .placeholder {
+                        ProgressView()
+                      }
+                      .resizable()
+                      .serialize(as: .JPEG)
+                      .frame(width: 100, height: 147.62)
+                      .clipShape(RoundedRectangle(cornerRadius: 8))
+                      .background(
+                        RoundedRectangle(cornerRadius: 8)
+                          .fill(Color(UIColor.systemBackground))
+                      )
+                      Text(movieItem.title)
+                        .font(.subheadline)
+                        .padding(.top, 4)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(width: 100)
+                    }
+                  }
+                }
+                .padding([.leading, .trailing, .bottom])
+              }
+            }
+
+            Group {
+              Text("Trending Animes")
+                .font(.title2)
+                .bold()
+                .padding([.top, .leading])
+              ScrollView(.horizontal, showsIndicators: true) {
+                HStack(spacing: 16) {
+                  ForEach(trendingAnimes, id: \.ids.simkl_id) { animeItem in
+                    VStack {
+                      KFImage(
+                        URL(
+                          string:
+                            "https://wsrv.nl/?url=https://simkl.in/posters/\(animeItem.poster)_m.jpg"
+                        )
+                      )
+                      .placeholder {
+                        ProgressView()
+                      }
+                      .resizable()
+                      .serialize(as: .JPEG)
+                      .frame(width: 100, height: 147.62)
+                      .clipShape(RoundedRectangle(cornerRadius: 8))
+                      .background(
+                        RoundedRectangle(cornerRadius: 8)
+                          .fill(Color(UIColor.systemBackground))
+                      )
+                      Text(animeItem.title)
+                        .font(.subheadline)
+                        .padding(.top, 4)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(width: 100)
+                    }
+                  }
+                }
+                .padding([.leading, .trailing, .bottom])
+              }
+            }
+
+            Spacer()
           }
         }
-
-        Spacer()
+        .navigationTitle("Explore")
       }
-      .navigationTitle("Explore")
     }
   }
 
@@ -171,6 +219,40 @@ struct ExploreView: View {
       }
     } catch {
       trendingMovies = []
+      return
+    }
+  }
+
+  private func getTrendingAnimes() async {
+    do {
+      var TrendingAnimesURLComponents = URLComponents()
+      TrendingAnimesURLComponents.scheme = "https"
+      TrendingAnimesURLComponents.host = "api.simkl.com"
+      TrendingAnimesURLComponents.path = "/anime/trending"
+      TrendingAnimesURLComponents.queryItems = [
+        URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres,trailer"),
+        URLQueryItem(
+          name: "client_id",
+          value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
+      ]
+      var request = URLRequest(url: TrendingAnimesURLComponents.url!)
+      request.httpMethod = "GET"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      let (data, response) = try await URLSession.shared.data(for: request)
+      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        trendingAnimes = []
+        return
+      }
+      let decoder = JSONDecoder()
+      let animesResponse = try decoder.decode([TrendingAnime].self, from: data)
+      if animesResponse.count > 0 {
+        trendingAnimes = animesResponse
+      } else {
+        trendingAnimes = []
+      }
+    } catch {
+      print(error)
+      trendingAnimes = []
       return
     }
   }
