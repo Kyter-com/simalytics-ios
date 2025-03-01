@@ -27,25 +27,36 @@ struct ExploreView: View {
             }
           }
         } else {
-          List(trendingShows, id: \.ids.simkl_id) { showItem in
-            HStack {
-              KFImage(
-                URL(
-                  string:
-                    "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.poster)_c.jpg")
-              )
-              .placeholder {
-                ProgressView()
+          ScrollView(.horizontal) {
+            HStack(spacing: 16) {
+              ForEach(trendingShows, id: \.ids.simkl_id) { showItem in
+                VStack {
+                  KFImage(
+                    URL(
+                      string:
+                        "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.poster)_c.jpg")
+                  )
+                  .placeholder {
+                    ProgressView()
+                  }
+                  .resizable()
+                  .serialize(as: .JPEG)
+                  .frame(width: 100, height: 147.62)
+                  .clipShape(RoundedRectangle(cornerRadius: 8))
+                  .background(
+                    RoundedRectangle(cornerRadius: 8)
+                      .fill(Color(UIColor.systemBackground))
+                  )
+                  Text(showItem.title)
+                    .font(.subheadline)
+                    .padding(.top, 4)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: 100)
+                }
               }
-              .resizable()
-              .serialize(as: .JPEG)
-              .frame(width: 75, height: 110.71)
-              .clipShape(RoundedRectangle(cornerRadius: 8))
-              .background(
-                RoundedRectangle(cornerRadius: 8)
-                  .fill(Color(UIColor.systemBackground))
-              )
             }
+            .padding()
           }
         }
       }
