@@ -43,7 +43,7 @@ struct HomeView: View {
             KFImage(
               URL(
                 string:
-                  "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_c.jpg")
+                  "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_m.jpg")
             )
             .placeholder {
               ProgressView()
