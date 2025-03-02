@@ -12,7 +12,7 @@ struct TrendingMovie: Codable {
   let release_date: String?
   let rank: Int?
   let drop_rate: String?
-  let watched: Int
+  let watched: Int?
   let plan_to_watch: Int?
   let ratings: TrendingMoviesRatings
   let country: String
