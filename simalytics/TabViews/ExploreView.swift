@@ -20,7 +20,7 @@ struct ExploreView: View {
     NavigationView {
       VStack {
         if isSearching {
-          SearchResults(searchText: searchText)
+          SearchResults(searchText: $searchText)
         } else {
           ScrollView {
             VStack(alignment: .leading) {

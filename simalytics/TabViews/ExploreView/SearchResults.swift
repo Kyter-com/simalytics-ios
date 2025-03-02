@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SearchResults: View {
-  var searchText: String
+  @Binding var searchText: String
 
   var body: some View {
     Text(searchText)
