@@ -28,7 +28,7 @@ struct MainView: View {
   var body: some View {
     TabView(
       selection: $selectedTab.onUpdate { newValue in
-        if (newValue == lastSelectedTab) && (newValue == 1) {
+        if newValue == lastSelectedTab && newValue == 1 {
           print("search tapped twice")
         }
         lastSelectedTab = newValue
@@ -55,8 +55,4 @@ struct MainView: View {
       generator.impactOccurred()
     }
   }
-}
-
-#Preview {
-  MainView()
 }
