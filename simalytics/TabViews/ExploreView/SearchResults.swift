@@ -61,7 +61,6 @@ struct SearchResults: View {
   }
 
   private func fetchResults(for searchText: String, type: String) async -> [SearchResult] {
-    print("fetching \(type) results for \(searchText)")
     do {
       var searchResultsURLComponents = URLComponents()
       searchResultsURLComponents.scheme = "https"
@@ -85,6 +84,7 @@ struct SearchResults: View {
       let results = try decoder.decode([SearchResult].self, from: data)
       return results
     } catch {
+      // TODO: Send to Sentry
       return []
     }
   }

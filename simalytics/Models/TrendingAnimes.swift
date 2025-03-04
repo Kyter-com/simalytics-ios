@@ -28,7 +28,7 @@ struct TrendingAnime: Codable {
   let metadata: String
   let overview: String
   let genres: [String]
-  let trailer: String
+  let trailer: String?
 }
 
 struct TrendingAnimesIDs: Codable {

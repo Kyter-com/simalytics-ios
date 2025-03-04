@@ -9,8 +9,8 @@ import Foundation
 
 struct SearchResult: Codable {
   let title: String
-  let year: Int
-  let poster: String
+  let year: Int?
+  let poster: String?
   let endpoint_type: String
   let ids: SearchResultIDs
 }
