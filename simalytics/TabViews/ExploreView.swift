@@ -171,9 +171,6 @@ struct ExploreView: View {
       .onChange(of: searchText) { _oldValue, newValue in
         isSearching = !newValue.isEmpty
       }
-      .onSubmit(of: .search) {
-        isSearching = true
-      }
       .navigationTitle("Explore")
     }
   }
