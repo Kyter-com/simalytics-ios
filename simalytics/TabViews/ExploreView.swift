@@ -14,6 +14,7 @@ struct ExploreView: View {
   @State private var trendingMovies: [TrendingMovie] = []
   @State private var trendingAnimes: [TrendingAnime] = []
   @State private var searchText: String = ""
+    // TODO: use search text length instead of is searching probably?
   @State private var isSearching: Bool = false
   @State private var searchCategory: SearchCategory = .all
 
