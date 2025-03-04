@@ -15,12 +15,13 @@ struct ExploreView: View {
   @State private var trendingAnimes: [TrendingAnime] = []
   @State private var searchText: String = ""
   @State private var isSearching: Bool = false
+  @State private var searchCategory: SearchCategory = .all
 
   var body: some View {
     NavigationView {
       VStack {
         if isSearching {
-          SearchResults(searchText: $searchText)
+          SearchResults(searchText: $searchText, searchCategory: $searchCategory)
         } else {
           ScrollView {
             VStack(alignment: .leading) {
@@ -162,8 +163,16 @@ struct ExploreView: View {
         }
       }
       .searchable(text: $searchText, placement: .automatic)
+      .searchScopes($searchCategory) {
+        ForEach(SearchCategory.allCases) { category in
+          Text(category.rawValue).tag(category)
+        }
+      }
       .onChange(of: searchText) { _oldValue, newValue in
         isSearching = !newValue.isEmpty
+      }
+      .onSubmit(of: .search) {
+        isSearching = true
       }
       .navigationTitle("Explore")
     }
