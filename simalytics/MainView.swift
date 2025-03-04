@@ -4,18 +4,18 @@
 //
 //  Created by Nick Reisenauer on 2/24/25.
 //
+
 import SwiftUI
 
-/// I have a Binding because I want to detect if the same tab is tapped multiple times in a row.
 extension Binding {
-  func onUpdate() -> Binding<Value> {
+  func onUpdate(_ closure: @escaping (Value) -> Void) -> Binding<Value> {
     Binding(
       get: {
         self.wrappedValue
       },
       set: { newValue in
         self.wrappedValue = newValue
-        print("tab clicked", newValue)
+        closure(newValue)
       }
     )
   }
@@ -23,10 +23,16 @@ extension Binding {
 
 struct MainView: View {
   @State private var selectedTab = 0
+  @State private var lastSelectedTab = 0
 
   var body: some View {
     TabView(
-      selection: $selectedTab.onUpdate()
+      selection: $selectedTab.onUpdate { newValue in
+        if (newValue == lastSelectedTab) && (newValue == 1) {
+          print("search tapped twice")
+        }
+        lastSelectedTab = newValue
+      }
     ) {
       HomeView()
         .tabItem {

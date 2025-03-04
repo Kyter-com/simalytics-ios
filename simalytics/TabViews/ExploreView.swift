@@ -278,8 +278,3 @@ struct ExploreView: View {
     }
   }
 }
-
-#Preview {
-  ExploreView()
-    .environmentObject(Auth())
-}
