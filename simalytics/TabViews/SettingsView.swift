@@ -31,7 +31,7 @@ struct SettingsView: View {
                     auth.simklAccessToken == "" ? Color.red.opacity(0.5) : Color.green.opacity(0.5)
                   )
                   .frame(width: 10, height: 10)
-                  .scaleEffect(isAnimating ? 3 : 1.0)
+                  .scaleEffect(isAnimating ? 2.5 : 1.0)
                   .opacity(isAnimating ? 0.0 : 0.5)
                   .animation(
                     Animation.easeInOut(duration: 1.5)
