@@ -48,6 +48,16 @@ struct SettingsView: View {
 
               Text(auth.simklAccessToken == "" ? "Not Connected" : "Connected")
             }
+            if auth.simklAccessToken.isEmpty {
+              Button("Sign In") {
+                Task {}
+              }
+            } else {
+              Spacer()
+              Button("Sign Out") {
+                Task {}
+              }
+            }
           } header: {
             Text("Simkl Connection")
           }
