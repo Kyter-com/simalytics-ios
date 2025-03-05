@@ -14,10 +14,45 @@ struct SettingsView: View {
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
   @State private var showErrorAlert = false
   @State private var loadingAccessToken: Bool = false
+  @State private var isAnimating = false
 
   var body: some View {
     NavigationView {
       VStack {
+        Form {
+          Section {
+            HStack {
+              ZStack {
+                Circle()
+                  .fill(auth.simklAccessToken == "" ? Color.red : Color.green)
+                  .frame(width: 10, height: 10)
+                Circle()
+                  .fill(
+                    auth.simklAccessToken == "" ? Color.red.opacity(0.5) : Color.green.opacity(0.5)
+                  )
+                  .frame(width: 10, height: 10)
+                  .scaleEffect(isAnimating ? 3 : 1.0)
+                  .opacity(isAnimating ? 0.0 : 0.5)
+                  .animation(
+                    Animation.easeInOut(duration: 1.5)
+                      .repeatForever(autoreverses: false),
+                    value: isAnimating
+                  )
+              }
+              .onAppear {
+                isAnimating = true
+              }
+              .onDisappear {
+                isAnimating = false
+              }
+
+              Text(auth.simklAccessToken == "" ? "Not Connected" : "Connected")
+            }
+          } header: {
+            Text("Simkl Connection")
+          }
+        }
+
         Text(auth.simklAccessToken)
         Text("Settings View!")
         Button("Sign Out") {
