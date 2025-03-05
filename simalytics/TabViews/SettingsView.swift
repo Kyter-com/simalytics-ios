@@ -53,7 +53,6 @@ struct SettingsView: View {
                 Task {}
               }
             } else {
-              Spacer()
               Button("Sign Out") {
                 Task {}
               }
