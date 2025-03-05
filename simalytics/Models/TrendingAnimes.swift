@@ -26,7 +26,7 @@ struct TrendingAnime: Codable {
   let total_episodes: Int
   let network: String?
   let metadata: String
-  let overview: String
+  let overview: String?
   let genres: [String]
   let trailer: String?
 }

@@ -22,9 +22,49 @@ struct SearchResults: View {
   @State private var searchResults: [SearchResult] = []
   @State private var debounceWorkItem: DispatchWorkItem?
 
+  let columns = [
+    GridItem(.flexible()),
+    GridItem(.flexible()),
+    GridItem(.flexible()),
+  ]
+
+  private func customKFImage(_ url: URL?) -> KFImage {
+    let result = KFImage(url)
+    result.options = KingfisherParsedOptionsInfo(
+      KingfisherManager.shared.defaultOptions + [
+        .forceTransition, .keepCurrentImageWhileLoading, .cacheMemoryOnly,
+      ])
+    return result
+  }
+
   var body: some View {
-    List(searchResults, id: \.ids.simkl_id) { searchResult in
-      Text(searchResult.title)
+    ScrollView {
+      LazyVGrid(columns: columns, spacing: 16) {
+        ForEach(searchResults, id: \.ids.simkl_id) { searchResult in
+          VStack {
+            if let poster = searchResult.poster {
+              customKFImage(
+                URL(string: "https://wsrv.nl/?url=https://simkl.in/posters/\(poster)_m.jpg")
+              )
+              .fade(duration: 0.33)
+              .placeholder {
+                ProgressView()
+              }
+              .resizable()
+              .aspectRatio(contentMode: .fit)
+              .frame(width: 100, height: 147.62)
+              .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            Text(searchResult.title)
+              .font(.subheadline)
+              .padding(.top, 4)
+              .lineLimit(1)
+              .truncationMode(.tail)
+              .frame(width: 100)
+          }
+        }
+      }
+      .padding()
     }
     .onChange(of: searchText) { _, newValue in
       debounceSearch(newValue)
@@ -49,10 +89,10 @@ struct SearchResults: View {
 
   private func getSearchResults(searchText: String, searchType: String) async {
     if searchType == "all" {
-      let animeResults = await fetchResults(for: searchText, type: "anime")
-      let movieResults = await fetchResults(for: searchText, type: "movie")
       let tvResults = await fetchResults(for: searchText, type: "tv")
-      searchResults = animeResults + movieResults + tvResults
+      let movieResults = await fetchResults(for: searchText, type: "movie")
+      let animeResults = await fetchResults(for: searchText, type: "anime")
+      searchResults = tvResults + movieResults + animeResults
     } else if searchType == "movies" {
       searchResults = await fetchResults(for: searchText, type: "movie")
     } else {
