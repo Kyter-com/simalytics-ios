@@ -32,9 +32,6 @@ struct HomeView: View {
           Label("Not logged in to Simkl", systemImage: "person.badge.shield.exclamationmark")
         } description: {
           Text("Go to Settings to log in to Simkl!")
-        } actions: {
-          NavigationLink("Settings", destination: SettingsView())
-            .buttonStyle(.borderedProminent)
         }
         .navigationTitle("Up Next")
       } else {
@@ -110,12 +107,12 @@ struct HomeView: View {
 
   private func markAsWatched(show: Show) async {
     do {
-      var MarkWatchedURLComponents = URLComponents()
-      MarkWatchedURLComponents.scheme = "https"
-      MarkWatchedURLComponents.host = "api.simkl.com"
-      MarkWatchedURLComponents.path = "/sync/history"
+      var markWatchedURLComponents = URLComponents()
+      markWatchedURLComponents.scheme = "https"
+      markWatchedURLComponents.host = "api.simkl.com"
+      markWatchedURLComponents.path = "/sync/history"
 
-      var request = URLRequest(url: MarkWatchedURLComponents.url!)
+      var request = URLRequest(url: markWatchedURLComponents.url!)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue(
@@ -164,16 +161,16 @@ struct HomeView: View {
   private func fetchShows() async {
     do {
       if !auth.simklAccessToken.isEmpty {
-        var UpNextURLComponents = URLComponents()
-        UpNextURLComponents.scheme = "https"
-        UpNextURLComponents.host = "api.simkl.com"
-        UpNextURLComponents.path = "/sync/all-items/shows/watching"
-        UpNextURLComponents.queryItems = [
+        var upNextURLComponents = URLComponents()
+        upNextURLComponents.scheme = "https"
+        upNextURLComponents.host = "api.simkl.com"
+        upNextURLComponents.path = "/sync/all-items/shows/watching"
+        upNextURLComponents.queryItems = [
           URLQueryItem(name: "episode_watched_at", value: "yes"),
           URLQueryItem(name: "memos", value: "yes"),
           URLQueryItem(name: "next_watch_info", value: "yes"),
         ]
-        var request = URLRequest(url: UpNextURLComponents.url!)
+        var request = URLRequest(url: upNextURLComponents.url!)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(

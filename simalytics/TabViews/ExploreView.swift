@@ -14,14 +14,12 @@ struct ExploreView: View {
   @State private var trendingMovies: [TrendingMovie] = []
   @State private var trendingAnimes: [TrendingAnime] = []
   @State private var searchText: String = ""
-  // TODO: use search text length instead of is searching probably?
-  @State private var isSearching: Bool = false
   @State private var searchCategory: SearchCategory = .all
 
   var body: some View {
     NavigationView {
       VStack {
-        if isSearching {
+        if !searchText.isEmpty {
           SearchResults(searchText: $searchText, searchCategory: $searchCategory)
         } else {
           ScrollView {
@@ -169,26 +167,23 @@ struct ExploreView: View {
           Text(category.rawValue).tag(category)
         }
       }
-      .onChange(of: searchText) { _oldValue, newValue in
-        isSearching = !newValue.isEmpty
-      }
       .navigationTitle("Explore")
     }
   }
 
   private func getTrendingShows() async {
     do {
-      var TrendingShowsURLComponents = URLComponents()
-      TrendingShowsURLComponents.scheme = "https"
-      TrendingShowsURLComponents.host = "api.simkl.com"
-      TrendingShowsURLComponents.path = "/tv/trending"
-      TrendingShowsURLComponents.queryItems = [
+      var trendingShowsURLComponents = URLComponents()
+      trendingShowsURLComponents.scheme = "https"
+      trendingShowsURLComponents.host = "api.simkl.com"
+      trendingShowsURLComponents.path = "/tv/trending"
+      trendingShowsURLComponents.queryItems = [
         URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres,trailer"),
         URLQueryItem(
           name: "client_id",
           value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
       ]
-      var request = URLRequest(url: TrendingShowsURLComponents.url!)
+      var request = URLRequest(url: trendingShowsURLComponents.url!)
       request.httpMethod = "GET"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       let (data, response) = try await URLSession.shared.data(for: request)
@@ -211,17 +206,17 @@ struct ExploreView: View {
 
   private func getTrendingMovies() async {
     do {
-      var TrendingMoviesURLComponents = URLComponents()
-      TrendingMoviesURLComponents.scheme = "https"
-      TrendingMoviesURLComponents.host = "api.simkl.com"
-      TrendingMoviesURLComponents.path = "/movies/trending"
-      TrendingMoviesURLComponents.queryItems = [
+      var trendingMoviesURLComponents = URLComponents()
+      trendingMoviesURLComponents.scheme = "https"
+      trendingMoviesURLComponents.host = "api.simkl.com"
+      trendingMoviesURLComponents.path = "/movies/trending"
+      trendingMoviesURLComponents.queryItems = [
         URLQueryItem(name: "extended", value: "overview,theater,metadata,tmdb,genres"),
         URLQueryItem(
           name: "client_id",
           value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
       ]
-      var request = URLRequest(url: TrendingMoviesURLComponents.url!)
+      var request = URLRequest(url: trendingMoviesURLComponents.url!)
       request.httpMethod = "GET"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       let (data, response) = try await URLSession.shared.data(for: request)
@@ -244,17 +239,17 @@ struct ExploreView: View {
 
   private func getTrendingAnimes() async {
     do {
-      var TrendingAnimesURLComponents = URLComponents()
-      TrendingAnimesURLComponents.scheme = "https"
-      TrendingAnimesURLComponents.host = "api.simkl.com"
-      TrendingAnimesURLComponents.path = "/anime/trending"
-      TrendingAnimesURLComponents.queryItems = [
+      var trendingAnimesURLComponents = URLComponents()
+      trendingAnimesURLComponents.scheme = "https"
+      trendingAnimesURLComponents.host = "api.simkl.com"
+      trendingAnimesURLComponents.path = "/anime/trending"
+      trendingAnimesURLComponents.queryItems = [
         URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres,trailer"),
         URLQueryItem(
           name: "client_id",
           value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
       ]
-      var request = URLRequest(url: TrendingAnimesURLComponents.url!)
+      var request = URLRequest(url: trendingAnimesURLComponents.url!)
       request.httpMethod = "GET"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       let (data, response) = try await URLSession.shared.data(for: request)
