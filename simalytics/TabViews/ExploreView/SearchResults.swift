@@ -41,47 +41,50 @@ struct SearchResults: View {
     ScrollView {
       LazyVGrid(columns: columns, spacing: 16) {
         ForEach(searchResults, id: \.ids.simkl_id) { searchResult in
-          VStack {
-            if let poster = searchResult.poster {
-              ZStack(alignment: .bottomLeading) {
-                customKFImage(
-                  URL(string: "https://wsrv.nl/?url=https://simkl.in/posters/\(poster)_m.jpg")
-                )
-                .fade(duration: 0.33)
-                .placeholder {
-                  ProgressView()
-                }
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 100, height: 147.62)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                  RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
-                )
-                if let year = searchResult.year {
-                  Text(String(year))
-                    .font(.caption2)
-                    .padding(4)
-                    .background(
-                      Color(
-                        UIColor { traitCollection in
-                          traitCollection.userInterfaceStyle == .dark ? .black : .white
-                        }
-                      ).opacity(0.8)
-                    )
-                    .cornerRadius(6)
-                    .padding([.leading, .bottom], 6)
+          NavigationLink(destination: destinationView(for: searchResult)) {
+            VStack {
+              if let poster = searchResult.poster {
+                ZStack(alignment: .bottomLeading) {
+                  customKFImage(
+                    URL(string: "https://wsrv.nl/?url=https://simkl.in/posters/\(poster)_m.jpg")
+                  )
+                  .fade(duration: 0.33)
+                  .placeholder {
+                    ProgressView()
+                  }
+                  .resizable()
+                  .aspectRatio(contentMode: .fit)
+                  .frame(width: 100, height: 147.62)
+                  .clipShape(RoundedRectangle(cornerRadius: 8))
+                  .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                      .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+                  )
+                  if let year = searchResult.year {
+                    Text(String(year))
+                      .font(.caption2)
+                      .padding(4)
+                      .background(
+                        Color(
+                          UIColor { traitCollection in
+                            traitCollection.userInterfaceStyle == .dark ? .black : .white
+                          }
+                        ).opacity(0.8)
+                      )
+                      .cornerRadius(6)
+                      .padding([.leading, .bottom], 6)
+                  }
                 }
               }
+              Text(searchResult.title)
+                .font(.subheadline)
+                .padding(.top, 2)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(width: 100)
             }
-            Text(searchResult.title)
-              .font(.subheadline)
-              .padding(.top, 2)
-              .lineLimit(1)
-              .truncationMode(.tail)
-              .frame(width: 100)
           }
+          .buttonStyle(.plain)
         }
       }
       .padding()
@@ -91,6 +94,19 @@ struct SearchResults: View {
     }
     .onChange(of: searchCategory) { _, newValue in
       debounceSearch(searchText)
+    }
+  }
+
+  private func destinationView(for searchResult: SearchResult) -> some View {
+    switch searchResult.endpoint_type {
+    case "tv":
+      return AnyView(ShowView())
+    case "movies":
+      return AnyView(MovieView())
+    case "anime":
+      return AnyView(AnimeView())
+    default:
+      return AnyView(Text("Unknown type"))
     }
   }
 

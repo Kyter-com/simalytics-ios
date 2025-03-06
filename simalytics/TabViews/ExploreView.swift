@@ -85,30 +85,32 @@ struct ExploreView: View {
                   ScrollView(.horizontal, showsIndicators: true) {
                     HStack(spacing: 16) {
                       ForEach(trendingMovies, id: \.ids.simkl_id) { movieItem in
-                        VStack {
-                          KFImage(
-                            URL(
-                              string:
-                                "https://wsrv.nl/?url=https://simkl.in/posters/\(movieItem.poster)_m.jpg"
+                        NavigationLink(destination: MovieView()) {
+                          VStack {
+                            KFImage(
+                              URL(
+                                string:
+                                  "https://wsrv.nl/?url=https://simkl.in/posters/\(movieItem.poster)_m.jpg"
+                              )
                             )
-                          )
-                          .placeholder {
-                            ProgressView()
+                            .placeholder {
+                              ProgressView()
+                            }
+                            .resizable()
+                            .serialize(as: .JPEG)
+                            .frame(width: 100, height: 147.62)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .background(
+                              RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(UIColor.systemBackground))
+                            )
+                            Text(movieItem.title)
+                              .font(.subheadline)
+                              .padding(.top, 4)
+                              .lineLimit(1)
+                              .truncationMode(.tail)
+                              .frame(width: 100)
                           }
-                          .resizable()
-                          .serialize(as: .JPEG)
-                          .frame(width: 100, height: 147.62)
-                          .clipShape(RoundedRectangle(cornerRadius: 8))
-                          .background(
-                            RoundedRectangle(cornerRadius: 8)
-                              .fill(Color(UIColor.systemBackground))
-                          )
-                          Text(movieItem.title)
-                            .font(.subheadline)
-                            .padding(.top, 4)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(width: 100)
                         }
                       }
                     }
