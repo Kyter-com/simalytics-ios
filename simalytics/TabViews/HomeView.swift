@@ -38,7 +38,7 @@ struct HomeView: View {
       } else {
         Group {
           if isFetching {
-            ProgressView("Fetching shows...")
+            ProgressView("Fetching Shows...")
           } else if filteredShows.isEmpty {
             ContentUnavailableView {
               Label("No shows to display", systemImage: "tv.slash")

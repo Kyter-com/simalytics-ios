@@ -15,9 +15,14 @@ struct MovieView: View {
   var body: some View {
     VStack {
       if movieDetails != nil {
-        Text(movieDetails!.title)
+        ScrollView {
+          Text(movieDetails!.title)
+            .font(.largeTitle)
+            .fontWeight(.bold)
+            .padding()
+        }
       } else {
-        ProgressView()
+        ProgressView("Loading Movie...")
           .onAppear {
             Task {
               await getMovieDetails(simkl_id: simkl_id)
