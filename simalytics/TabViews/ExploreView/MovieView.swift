@@ -16,10 +16,22 @@ struct MovieView: View {
     VStack {
       if movieDetails != nil {
         ScrollView {
+          if movieDetails!.fanart != nil {
+            KFImage(
+              URL(
+                string:
+                  "https://wsrv.nl/?url=https://simkl.in/fanart/\(movieDetails!.fanart!)_mobile.jpg"
+              )
+            )
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+          }
+
           Text(movieDetails!.title)
-            .font(.largeTitle)
+            .font(.title)
             .fontWeight(.bold)
-            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
         }
       } else {
         ProgressView("Loading Movie...")
