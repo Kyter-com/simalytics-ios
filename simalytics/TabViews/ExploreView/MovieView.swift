@@ -23,6 +23,10 @@ struct MovieView: View {
                   "https://wsrv.nl/?url=https://simkl.in/fanart/\(movieDetails!.fanart!)_mobile.jpg"
               )
             )
+            .placeholder {
+              ProgressView()
+            }
+            .serialize(as: .JPEG)
             .resizable()
             .aspectRatio(contentMode: .fit)
           }
