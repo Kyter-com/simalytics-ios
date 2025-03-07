@@ -37,16 +37,16 @@ struct IDs: Decodable {
 }
 
 struct Ratings: Decodable {
-  let simkl: Simkl
-  let imdb: IMDB
+  let simkl: Simkl?
+  let imdb: IMDB?
 }
 
 struct Simkl: Decodable {
-  let rating: Double
-  let votes: Int
+  let rating: Double?
+  let votes: Int?
 }
 
 struct IMDB: Decodable {
-  let rating: Double
-  let votes: Int
+  let rating: Double?
+  let votes: Int?
 }

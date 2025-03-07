@@ -85,7 +85,7 @@ struct ExploreView: View {
                   ScrollView(.horizontal, showsIndicators: true) {
                     HStack(spacing: 16) {
                       ForEach(trendingMovies, id: \.ids.simkl_id) { movieItem in
-                        NavigationLink(destination: MovieView()) {
+                        NavigationLink(destination: MovieView(simkl_id: movieItem.ids.simkl_id)) {
                           VStack {
                             KFImage(
                               URL(
@@ -112,6 +112,7 @@ struct ExploreView: View {
                               .frame(width: 100)
                           }
                         }
+                        .buttonStyle(.plain)
                       }
                     }
                     .padding([.leading, .trailing, .bottom])
