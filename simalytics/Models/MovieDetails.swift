@@ -11,4 +11,5 @@ struct MovieDetails: Codable {
   let title: String
   let year: Int?
   let fanart: String?
+  let runtime: Int?
 }

@@ -15,6 +15,7 @@ struct ExploreView: View {
   @State private var trendingAnimes: [TrendingAnime] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
+  @State private var movieSyncItems: [MovieSyncItem] = []
 
   var body: some View {
     NavigationView {
@@ -35,6 +36,7 @@ struct ExploreView: View {
                     await getTrendingShows()
                     await getTrendingMovies()
                     await getTrendingAnimes()
+                    await getMovieSyncItems()
                   }
                 }
               } else {
@@ -269,6 +271,38 @@ struct ExploreView: View {
       }
     } catch {
       trendingAnimes = []
+      return
+    }
+  }
+
+  private func getMovieSyncItems() async {
+    do {
+      var movieSyncURLComponents = URLComponents()
+      movieSyncURLComponents.scheme = "https"
+      movieSyncURLComponents.host = "api.simkl.com"
+      movieSyncURLComponents.path = "/sync/all-items/movies"
+
+      var request = URLRequest(url: movieSyncURLComponents.url!)
+      request.httpMethod = "GET"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.setValue(
+        "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
+        forHTTPHeaderField: "simkl-api-key")
+      request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
+      let (data, response) = try await URLSession.shared.data(for: request)
+      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        movieSyncItems = []
+        return
+      }
+      let decoder = JSONDecoder()
+      let res = try decoder.decode([MovieSyncItem].self, from: data)
+      if res.count > 0 {
+        movieSyncItems = res
+      } else {
+        movieSyncItems = []
+      }
+    } catch {
+      movieSyncItems = []
       return
     }
   }

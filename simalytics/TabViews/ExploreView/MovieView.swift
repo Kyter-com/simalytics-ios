@@ -11,6 +11,7 @@ import SwiftUI
 struct MovieView: View {
   @State private var movieDetails: MovieDetails?
   var simkl_id: Int
+  @State private var showWatchlistSheet = false
 
   var body: some View {
     VStack {
@@ -36,6 +37,43 @@ struct MovieView: View {
             .fontWeight(.bold)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal)
+
+          Button(action: {
+            showWatchlistSheet.toggle()
+          }) {
+            Text("Add to List")
+              .frame(maxWidth: .infinity)
+              .padding()
+              .background(
+                Color(
+                  UIColor { traitCollection in
+                    traitCollection.userInterfaceStyle == .dark ? .white : .black
+                  })
+              )
+              .foregroundColor(
+                Color(
+                  UIColor { traitCollection in
+                    traitCollection.userInterfaceStyle == .dark ? .black : .white
+                  })
+              )
+              .cornerRadius(8)
+              .bold()
+          }
+          .frame(width: UIScreen.main.bounds.width * 0.60)
+          .padding(.top, 10)
+          .sheet(isPresented: $showWatchlistSheet) {
+            Text("Hello, World!")
+          }
+
+          if let runtime = movieDetails?.runtime {
+            HStack {
+              Image(systemName: "clock")
+              Text("\(runtime) Minutes")
+            }
+            .font(.caption)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
+          }
         }
       } else {
         ProgressView("Loading Movie...")

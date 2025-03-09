@@ -102,7 +102,7 @@ struct SearchResults: View {
     case "tv":
       return AnyView(ShowView())
     case "movies":
-        return AnyView(MovieView(simkl_id: searchResult.ids.simkl_id))
+      return AnyView(MovieView(simkl_id: searchResult.ids.simkl_id))
     case "anime":
       return AnyView(AnimeView())
     default:
@@ -164,8 +164,4 @@ struct SearchResults: View {
       return []
     }
   }
-}
-
-#Preview {
-  SearchResults(searchText: .constant(""), searchCategory: .constant(.all))
 }
