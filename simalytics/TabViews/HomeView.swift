@@ -112,7 +112,6 @@ struct HomeView: View {
         .navigationTitle("Up Next")
         .alert("Error Marking as Watched", isPresented: $showErrorAlert) {
           Button("OK", role: .cancel) {}
-          SentrySDK.capture(error: error)
         } message: {
           Text("We've been alerted of the error. Please try again later.")
         }
