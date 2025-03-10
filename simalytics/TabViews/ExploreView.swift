@@ -10,7 +10,7 @@ import SwiftUI
 
 struct ExploreView: View {
   @EnvironmentObject private var auth: Auth
-  @State private var trendingShows: [TrendingShow] = []
+  @State private var trendingShows: [TrendingShowModel] = []
   @State private var trendingMovies: [TrendingMovieModel] = []
   @State private var trendingAnimes: [TrendingAnime] = []
   @State private var searchText: String = ""
@@ -197,7 +197,7 @@ struct ExploreView: View {
         return
       }
       let decoder = JSONDecoder()
-      let showsResponse = try decoder.decode([TrendingShow].self, from: data)
+      let showsResponse = try decoder.decode([TrendingShowModel].self, from: data)
       if showsResponse.count > 0 {
         trendingShows = showsResponse
       } else {
