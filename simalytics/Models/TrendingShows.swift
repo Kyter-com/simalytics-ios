@@ -27,7 +27,7 @@ struct TrendingShow: Decodable {
   let metadata: String
   let overview: String
   let genres: [String]
-  let trailer: String
+  let trailer: String?
 }
 
 struct IDs: Decodable {

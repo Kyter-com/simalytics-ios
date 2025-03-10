@@ -17,63 +17,82 @@ struct MovieView: View {
     VStack {
       if movieDetails != nil {
         ScrollView {
-          if movieDetails!.fanart != nil {
-            KFImage(
-              URL(
-                string:
-                  "https://wsrv.nl/?url=https://simkl.in/fanart/\(movieDetails!.fanart!)_mobile.jpg"
+          HStack {
+            Spacer()
+            if let poster = movieDetails?.poster {
+              KFImage(
+                URL(
+                  string:
+                    "https://wsrv.nl/?url=https://simkl.in/posters/\(poster)_m.jpg"
+                )
               )
-            )
-            .placeholder {
-              ProgressView()
+              .placeholder {
+                ProgressView()
+              }
+              .resizable()
+              .serialize(as: .JPEG)
+              .frame(width: 150, height: 221.43)
+              .clipShape(RoundedRectangle(cornerRadius: 8))
+              .background(
+                RoundedRectangle(cornerRadius: 8)
+                  .fill(Color(UIColor.systemBackground))
+              )
             }
-            .serialize(as: .JPEG)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
+
+            Spacer()
+
+            VStack {
+              if let runtime = movieDetails?.runtime {
+                HStack {
+                  Image(systemName: "clock")
+                  Text("\(runtime) Minutes")
+                }
+                .font(.caption)
+                .frame(maxWidth: .infinity, alignment: .leading)
+              }
+              if let year = movieDetails?.year {
+                HStack {
+                  Image(systemName: "calendar")
+                  Text("\(year)")
+                }
+                .font(.caption)
+                .frame(maxWidth: .infinity, alignment: .leading)
+              }
+
+              Spacer()
+
+              Button(action: {
+                showWatchlistSheet.toggle()
+              }) {
+                Text("Add to List")
+                  .frame(maxWidth: .infinity)
+                  .padding()
+                  .background(
+                    Color(
+                      UIColor { traitCollection in
+                        traitCollection.userInterfaceStyle == .dark ? .white : .black
+                      })
+                  )
+                  .foregroundColor(
+                    Color(
+                      UIColor { traitCollection in
+                        traitCollection.userInterfaceStyle == .dark ? .black : .white
+                      })
+                  )
+                  .cornerRadius(8)
+                  .bold()
+              }
+              .sheet(isPresented: $showWatchlistSheet) {
+                Text("Hello, World!")
+              }
+            }
+            Spacer()
           }
 
           Text(movieDetails!.title)
             .font(.title)
             .fontWeight(.bold)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal)
-
-          Button(action: {
-            showWatchlistSheet.toggle()
-          }) {
-            Text("Add to List")
-              .frame(maxWidth: .infinity)
-              .padding()
-              .background(
-                Color(
-                  UIColor { traitCollection in
-                    traitCollection.userInterfaceStyle == .dark ? .white : .black
-                  })
-              )
-              .foregroundColor(
-                Color(
-                  UIColor { traitCollection in
-                    traitCollection.userInterfaceStyle == .dark ? .black : .white
-                  })
-              )
-              .cornerRadius(8)
-              .bold()
-          }
-          .frame(width: UIScreen.main.bounds.width * 0.60)
-          .padding(.top, 10)
-          .sheet(isPresented: $showWatchlistSheet) {
-            Text("Hello, World!")
-          }
-
-          if let runtime = movieDetails?.runtime {
-            HStack {
-              Image(systemName: "clock")
-              Text("\(runtime) Minutes")
-            }
-            .font(.caption)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal)
-          }
         }
       } else {
         ProgressView("Loading Movie...")
