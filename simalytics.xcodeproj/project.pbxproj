@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		3484E2DF2D6FA411005D6775 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 3484E2DE2D6FA411005D6775 /* Kingfisher */; };
 		34CE995A2D6E528500580AE8 /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = 34CE99592D6E528500580AE8 /* SimpleKeychain */; };
+		7CB91517D96B46F0B1618000 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 910C0B921C474ACE9F4A7C1B /* Sentry */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 			files = (
 				3484E2DF2D6FA411005D6775 /* Kingfisher in Frameworks */,
 				34CE995A2D6E528500580AE8 /* SimpleKeychain in Frameworks */,
+				7CB91517D96B46F0B1618000 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -62,6 +64,8 @@
 				3427C2E62D6D20C60064B137 /* Sources */,
 				3427C2E72D6D20C60064B137 /* Frameworks */,
 				3427C2E82D6D20C60064B137 /* Resources */,
+				FB25CC4B9F3B46989755575B /* Upload Debug Symbols to Sentry */,
+				4ECEBB8EE8A04F26B5B6AC27 /* Upload Debug Symbols to Sentry */,
 			);
 			buildRules = (
 			);
@@ -74,6 +78,7 @@
 			packageProductDependencies = (
 				34CE99592D6E528500580AE8 /* SimpleKeychain */,
 				3484E2DE2D6FA411005D6775 /* Kingfisher */,
+				910C0B921C474ACE9F4A7C1B /* Sentry */,
 			);
 			productName = simalytics;
 			productReference = 3427C2EA2D6D20C60064B137 /* Simalytics.app */;
@@ -106,6 +111,7 @@
 			packageReferences = (
 				34CE99582D6E528500580AE8 /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
 				3484E2DD2D6FA411005D6775 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				C28ACD4032DD427BAD18A2EA /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3427C2EB2D6D20C60064B137 /* Products */;
@@ -294,6 +300,8 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 2.2;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = "NO";
 			};
 			name = Debug;
 		};
@@ -335,6 +343,8 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 2.2;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = "NO";
 			};
 			name = Release;
 		};
@@ -378,6 +388,14 @@
 				minimumVersion = 1.2.0;
 			};
 		};
+		C28ACD4032DD427BAD18A2EA /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa/";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -391,7 +409,30 @@
 			package = 34CE99582D6E528500580AE8 /* XCRemoteSwiftPackageReference "SimpleKeychain" */;
 			productName = SimpleKeychain;
 		};
+		910C0B921C474ACE9F4A7C1B /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C28ACD4032DD427BAD18A2EA /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
 /* End XCSwiftPackageProductDependency section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		4ECEBB8EE8A04F26B5B6AC27 /* Upload Debug Symbols to Sentry */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			name = "Upload Debug Symbols to Sentry";
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
+			);
+			outputPaths = (
+			);
+			shellPath = /bin/sh;
+			shellScript = "# This script is responsable to upload debug symbols and source context for Sentry.\nif which sentry-cli >/dev/null; then\nexport SENTRY_ORG=kyterdev\nexport SENTRY_PROJECT=simalytics\nERROR=$(sentry-cli debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH\" 2>&1 >/dev/null)\nif [ ! $? -eq 0 ]; then\necho \"warning: sentry-cli - $ERROR\"\nfi\nelse\necho \"warning: sentry-cli not installed, download from https://github.com/getsentry/sentry-cli/releases\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 	};
 	rootObject = 3427C2E22D6D20C60064B137 /* Project object */;
 }

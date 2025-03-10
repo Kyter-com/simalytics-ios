@@ -6,6 +6,7 @@
 //
 
 import Kingfisher
+import Sentry
 import SwiftUI
 
 struct HomeView: View {
@@ -111,7 +112,7 @@ struct HomeView: View {
         .navigationTitle("Up Next")
         .alert("Error Marking as Watched", isPresented: $showErrorAlert) {
           Button("OK", role: .cancel) {}
-          // TODO: Save to Sentry
+          SentrySDK.capture(error: error)
         } message: {
           Text("We've been alerted of the error. Please try again later.")
         }

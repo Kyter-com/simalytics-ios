@@ -6,6 +6,7 @@
 //
 
 import Kingfisher
+import Sentry
 import SwiftUI
 
 enum SearchCategory: String, Codable, CaseIterable, Identifiable, Hashable {
@@ -160,7 +161,7 @@ struct SearchResults: View {
       let results = try decoder.decode([SearchResult].self, from: data)
       return results
     } catch {
-      // TODO: Send to Sentry
+      SentrySDK.capture(error: error)
       return []
     }
   }

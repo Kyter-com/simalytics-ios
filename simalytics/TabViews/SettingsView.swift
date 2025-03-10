@@ -6,6 +6,7 @@
 //
 
 import AuthenticationServices
+import Sentry
 import SimpleKeychain
 import SwiftUI
 
@@ -138,7 +139,7 @@ struct SettingsView: View {
         }
         .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {
           Button("OK", role: .cancel) {}
-          // TODO: Save to Sentry
+          SentrySDK.capture(error: error)
         } message: {
           Text("We've been alerted of the error. Please try again later.")
         }

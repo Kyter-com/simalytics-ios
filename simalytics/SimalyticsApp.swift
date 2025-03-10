@@ -6,6 +6,7 @@
 //
 // swift-format ./Documents/GitHub/simalytics-ios/ -i -r && swift-format lint ./Documents/GitHub/simalytics-ios/ -r
 
+import Sentry
 import SimpleKeychain
 import SwiftUI
 
@@ -25,6 +26,13 @@ class Auth: ObservableObject {
 @main
 struct SimalyticsApp: App {
   @StateObject private var auth = Auth()
+
+  init() {
+    SentrySDK.start { options in
+      options.dsn =
+        "https://2f19a4a9e212e5ee432f16fa2e22780d@o507828.ingest.us.sentry.io/4508956076605440"
+    }
+  }
 
   var body: some Scene {
     WindowGroup {
