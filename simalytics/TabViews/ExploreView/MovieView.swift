@@ -9,7 +9,7 @@ import Kingfisher
 import SwiftUI
 
 struct MovieView: View {
-  @State private var movieDetails: MovieDetails?
+  @State private var movieDetails: MovieDetailsModel?
   var simkl_id: Int
   @State private var showWatchlistSheet = false
 
@@ -126,7 +126,7 @@ struct MovieView: View {
         return
       }
       let decoder = JSONDecoder()
-      let movieResponse = try decoder.decode(MovieDetails.self, from: data)
+      let movieResponse = try decoder.decode(MovieDetailsModel.self, from: data)
       if movieResponse.title != "" {
         movieDetails = movieResponse
       } else {
