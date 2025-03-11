@@ -12,7 +12,7 @@ struct ExploreView: View {
   @EnvironmentObject private var auth: Auth
   @State private var trendingShows: [TrendingShowModel] = []
   @State private var trendingMovies: [TrendingMovieModel] = []
-  @State private var trendingAnimes: [TrendingAnime] = []
+  @State private var trendingAnimes: [TrendingAnimeModel] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
   @State private var movieSyncItems: [MovieSyncItem] = []
@@ -263,7 +263,7 @@ struct ExploreView: View {
         return
       }
       let decoder = JSONDecoder()
-      let animesResponse = try decoder.decode([TrendingAnime].self, from: data)
+      let animesResponse = try decoder.decode([TrendingAnimeModel].self, from: data)
       if animesResponse.count > 0 {
         trendingAnimes = animesResponse
       } else {

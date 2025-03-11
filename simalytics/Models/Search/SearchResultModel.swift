@@ -1,5 +1,5 @@
 //
-//  SearchResultsModel.swift
+//  SearchResultModel.swift
 //  simalytics
 //
 //  Created by Nick Reisenauer on 3/3/25.
@@ -7,16 +7,14 @@
 
 import Foundation
 
-struct SearchResult: Codable {
+struct SearchResultModel: Codable {
   let title: String
   let year: Int?
   let poster: String?
   let endpoint_type: String
-  let ids: SearchResultIDs
+  let ids: SearchResultModel_ids
 }
 
-struct SearchResultIDs: Codable {
+struct SearchResultModel_ids: Codable {
   let simkl_id: Int
-  let slug: String
-  let tmdb: String?
 }

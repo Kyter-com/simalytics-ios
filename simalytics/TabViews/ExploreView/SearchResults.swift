@@ -20,7 +20,7 @@ enum SearchCategory: String, Codable, CaseIterable, Identifiable, Hashable {
 struct SearchResults: View {
   @Binding var searchText: String
   @Binding var searchCategory: SearchCategory
-  @State private var searchResults: [SearchResult] = []
+  @State private var searchResults: [SearchResultModel] = []
   @State private var debounceWorkItem: DispatchWorkItem?
 
   let columns = [
@@ -98,7 +98,7 @@ struct SearchResults: View {
     }
   }
 
-  private func destinationView(for searchResult: SearchResult) -> some View {
+  private func destinationView(for searchResult: SearchResultModel) -> some View {
     switch searchResult.endpoint_type {
     case "tv":
       return AnyView(ShowView())
@@ -137,7 +137,7 @@ struct SearchResults: View {
     }
   }
 
-  private func fetchResults(for searchText: String, type: String) async -> [SearchResult] {
+  private func fetchResults(for searchText: String, type: String) async -> [SearchResultModel] {
     do {
       var searchResultsURLComponents = URLComponents()
       searchResultsURLComponents.scheme = "https"
@@ -158,7 +158,7 @@ struct SearchResults: View {
         return []
       }
       let decoder = JSONDecoder()
-      let results = try decoder.decode([SearchResult].self, from: data)
+      let results = try decoder.decode([SearchResultModel].self, from: data)
       return results
     } catch {
       SentrySDK.capture(error: error)
