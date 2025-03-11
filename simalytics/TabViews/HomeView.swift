@@ -11,12 +11,12 @@ import SwiftUI
 
 struct HomeView: View {
   @EnvironmentObject private var auth: Auth
-  @State private var shows: [Show] = []
+  @State private var shows: [UpNextShowModel_show] = []
   @State private var searchText: String = ""
   @State private var showErrorAlert = false
   @State private var isFetching = true
 
-  var filteredShows: [Show] {
+  var filteredShows: [UpNextShowModel_show] {
     if searchText.isEmpty {
       return shows
     } else {
@@ -119,7 +119,7 @@ struct HomeView: View {
     }
   }
 
-  private func markAsWatched(show: Show) async {
+  private func markAsWatched(show: UpNextShowModel_show) async {
     do {
       var markWatchedURLComponents = URLComponents()
       markWatchedURLComponents.scheme = "https"
@@ -199,7 +199,7 @@ struct HomeView: View {
         }
 
         let decoder = JSONDecoder()
-        let showsResponse = try decoder.decode(ShowsResponse.self, from: data)
+        let showsResponse = try decoder.decode(UpNextShowModel.self, from: data)
         let filteredShows = showsResponse.shows.filter {
           $0.next_to_watch_info?.title?.isEmpty == false
         }

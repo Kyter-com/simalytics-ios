@@ -7,27 +7,26 @@
 
 import Foundation
 
-// TODO: Refactor at some point to follow naming conventions
-struct ShowsResponse: Decodable {
-  let shows: [Show]
+struct UpNextShowModel: Decodable {
+  let shows: [UpNextShowModel_show]
 }
 
-struct Show: Decodable {
-  let next_to_watch_info: NextToWatchInfo?
-  let show: ShowDetails
+struct UpNextShowModel_show: Decodable {
+  let next_to_watch_info: UpNextShowModel_next_to_watch_info?
+  let show: UpNextShowModel_show_details
 
-  struct NextToWatchInfo: Decodable {
+  struct UpNextShowModel_next_to_watch_info: Decodable {
     let title: String?
     let season: Int?
     let episode: Int?
   }
 
-  struct ShowDetails: Decodable {
+  struct UpNextShowModel_show_details: Decodable {
     let title: String
     let poster: String
-    let ids: IDs
+    let ids: UpNextShowModel_ids
 
-    struct IDs: Decodable {
+    struct UpNextShowModel_ids: Decodable {
       let simkl: Int
     }
   }
