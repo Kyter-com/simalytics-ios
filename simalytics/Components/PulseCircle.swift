@@ -28,3 +28,8 @@ struct PulseCircle: View {
     }
   }
 }
+
+#Preview {
+  PulseCircle(active: true)
+  PulseCircle(active: false)
+}
