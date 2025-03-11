@@ -1,5 +1,5 @@
 //
-//  UpNextShows.swift
+//  UpNextShowModel.swift
 //  simalytics
 //
 //  Created by Nick Reisenauer on 2/26/25.
