@@ -1,5 +1,5 @@
 //
-//  MovieSyncItem.swift
+//  MovieSyncItemModel.swift
 //  simalytics
 //
 //  Created by Nick Reisenauer on 3/8/25.
@@ -7,6 +7,6 @@
 
 import Foundation
 
-struct MovieSyncItem: Codable {
+struct MovieSyncItemModel: Codable {
   let status: String
 }
