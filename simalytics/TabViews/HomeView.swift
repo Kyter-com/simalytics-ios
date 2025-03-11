@@ -199,8 +199,8 @@ struct HomeView: View {
         }
 
         let decoder = JSONDecoder()
-          _ = try decoder.decode([Show].self, from: data)
-        let filteredShows = shows.filter {
+        let showsResponse = try decoder.decode(ShowsResponse.self, from: data)
+        let filteredShows = showsResponse.shows.filter {
           $0.next_to_watch_info?.title?.isEmpty == false
         }
         if filteredShows.count > 0 {
