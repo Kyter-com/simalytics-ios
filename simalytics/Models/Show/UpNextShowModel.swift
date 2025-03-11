@@ -7,6 +7,7 @@
 
 import Foundation
 
+// TODO: Refactor at some point to follow naming conventions
 struct ShowsResponse: Decodable {
   let shows: [Show]
 }
