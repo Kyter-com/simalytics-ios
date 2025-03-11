@@ -25,29 +25,7 @@ struct SettingsView: View {
             HStack {
               Text(auth.simklAccessToken.isEmpty ? "Not Connected" : "Connected")
               Spacer()
-              ZStack {
-                Circle()
-                  .fill(auth.simklAccessToken == "" ? Color.red : Color.green)
-                  .frame(width: 10, height: 10)
-                Circle()
-                  .fill(
-                    auth.simklAccessToken == "" ? Color.red.opacity(0.5) : Color.green.opacity(0.5)
-                  )
-                  .frame(width: 10, height: 10)
-                  .scaleEffect(isAnimating ? 2.5 : 1.0)
-                  .opacity(isAnimating ? 0.0 : 0.6)
-                  .animation(
-                    Animation.easeInOut(duration: 1.5)
-                      .repeatForever(autoreverses: false),
-                    value: isAnimating
-                  )
-              }
-              .onAppear {
-                isAnimating = true
-              }
-              .onDisappear {
-                isAnimating = false
-              }
+              PulseCircle(active: !auth.simklAccessToken.isEmpty)
             }
             if auth.simklAccessToken.isEmpty {
               Button("Sign In") {
