@@ -1,3 +1,10 @@
+//
+//  PulseCircle.swift
+//  simalytics
+//
+//  Created by Nick Reisenauer on 3/10/25.
+//
+
 import SwiftUI
 
 struct PulseCircle: View {
