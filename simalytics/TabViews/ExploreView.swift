@@ -15,7 +15,7 @@ struct ExploreView: View {
   @State private var trendingAnimes: [TrendingAnimeModel] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
-  @State private var movieSyncItems: [MovieSyncItem] = []
+  @State private var movieSyncItems: [MovieSyncItemModel] = []
 
   var body: some View {
     NavigationView {
@@ -295,7 +295,7 @@ struct ExploreView: View {
         return
       }
       let decoder = JSONDecoder()
-      let res = try decoder.decode([MovieSyncItem].self, from: data)
+      let res = try decoder.decode([MovieSyncItemModel].self, from: data)
       if res.count > 0 {
         movieSyncItems = res
       } else {
