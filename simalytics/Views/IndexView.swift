@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct MainView: View {
+struct IndexView: View {
   @State private var selectedTab = 0
 
   var body: some View {

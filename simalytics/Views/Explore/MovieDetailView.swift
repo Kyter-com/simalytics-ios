@@ -1,5 +1,5 @@
 //
-//  MovieView.swift
+//  MovieDetailView.swift
 //  simalytics
 //
 //  Created by Nick Reisenauer on 3/6/25.
@@ -8,7 +8,7 @@
 import Kingfisher
 import SwiftUI
 
-struct MovieView: View {
+struct MovieDetailView: View {
   @State private var movieDetails: MovieDetailsModel?
   var simkl_id: Int
   @State private var showWatchlistSheet = false
