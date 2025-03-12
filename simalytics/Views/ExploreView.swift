@@ -21,7 +21,7 @@ struct ExploreView: View {
     NavigationView {
       VStack {
         if !searchText.isEmpty {
-          SearchResults(searchText: $searchText, searchCategory: $searchCategory)
+          SearchResultsView(searchText: $searchText, searchCategory: $searchCategory)
         } else {
           ScrollView {
             VStack(alignment: .leading) {
@@ -87,7 +87,9 @@ struct ExploreView: View {
                   ScrollView(.horizontal, showsIndicators: true) {
                     HStack(spacing: 16) {
                       ForEach(trendingMovies, id: \.ids.simkl_id) { movieItem in
-                        NavigationLink(destination: MovieView(simkl_id: movieItem.ids.simkl_id)) {
+                        NavigationLink(
+                          destination: MovieDetailView(simkl_id: movieItem.ids.simkl_id)
+                        ) {
                           VStack {
                             KFImage(
                               URL(

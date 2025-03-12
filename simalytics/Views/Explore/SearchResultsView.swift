@@ -17,7 +17,7 @@ enum SearchCategory: String, Codable, CaseIterable, Identifiable, Hashable {
   var id: String { rawValue }
 }
 
-struct SearchResults: View {
+struct SearchResultsView: View {
   @Binding var searchText: String
   @Binding var searchCategory: SearchCategory
   @State private var searchResults: [SearchResultModel] = []
@@ -101,11 +101,11 @@ struct SearchResults: View {
   private func destinationView(for searchResult: SearchResultModel) -> some View {
     switch searchResult.endpoint_type {
     case "tv":
-      return AnyView(ShowView())
+      return AnyView(ShowDetailView())
     case "movies":
       return AnyView(MovieDetailView(simkl_id: searchResult.ids.simkl_id))
     case "anime":
-      return AnyView(AnimeView())
+      return AnyView(AnimeDetailView())
     default:
       return AnyView(Text("Unknown type"))
     }
