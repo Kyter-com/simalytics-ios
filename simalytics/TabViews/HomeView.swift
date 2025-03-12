@@ -11,18 +11,19 @@ import SwiftUI
 
 struct HomeView: View {
   @EnvironmentObject private var auth: Auth
+  @State private var viewModel = ViewModel()
   @State private var shows: [UpNextShowModel_show] = []
-  @State private var searchText: String = ""
   @State private var showErrorAlert = false
   @State private var isFetching = true
 
   var filteredShows: [UpNextShowModel_show] {
-    if searchText.isEmpty {
+    if viewModel.searchText.isEmpty {
       return shows
     } else {
       return shows.filter { show in
-        show.show.title.localizedCaseInsensitiveContains(searchText)
-          || (show.next_to_watch_info?.title?.localizedCaseInsensitiveContains(searchText) ?? false)
+        show.show.title.localizedCaseInsensitiveContains(viewModel.searchText)
+          || (show.next_to_watch_info?.title?.localizedCaseInsensitiveContains(viewModel.searchText)
+            ?? false)
       }
     }
   }
@@ -102,7 +103,7 @@ struct HomeView: View {
             }
           }
         }
-        .searchable(text: $searchText, placement: .automatic)
+        .searchable(text: $viewModel.searchText, placement: .automatic)
         .refreshable {
           await fetchShows()
         }
