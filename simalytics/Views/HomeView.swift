@@ -50,10 +50,8 @@ struct HomeView: View {
           } else {
             List(filteredShows, id: \.show.ids.simkl) { showItem in
               HStack {
-                // TODO: Const image urls
                 CustomKFImage(
-                  imageUrlString:
-                    "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_m.jpg",
+                  imageUrlString: "\(SIMKL_CDN_URL)/posters/\(showItem.show.poster)_m.jpg",
                   memoryCacheOnly: false,
                   height: 110.71,
                   width: 75
