@@ -28,73 +28,62 @@ struct HomeView: View {
 
   var body: some View {
     NavigationView {
-      if auth.simklAccessToken.isEmpty {
-        ContentUnavailableView {
-          Label("Not logged in to Simkl", systemImage: "person.badge.shield.exclamationmark")
-        } description: {
-          Text("Go to Settings to log in to Simkl!")
-        }
-        .navigationTitle("Up Next")
-      } else {
-        Group {
-          List(filteredShows, id: \.show.ids.simkl) { showItem in
-            HStack {
-              CustomKFImage(
-                imageUrlString: "\(SIMKL_CDN_URL)/posters/\(showItem.show.poster)_m.jpg",
-                memoryCacheOnly: false,
-                height: 110.71,
-                width: 75
-              )
+      List(filteredShows, id: \.show.ids.simkl) { showItem in
+        HStack {
+          CustomKFImage(
+            imageUrlString: "\(SIMKL_CDN_URL)/posters/\(showItem.show.poster)_m.jpg",
+            memoryCacheOnly: false,
+            height: 110.71,
+            width: 75
+          )
 
-              VStack(alignment: .leading) {
-                Text(showItem.show.title)
-                  .font(.headline)
-                  .padding(.top, 8)
-                if let title = showItem.next_to_watch_info?.title {
-                  Text(title)
-                    .font(.subheadline)
-                }
-                Spacer()
-                if let season = showItem.next_to_watch_info?.season {
-                  Text("Season \(season)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                }
-                if let episode = showItem.next_to_watch_info?.episode {
-                  Text("Episode \(episode)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                }
-                Spacer()
-              }
+          VStack(alignment: .leading) {
+            Text(showItem.show.title)
+              .font(.headline)
+              .padding(.top, 8)
+            if let title = showItem.next_to_watch_info?.title {
+              Text(title)
+                .font(.subheadline)
             }
-            .swipeActions(edge: .trailing) {
-              Button {
-                Task {
-                  await markAsWatched(show: showItem)
-                }
-              } label: {
-                Label("Watched", systemImage: "checkmark.circle")
-              }
-              .tint(.green)
+            Spacer()
+            if let season = showItem.next_to_watch_info?.season {
+              Text("Season \(season)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
             }
-
+            if let episode = showItem.next_to_watch_info?.episode {
+              Text("Episode \(episode)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            }
+            Spacer()
           }
         }
-        .searchable(text: $searchText, placement: .automatic)
-        .refreshable {
-          await fetchShows()
-        }
-        .task {
-          await fetchShows()
-        }
-        .navigationTitle("Up Next")
-        .alert("Error Marking as Watched", isPresented: $showErrorAlert) {
-          Button("OK", role: .cancel) {}
-        } message: {
-          Text("We've been alerted of the error. Please try again later.")
+        .swipeActions(edge: .trailing) {
+          Button {
+            Task {
+              await markAsWatched(show: showItem)
+            }
+          } label: {
+            Label("Watched", systemImage: "checkmark.circle")
+          }
+          .tint(.green)
         }
       }
+      .listStyle(.inset)
+      .searchable(text: $searchText, placement: .automatic)
+      .refreshable {
+        await fetchShows()
+      }
+      .task {
+        await fetchShows()
+      }
+      .alert("Error Marking as Watched", isPresented: $showErrorAlert) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text("We've been alerted of the error. Please try again later.")
+      }
+      .navigationTitle("Up Next")
     }
   }
 
