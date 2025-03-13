@@ -5,7 +5,6 @@
 //  Created by Nick Reisenauer on 2/24/25.
 //
 
-import Kingfisher
 import SwiftUI
 
 struct HomeView: View {
