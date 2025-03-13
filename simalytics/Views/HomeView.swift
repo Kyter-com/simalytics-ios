@@ -11,19 +11,17 @@ import SwiftUI
 
 struct HomeView: View {
   @EnvironmentObject private var auth: Auth
-  @State private var viewModel = ViewModel()
   @State private var shows: [UpNextShowModel_show] = []
+  @State private var searchText: String = ""
   @State private var showErrorAlert = false
-  @State private var isFetching = true
 
   var filteredShows: [UpNextShowModel_show] {
-    if viewModel.searchText.isEmpty {
+    if searchText.isEmpty {
       return shows
     } else {
       return shows.filter { show in
-        show.show.title.localizedCaseInsensitiveContains(viewModel.searchText)
-          || (show.next_to_watch_info?.title?.localizedCaseInsensitiveContains(viewModel.searchText)
-            ?? false)
+        show.show.title.localizedCaseInsensitiveContains(searchText)
+          || (show.next_to_watch_info?.title?.localizedCaseInsensitiveContains(searchText) ?? false)
       }
     }
   }
@@ -39,60 +37,51 @@ struct HomeView: View {
         .navigationTitle("Up Next")
       } else {
         Group {
-          if isFetching {
-            ProgressView("Fetching Shows...")
-          } else if filteredShows.isEmpty {
-            ContentUnavailableView {
-              Label("No shows to display", systemImage: "tv.slash")
-            } description: {
-              Text("Try refreshing or adding shows to your watchlist.")
-            }
-          } else {
-            List(filteredShows, id: \.show.ids.simkl) { showItem in
-              HStack {
-                CustomKFImage(
-                  imageUrlString: "\(SIMKL_CDN_URL)/posters/\(showItem.show.poster)_m.jpg",
-                  memoryCacheOnly: false,
-                  height: 110.71,
-                  width: 75
-                )
+          List(filteredShows, id: \.show.ids.simkl) { showItem in
+            HStack {
+              CustomKFImage(
+                imageUrlString: "\(SIMKL_CDN_URL)/posters/\(showItem.show.poster)_m.jpg",
+                memoryCacheOnly: false,
+                height: 110.71,
+                width: 75
+              )
 
-                VStack(alignment: .leading) {
-                  Text(showItem.show.title)
-                    .font(.headline)
-                    .padding(.top, 8)
-                  if let title = showItem.next_to_watch_info?.title {
-                    Text(title)
-                      .font(.subheadline)
-                  }
-                  Spacer()
-                  if let season = showItem.next_to_watch_info?.season {
-                    Text("Season \(season)")
-                      .font(.subheadline)
-                      .foregroundColor(.secondary)
-                  }
-                  if let episode = showItem.next_to_watch_info?.episode {
-                    Text("Episode \(episode)")
-                      .font(.subheadline)
-                      .foregroundColor(.secondary)
-                  }
-                  Spacer()
+              VStack(alignment: .leading) {
+                Text(showItem.show.title)
+                  .font(.headline)
+                  .padding(.top, 8)
+                if let title = showItem.next_to_watch_info?.title {
+                  Text(title)
+                    .font(.subheadline)
                 }
-              }
-              .swipeActions(edge: .trailing) {
-                Button {
-                  Task {
-                    await markAsWatched(show: showItem)
-                  }
-                } label: {
-                  Label("Watched", systemImage: "checkmark.circle")
+                Spacer()
+                if let season = showItem.next_to_watch_info?.season {
+                  Text("Season \(season)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
                 }
-                .tint(.green)
+                if let episode = showItem.next_to_watch_info?.episode {
+                  Text("Episode \(episode)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                }
+                Spacer()
               }
             }
+            .swipeActions(edge: .trailing) {
+              Button {
+                Task {
+                  await markAsWatched(show: showItem)
+                }
+              } label: {
+                Label("Watched", systemImage: "checkmark.circle")
+              }
+              .tint(.green)
+            }
+
           }
         }
-        .searchable(text: $viewModel.searchText, placement: .automatic)
+        .searchable(text: $searchText, placement: .automatic)
         .refreshable {
           await fetchShows()
         }
@@ -165,7 +154,6 @@ struct HomeView: View {
   private func fetchShows() async {
     do {
       if !auth.simklAccessToken.isEmpty {
-        isFetching = true
         var upNextURLComponents = URLComponents()
         upNextURLComponents.scheme = "https"
         upNextURLComponents.host = "api.simkl.com"
@@ -195,23 +183,14 @@ struct HomeView: View {
         }
         if filteredShows.count > 0 {
           shows = filteredShows
-          isFetching = false
         } else {
           shows = []
-          isFetching = false
         }
       } else {
         shows = []
-        isFetching = false
       }
     } catch {
       shows = []
-      isFetching = false
     }
   }
-}
-
-#Preview {
-  HomeView()
-    .environmentObject(Auth())
 }
