@@ -13,7 +13,6 @@ struct HomeView: View {
   @EnvironmentObject private var auth: Auth
   @State private var shows: [UpNextShowModel_show] = []
   @State private var searchText: String = ""
-  @State private var showErrorAlert = false
 
   var filteredShows: [UpNextShowModel_show] {
     if searchText.isEmpty {
@@ -61,9 +60,7 @@ struct HomeView: View {
         }
         .swipeActions(edge: .trailing) {
           Button {
-            Task {
-              await markAsWatched(show: showItem)
-            }
+            Task { await markAsWatched(show: showItem) }
           } label: {
             Label("Watched", systemImage: "checkmark.circle")
           }
@@ -72,17 +69,8 @@ struct HomeView: View {
       }
       .listStyle(.inset)
       .searchable(text: $searchText, placement: .automatic)
-      .refreshable {
-        await fetchShows()
-      }
-      .task {
-        await fetchShows()
-      }
-      .alert("Error Marking as Watched", isPresented: $showErrorAlert) {
-        Button("OK", role: .cancel) {}
-      } message: {
-        Text("We've been alerted of the error. Please try again later.")
-      }
+      .refreshable { await fetchShows() }
+      .task { await fetchShows() }
       .navigationTitle("Up Next")
     }
   }
@@ -128,53 +116,42 @@ struct HomeView: View {
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       let (_, response) = try await URLSession.shared.data(for: request)
       guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201
-      else {
-        showErrorAlert = true
-        return
-      }
+      else { return }
       await fetchShows()
-      return
-    } catch {
-      showErrorAlert = true
-      return
-    }
+    } catch { return }
   }
 
   private func fetchShows() async {
     do {
-      if !auth.simklAccessToken.isEmpty {
-        var upNextURLComponents = URLComponents()
-        upNextURLComponents.scheme = "https"
-        upNextURLComponents.host = "api.simkl.com"
-        upNextURLComponents.path = "/sync/all-items/shows/watching"
-        upNextURLComponents.queryItems = [
-          URLQueryItem(name: "episode_watched_at", value: "yes"),
-          URLQueryItem(name: "memos", value: "yes"),
-          URLQueryItem(name: "next_watch_info", value: "yes"),
-        ]
-        var request = URLRequest(url: upNextURLComponents.url!)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(
-          "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
-          forHTTPHeaderField: "simkl-api-key")
-        request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-          shows = []
-          return
-        }
+      var upNextURLComponents = URLComponents()
+      upNextURLComponents.scheme = "https"
+      upNextURLComponents.host = "api.simkl.com"
+      upNextURLComponents.path = "/sync/all-items/shows/watching"
+      upNextURLComponents.queryItems = [
+        URLQueryItem(name: "episode_watched_at", value: "yes"),
+        URLQueryItem(name: "memos", value: "yes"),
+        URLQueryItem(name: "next_watch_info", value: "yes"),
+      ]
+      var request = URLRequest(url: upNextURLComponents.url!)
+      request.httpMethod = "GET"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.setValue(
+        "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
+        forHTTPHeaderField: "simkl-api-key")
+      request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
+      let (data, response) = try await URLSession.shared.data(for: request)
+      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        shows = []
+        return
+      }
 
-        let decoder = JSONDecoder()
-        let showsResponse = try decoder.decode(UpNextShowModel.self, from: data)
-        let filteredShows = showsResponse.shows.filter {
-          $0.next_to_watch_info?.title?.isEmpty == false
-        }
-        if filteredShows.count > 0 {
-          shows = filteredShows
-        } else {
-          shows = []
-        }
+      let decoder = JSONDecoder()
+      let showsResponse = try decoder.decode(UpNextShowModel.self, from: data)
+      let filteredShows = showsResponse.shows.filter {
+        $0.next_to_watch_info?.title?.isEmpty == false
+      }
+      if filteredShows.count > 0 {
+        shows = filteredShows
       } else {
         shows = []
       }
