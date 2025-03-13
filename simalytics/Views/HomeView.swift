@@ -13,7 +13,6 @@ struct HomeView: View {
   @EnvironmentObject private var auth: Auth
   @State private var shows: [UpNextShowModel_show] = []
   @State private var searchText: String = ""
-
   var filteredShows: [UpNextShowModel_show] {
     if searchText.isEmpty {
       return shows
@@ -60,7 +59,10 @@ struct HomeView: View {
         }
         .swipeActions(edge: .trailing) {
           Button {
-            Task { await markAsWatched(show: showItem) }
+            Task {
+              await markAsWatched(show: showItem, accessToken: auth.simklAccessToken)
+              await fetchShows()
+            }
           } label: {
             Label("Watched", systemImage: "checkmark.circle")
           }
@@ -73,52 +75,6 @@ struct HomeView: View {
       .task { await fetchShows() }
       .navigationTitle("Up Next")
     }
-  }
-
-  private func markAsWatched(show: UpNextShowModel_show) async {
-    do {
-      var markWatchedURLComponents = URLComponents()
-      markWatchedURLComponents.scheme = "https"
-      markWatchedURLComponents.host = "api.simkl.com"
-      markWatchedURLComponents.path = "/sync/history"
-
-      var request = URLRequest(url: markWatchedURLComponents.url!)
-      request.httpMethod = "POST"
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(
-        "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
-        forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
-
-      let formatter = ISO8601DateFormatter()
-      let dateString = formatter.string(from: Date())
-      let body: [String: Any] = [
-        "shows": [
-          [
-            "title": show.show.title,
-            "ids": [
-              "simkl": show.show.ids.simkl
-            ],
-            "seasons": [
-              [
-                "number": show.next_to_watch_info?.season ?? 0,
-                "episodes": [
-                  [
-                    "number": show.next_to_watch_info?.episode ?? 0,
-                    "watched_at": dateString,
-                  ]
-                ],
-              ]
-            ],
-          ]
-        ]
-      ]
-      request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      let (_, response) = try await URLSession.shared.data(for: request)
-      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201
-      else { return }
-      await fetchShows()
-    } catch { return }
   }
 
   private func fetchShows() async {
