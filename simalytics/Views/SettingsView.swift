@@ -14,8 +14,6 @@ struct SettingsView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
   @State private var showErrorAlert = false
-  @State private var loadingAccessToken: Bool = false
-  @State private var isAnimating = false
 
   var body: some View {
     NavigationView {
@@ -31,8 +29,6 @@ struct SettingsView: View {
               Button("Sign In") {
                 Task {
                   do {
-                    loadingAccessToken = true
-
                     var oAuthURLComponents = URLComponents()
                     oAuthURLComponents.scheme = "https"
                     oAuthURLComponents.host = "simkl.com"
@@ -91,10 +87,7 @@ struct SettingsView: View {
                     let simpleKeychain = SimpleKeychain()
                     try simpleKeychain.set(accessToken, forKey: "simkl-access-token")
                     auth.simklAccessToken = accessToken
-
-                    loadingAccessToken = false
                   } catch {
-                    loadingAccessToken = false
                     showErrorAlert = true
                   }
                 }
