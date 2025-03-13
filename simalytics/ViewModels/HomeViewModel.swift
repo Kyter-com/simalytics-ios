@@ -5,13 +5,6 @@
 //  Created by Nick Reisenauer on 3/11/25.
 //
 
-//
-//  ShowUtilities.swift
-//  simalytics
-//
-//  Created by Nick Reisenauer on 3/11/25.
-//
-
 import Foundation
 import Sentry
 
@@ -62,6 +55,44 @@ extension HomeView {
     } catch {
       SentrySDK.capture(error: error)
       return
+    }
+  }
+
+  func fetchShows(accessToken: String) async -> [UpNextShowModel_show] {
+    do {
+      var upNextURLComponents = URLComponents()
+      upNextURLComponents.scheme = "https"
+      upNextURLComponents.host = "api.simkl.com"
+      upNextURLComponents.path = "/sync/all-items/shows/watching"
+      upNextURLComponents.queryItems = [
+        URLQueryItem(name: "episode_watched_at", value: "yes"),
+        URLQueryItem(name: "memos", value: "yes"),
+        URLQueryItem(name: "next_watch_info", value: "yes"),
+      ]
+      var request = URLRequest(url: upNextURLComponents.url!)
+      request.httpMethod = "GET"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.setValue(
+        "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
+        forHTTPHeaderField: "simkl-api-key")
+      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      let (data, response) = try await URLSession.shared.data(for: request)
+      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        return []
+      }
+
+      let decoder = JSONDecoder()
+      let showsResponse = try decoder.decode(UpNextShowModel.self, from: data)
+      let filteredShows = showsResponse.shows.filter {
+        $0.next_to_watch_info?.title?.isEmpty == false
+      }
+      if filteredShows.count > 0 {
+        return filteredShows
+      } else {
+        return []
+      }
+    } catch {
+      return []
     }
   }
 }
