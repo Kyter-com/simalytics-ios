@@ -14,12 +14,8 @@ extension HomeView {
     accessToken: String
   ) async {
     do {
-      var markWatchedURLComponents = URLComponents()
-      markWatchedURLComponents.scheme = "https"
-      markWatchedURLComponents.host = "api.simkl.com"
-      markWatchedURLComponents.path = "/sync/history"
-
-      var request = URLRequest(url: markWatchedURLComponents.url!)
+      let url = URL(string: "https://api.simkl.com/sync/history")!
+      var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue(
@@ -54,7 +50,6 @@ extension HomeView {
       _ = try await URLSession.shared.data(for: request)
     } catch {
       SentrySDK.capture(error: error)
-      return
     }
   }
 
