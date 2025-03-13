@@ -6,7 +6,6 @@
 //
 
 import Kingfisher
-import Sentry
 import SwiftUI
 
 struct HomeView: View {
