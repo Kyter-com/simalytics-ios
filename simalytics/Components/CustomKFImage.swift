@@ -9,19 +9,22 @@ import Kingfisher
 import SwiftUI
 
 struct CustomKFImage: View {
-  let url: URL
-  let memoryCacheOnly: Bool = true
+  let imageUrlString: String
+  let memoryCacheOnly: Bool
   let height: CGFloat
   let width: CGFloat
 
   var body: some View {
-    customKFImage(url)
+    KFImage(URL(string: imageUrlString)!)
       .fade(duration: 0.33)
       .placeholder {
         ProgressView()
       }
       .resizable()
       .serialize(as: .JPEG)
+      .cacheMemoryOnly(memoryCacheOnly)
+      .memoryCacheExpiration(.days(7))
+      .diskCacheExpiration(.days(30))
       .aspectRatio(contentMode: .fit)
       .frame(width: width, height: height)
       .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -29,20 +32,5 @@ struct CustomKFImage: View {
         RoundedRectangle(cornerRadius: 8)
           .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
       )
-  }
-
-  private func customKFImage(_ url: URL) -> KFImage {
-    var options: KingfisherOptionsInfo = [
-      .forceTransition,
-      .keepCurrentImageWhileLoading,
-      .diskCacheExpiration(.days(30)),
-      .memoryCacheExpiration(.days(7)),
-    ]
-    if memoryCacheOnly {
-      options.append(.cacheMemoryOnly)
-    }
-    let result = KFImage(url)
-    result.options = KingfisherParsedOptionsInfo(options)
-    return result
   }
 }

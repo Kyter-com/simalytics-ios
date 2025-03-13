@@ -50,22 +50,13 @@ struct HomeView: View {
           } else {
             List(filteredShows, id: \.show.ids.simkl) { showItem in
               HStack {
-                KFImage(
-                  URL(
-                    string:
-                      "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_m.jpg"
-                  )
-                )
-                .placeholder {
-                  ProgressView()
-                }
-                .resizable()
-                .serialize(as: .JPEG)
-                .frame(width: 75, height: 110.71)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .background(
-                  RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(UIColor.systemBackground))
+                // TODO: Const image urls
+                CustomKFImage(
+                  imageUrlString:
+                    "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.show.poster)_m.jpg",
+                  memoryCacheOnly: false,
+                  height: 110.71,
+                  width: 75
                 )
 
                 VStack(alignment: .leading) {
