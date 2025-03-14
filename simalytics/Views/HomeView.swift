@@ -16,8 +16,8 @@ struct HomeView: View {
       return shows
     } else {
       return shows.filter { show in
-        show.show.title.localizedCaseInsensitiveContains(searchText)
-          || (show.next_to_watch_info?.title?.localizedCaseInsensitiveContains(searchText) ?? false)
+        show.show.title.localizedStandardContains(searchText)
+          || (show.next_to_watch_info?.title?.localizedStandardContains(searchText) ?? false)
       }
     }
   }
