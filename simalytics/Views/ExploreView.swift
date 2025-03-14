@@ -35,7 +35,7 @@ struct ExploreView: View {
                   Task {
                     await getTrendingShows()
                     trendingMovies = await ExploreView.getTrendingMovies()
-                    await getTrendingAnimes()
+                    trendingAnimes = await ExploreView.getTrendingAnimes()
                     await getMovieSyncItems()
                   }
                 }
@@ -207,39 +207,6 @@ struct ExploreView: View {
       }
     } catch {
       trendingShows = []
-      return
-    }
-  }
-
-  private func getTrendingAnimes() async {
-    do {
-      var trendingAnimesURLComponents = URLComponents()
-      trendingAnimesURLComponents.scheme = "https"
-      trendingAnimesURLComponents.host = "api.simkl.com"
-      trendingAnimesURLComponents.path = "/anime/trending"
-      trendingAnimesURLComponents.queryItems = [
-        URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres,trailer"),
-        URLQueryItem(
-          name: "client_id",
-          value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
-      ]
-      var request = URLRequest(url: trendingAnimesURLComponents.url!)
-      request.httpMethod = "GET"
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-        trendingAnimes = []
-        return
-      }
-      let decoder = JSONDecoder()
-      let animesResponse = try decoder.decode([TrendingAnimeModel].self, from: data)
-      if animesResponse.count > 0 {
-        trendingAnimes = animesResponse
-      } else {
-        trendingAnimes = []
-      }
-    } catch {
-      trendingAnimes = []
       return
     }
   }
