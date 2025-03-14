@@ -18,9 +18,7 @@ extension HomeView {
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(
-        "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
-        forHTTPHeaderField: "simkl-api-key")
+      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
       let formatter = ISO8601DateFormatter()
