@@ -58,8 +58,8 @@ struct HomeView: View {
         .swipeActions(edge: .trailing) {
           Button {
             Task {
-              await markAsWatched(show: showItem, accessToken: auth.simklAccessToken)
-              shows = await fetchShows(accessToken: auth.simklAccessToken)
+              await HomeView.markAsWatched(show: showItem, accessToken: auth.simklAccessToken)
+              shows = await HomeView.fetchShows(accessToken: auth.simklAccessToken)
             }
           } label: {
             Label("Watched", systemImage: "checkmark.circle")
@@ -70,9 +70,9 @@ struct HomeView: View {
       .listStyle(.inset)
       .searchable(text: $searchText, placement: .automatic)
       .refreshable {
-        shows = await fetchShows(accessToken: auth.simklAccessToken)
+        shows = await HomeView.fetchShows(accessToken: auth.simklAccessToken)
       }
-      .task { shows = await fetchShows(accessToken: auth.simklAccessToken) }
+      .task { shows = await HomeView.fetchShows(accessToken: auth.simklAccessToken) }
       .navigationTitle("Up Next")
     }
   }

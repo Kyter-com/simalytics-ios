@@ -9,7 +9,7 @@ import Foundation
 import Sentry
 
 extension HomeView {
-  func markAsWatched(
+  static func markAsWatched(
     show: UpNextShowModel_show,
     accessToken: String
   ) async {
@@ -53,7 +53,7 @@ extension HomeView {
     }
   }
 
-  func fetchShows(accessToken: String) async -> [UpNextShowModel_show] {
+  static func fetchShows(accessToken: String) async -> [UpNextShowModel_show] {
     do {
       var urlComponents = URLComponents(
         string: "https://api.simkl.com/sync/all-items/shows/watching")!

@@ -34,7 +34,7 @@ struct ExploreView: View {
                 .onAppear {
                   Task {
                     await getTrendingShows()
-                    trendingMovies = await getTrendingMovies()
+                    trendingMovies = await ExploreView.getTrendingMovies()
                     await getTrendingAnimes()
                     await getMovieSyncItems()
                   }

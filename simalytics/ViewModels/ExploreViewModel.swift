@@ -9,7 +9,7 @@ import Foundation
 import Sentry
 
 extension ExploreView {
-  func getTrendingMovies() async -> [TrendingMovieModel] {
+  static func getTrendingMovies() async -> [TrendingMovieModel] {
     do {
       var urlComponents = URLComponents(string: "https://api.simkl.com/movies/trending")!
       urlComponents.queryItems = [
