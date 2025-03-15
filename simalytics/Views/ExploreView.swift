@@ -47,22 +47,12 @@ struct ExploreView: View {
                     HStack(spacing: 16) {
                       ForEach(trendingShows, id: \.ids.simkl_id) { showItem in
                         VStack {
-                          KFImage(
-                            URL(
-                              string:
-                                "https://wsrv.nl/?url=https://simkl.in/posters/\(showItem.poster)_m.jpg"
-                            )
-                          )
-                          .placeholder {
-                            ProgressView()
-                          }
-                          .resizable()
-                          .serialize(as: .JPEG)
-                          .frame(width: 100, height: 147.62)
-                          .clipShape(RoundedRectangle(cornerRadius: 8))
-                          .background(
-                            RoundedRectangle(cornerRadius: 8)
-                              .fill(Color(UIColor.systemBackground))
+                          CustomKFImage(
+                            imageUrlString:
+                              "\(SIMKL_CDN_URL)/posters/\(showItem.poster)_m.jpg",
+                            memoryCacheOnly: true,
+                            height: 147.62,
+                            width: 100
                           )
                           Text(showItem.title)
                             .font(.subheadline)
@@ -89,22 +79,12 @@ struct ExploreView: View {
                           destination: MovieDetailView(simkl_id: movieItem.ids.simkl_id)
                         ) {
                           VStack {
-                            KFImage(
-                              URL(
-                                string:
-                                  "https://wsrv.nl/?url=https://simkl.in/posters/\(movieItem.poster)_m.jpg"
-                              )
-                            )
-                            .placeholder {
-                              ProgressView()
-                            }
-                            .resizable()
-                            .serialize(as: .JPEG)
-                            .frame(width: 100, height: 147.62)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .background(
-                              RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(UIColor.systemBackground))
+                            CustomKFImage(
+                              imageUrlString:
+                                "\(SIMKL_CDN_URL)/posters/\(movieItem.poster)_m.jpg",
+                              memoryCacheOnly: true,
+                              height: 147.62,
+                              width: 100
                             )
                             Text(movieItem.title)
                               .font(.subheadline)
@@ -130,22 +110,12 @@ struct ExploreView: View {
                     HStack(spacing: 16) {
                       ForEach(trendingAnimes, id: \.ids.simkl_id) { animeItem in
                         VStack {
-                          KFImage(
-                            URL(
-                              string:
-                                "https://wsrv.nl/?url=https://simkl.in/posters/\(animeItem.poster)_m.jpg"
-                            )
-                          )
-                          .placeholder {
-                            ProgressView()
-                          }
-                          .resizable()
-                          .serialize(as: .JPEG)
-                          .frame(width: 100, height: 147.62)
-                          .clipShape(RoundedRectangle(cornerRadius: 8))
-                          .background(
-                            RoundedRectangle(cornerRadius: 8)
-                              .fill(Color(UIColor.systemBackground))
+                          CustomKFImage(
+                            imageUrlString:
+                              "\(SIMKL_CDN_URL)/posters/\(animeItem.poster)_m.jpg",
+                            memoryCacheOnly: true,
+                            height: 147.62,
+                            width: 100
                           )
                           Text(animeItem.title)
                             .font(.subheadline)
@@ -159,7 +129,6 @@ struct ExploreView: View {
                     .padding([.leading, .trailing, .bottom])
                   }
                 }
-
                 Spacer()
               }
             }
