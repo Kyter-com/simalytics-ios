@@ -24,124 +24,117 @@ struct ExploreView: View {
         } else {
           ScrollView {
             VStack(alignment: .leading) {
-              if trendingShows.isEmpty && trendingMovies.isEmpty && trendingAnimes.isEmpty {
-                ContentUnavailableView {
-                  ProgressView()
-                } description: {
-                  Text("Loading Trending Data")
-                }
-                .onAppear {
-                  Task {
-                    trendingShows = await ExploreView.getTrendingShows()
-                    trendingMovies = await ExploreView.getTrendingMovies()
-                    trendingAnimes = await ExploreView.getTrendingAnimes()
-                  }
-                }
-              } else {
-                Group {
-                  Text("Trending Shows")
-                    .font(.title2)
-                    .bold()
-                    .padding([.top, .leading])
-                  ScrollView(.horizontal, showsIndicators: true) {
-                    HStack(spacing: 16) {
-                      ForEach(trendingShows, id: \.ids.simkl_id) { showItem in
-                        VStack {
-                          CustomKFImage(
-                            imageUrlString:
-                              "\(SIMKL_CDN_URL)/posters/\(showItem.poster)_m.jpg",
-                            memoryCacheOnly: true,
-                            height: 147.62,
-                            width: 100
-                          )
-                          Text(showItem.title)
-                            .font(.subheadline)
-                            .padding(.top, 4)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(width: 100)
-                        }
-                      }
-                    }
-                    .padding([.leading, .trailing, .bottom])
-                  }
-                }
 
-                Group {
-                  Text("Trending Movies")
-                    .font(.title2)
-                    .bold()
-                    .padding([.top, .leading])
-                  ScrollView(.horizontal, showsIndicators: true) {
-                    HStack(spacing: 16) {
-                      ForEach(trendingMovies, id: \.ids.simkl_id) { movieItem in
-                        NavigationLink(
-                          destination: MovieDetailView(simkl_id: movieItem.ids.simkl_id)
-                        ) {
-                          VStack {
-                            CustomKFImage(
-                              imageUrlString:
-                                "\(SIMKL_CDN_URL)/posters/\(movieItem.poster)_m.jpg",
-                              memoryCacheOnly: true,
-                              height: 147.62,
-                              width: 100
-                            )
-                            Text(movieItem.title)
-                              .font(.subheadline)
-                              .padding(.top, 4)
-                              .lineLimit(1)
-                              .truncationMode(.tail)
-                              .frame(width: 100)
-                          }
-                        }
-                        .buttonStyle(.plain)
+              Group {
+                Text("Trending Shows")
+                  .font(.title2)
+                  .bold()
+                  .padding([.top, .leading])
+                ScrollView(.horizontal, showsIndicators: true) {
+                  HStack(spacing: 16) {
+                    ForEach(trendingShows, id: \.ids.simkl_id) { showItem in
+                      VStack {
+                        CustomKFImage(
+                          imageUrlString:
+                            "\(SIMKL_CDN_URL)/posters/\(showItem.poster)_m.jpg",
+                          memoryCacheOnly: true,
+                          height: 147.62,
+                          width: 100
+                        )
+                        Text(showItem.title)
+                          .font(.subheadline)
+                          .padding(.top, 4)
+                          .lineLimit(1)
+                          .truncationMode(.tail)
+                          .frame(width: 100)
                       }
                     }
-                    .padding([.leading, .trailing, .bottom])
                   }
+                  .padding([.leading, .trailing, .bottom])
                 }
-
-                Group {
-                  Text("Trending Animes")
-                    .font(.title2)
-                    .bold()
-                    .padding([.top, .leading])
-                  ScrollView(.horizontal, showsIndicators: true) {
-                    HStack(spacing: 16) {
-                      ForEach(trendingAnimes, id: \.ids.simkl_id) { animeItem in
-                        VStack {
-                          CustomKFImage(
-                            imageUrlString:
-                              "\(SIMKL_CDN_URL)/posters/\(animeItem.poster)_m.jpg",
-                            memoryCacheOnly: true,
-                            height: 147.62,
-                            width: 100
-                          )
-                          Text(animeItem.title)
-                            .font(.subheadline)
-                            .padding(.top, 4)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(width: 100)
-                        }
-                      }
-                    }
-                    .padding([.leading, .trailing, .bottom])
-                  }
-                }
-                Spacer()
               }
+
+              Group {
+                Text("Trending Movies")
+                  .font(.title2)
+                  .bold()
+                  .padding([.top, .leading])
+                ScrollView(.horizontal, showsIndicators: true) {
+                  HStack(spacing: 16) {
+                    ForEach(trendingMovies, id: \.ids.simkl_id) { movieItem in
+                      NavigationLink(
+                        destination: MovieDetailView(simkl_id: movieItem.ids.simkl_id)
+                      ) {
+                        VStack {
+                          CustomKFImage(
+                            imageUrlString:
+                              "\(SIMKL_CDN_URL)/posters/\(movieItem.poster)_m.jpg",
+                            memoryCacheOnly: true,
+                            height: 147.62,
+                            width: 100
+                          )
+                          Text(movieItem.title)
+                            .font(.subheadline)
+                            .padding(.top, 4)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(width: 100)
+                        }
+                      }
+                      .buttonStyle(.plain)
+                    }
+                  }
+                  .padding([.leading, .trailing, .bottom])
+                }
+              }
+
+              Group {
+                Text("Trending Animes")
+                  .font(.title2)
+                  .bold()
+                  .padding([.top, .leading])
+                ScrollView(.horizontal, showsIndicators: true) {
+                  HStack(spacing: 16) {
+                    ForEach(trendingAnimes, id: \.ids.simkl_id) { animeItem in
+                      VStack {
+                        CustomKFImage(
+                          imageUrlString:
+                            "\(SIMKL_CDN_URL)/posters/\(animeItem.poster)_m.jpg",
+                          memoryCacheOnly: true,
+                          height: 147.62,
+                          width: 100
+                        )
+                        Text(animeItem.title)
+                          .font(.subheadline)
+                          .padding(.top, 4)
+                          .lineLimit(1)
+                          .truncationMode(.tail)
+                          .frame(width: 100)
+                      }
+                    }
+                  }
+                  .padding([.leading, .trailing, .bottom])
+                }
+              }
+              Spacer()
             }
           }
         }
       }
-      .searchable(text: $searchText, placement: .automatic)
-      .searchScopes($searchCategory) {
-        ForEach(SearchCategory.allCases) { category in
-          Text(category.rawValue).tag(category)
-        }
-      }
       .navigationTitle("Explore")
+    }
+    .onAppear {
+      Task {
+        trendingShows = await ExploreView.getTrendingShows()
+        trendingMovies = await ExploreView.getTrendingMovies()
+        trendingAnimes = await ExploreView.getTrendingAnimes()
+      }
+    }
+    .searchable(text: $searchText, placement: .automatic)
+    .searchScopes($searchCategory) {
+      ForEach(SearchCategory.allCases) { category in
+        Text(category.rawValue).tag(category)
+      }
     }
   }
 
