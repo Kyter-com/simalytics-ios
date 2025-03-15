@@ -8,6 +8,14 @@
 import Foundation
 import Sentry
 
+enum SearchCategory: String, Codable, CaseIterable, Identifiable, Hashable {
+  case all = "All"
+  case tv = "TV"
+  case movie = "Movies"
+  case anime = "Anime"
+  var id: String { rawValue }
+}
+
 extension SearchResultsView {
   static func fetchResults(searchText: String, type: String) async -> [SearchResultModel] {
     do {
@@ -30,6 +38,22 @@ extension SearchResultsView {
     } catch {
       SentrySDK.capture(error: error)
       return []
+    }
+  }
+
+  static func getSearchResults(searchText: String, searchType: String) async -> [SearchResultModel]
+  {
+    if searchType == "all" {
+      let tvResults = await SearchResultsView.fetchResults(searchText: searchText, type: "tv")
+      let movieResults = await SearchResultsView.fetchResults(searchText: searchText, type: "movie")
+      let animeResults = await SearchResultsView.fetchResults(searchText: searchText, type: "anime")
+      return tvResults + movieResults + animeResults
+    } else if searchType == "movies" {
+      let res = await SearchResultsView.fetchResults(searchText: searchText, type: "movie")
+      return res
+    } else {
+      let res = await SearchResultsView.fetchResults(searchText: searchText, type: searchType)
+      return res
     }
   }
 }

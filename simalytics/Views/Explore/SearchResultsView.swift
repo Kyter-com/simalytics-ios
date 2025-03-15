@@ -8,14 +8,6 @@
 import Sentry
 import SwiftUI
 
-enum SearchCategory: String, Codable, CaseIterable, Identifiable, Hashable {
-  case all = "All"
-  case tv = "TV"
-  case movie = "Movies"
-  case anime = "Anime"
-  var id: String { rawValue }
-}
-
 struct SearchResultsView: View {
   @Binding var searchText: String
   @Binding var searchCategory: SearchCategory
@@ -81,24 +73,12 @@ struct SearchResultsView: View {
 
     let workItem = DispatchWorkItem {
       Task {
-        await getSearchResults(searchText: query, searchType: searchCategory.rawValue.lowercased())
+        searchResults = await SearchResultsView.getSearchResults(
+          searchText: query, searchType: searchCategory.rawValue.lowercased())
       }
     }
 
     debounceWorkItem = workItem
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
-  }
-
-  private func getSearchResults(searchText: String, searchType: String) async {
-    if searchType == "all" {
-      let tvResults = await SearchResultsView.fetchResults(searchText: searchText, type: "tv")
-      let movieResults = await SearchResultsView.fetchResults(searchText: searchText, type: "movie")
-      let animeResults = await SearchResultsView.fetchResults(searchText: searchText, type: "anime")
-      searchResults = tvResults + movieResults + animeResults
-    } else if searchType == "movies" {
-      searchResults = await SearchResultsView.fetchResults(searchText: searchText, type: "movie")
-    } else {
-      searchResults = await SearchResultsView.fetchResults(searchText: searchText, type: searchType)
-    }
   }
 }
