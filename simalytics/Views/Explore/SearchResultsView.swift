@@ -24,7 +24,17 @@ struct SearchResultsView: View {
         ], spacing: 16
       ) {
         ForEach(searchResults, id: \.ids.simkl_id) { searchResult in
-          NavigationLink(destination: destinationView(for: searchResult)) {
+          NavigationLink(destination: {
+            let type = searchResult.endpoint_type
+            let id = searchResult.ids.simkl_id
+            if type == "tv" {
+              ShowDetailView()
+            } else if type == "movies" {
+              MovieDetailView(simkl_id: id)
+            } else if type == "anime" {
+              AnimeDetailView()
+            }
+          }) {
             VStack {
               if let poster = searchResult.poster {
                 ZStack(alignment: .bottomLeading) {
@@ -48,37 +58,22 @@ struct SearchResultsView: View {
       .padding()
     }
     .onChange(of: searchText) { _, newValue in
-      debounceSearch(newValue)
-    }
-    .onChange(of: searchCategory) { _, newValue in
-      debounceSearch(searchText)
-    }
-  }
-
-  private func destinationView(for searchResult: SearchResultModel) -> some View {
-    let type = searchResult.endpoint_type
-    if type == "tv" {
-      return AnyView(ShowDetailView())
-    } else if type == "movies" {
-      return AnyView(MovieDetailView(simkl_id: searchResult.ids.simkl_id))
-    } else if type == "anime" {
-      return AnyView(AnimeDetailView())
-    } else {
-      return AnyView(Text("Unknown Type"))
-    }
-  }
-
-  private func debounceSearch(_ query: String) {
-    debounceWorkItem?.cancel()
-
-    let workItem = DispatchWorkItem {
-      Task {
-        searchResults = await SearchResultsView.getSearchResults(
-          searchText: query, searchType: searchCategory.rawValue.lowercased())
+      SearchResultsView.debounceSearch(
+        query: newValue,
+        searchCategory: searchCategory,
+        debounceWorkItem: &debounceWorkItem
+      ) { results in
+        searchResults = results
       }
     }
-
-    debounceWorkItem = workItem
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+    .onChange(of: searchCategory) { _, newValue in
+      SearchResultsView.debounceSearch(
+        query: searchText,
+        searchCategory: newValue,
+        debounceWorkItem: &debounceWorkItem
+      ) { results in
+        searchResults = results
+      }
+    }
   }
 }

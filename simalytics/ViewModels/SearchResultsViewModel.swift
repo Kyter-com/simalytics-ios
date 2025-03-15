@@ -56,4 +56,24 @@ extension SearchResultsView {
       return res
     }
   }
+
+  static func debounceSearch(
+    query: String,
+    searchCategory: SearchCategory,
+    debounceWorkItem: inout DispatchWorkItem?,
+    completion: @escaping ([SearchResultModel]) -> Void
+  ) {
+    debounceWorkItem?.cancel()
+
+    let workItem = DispatchWorkItem {
+      Task {
+        let results = await SearchResultsView.getSearchResults(
+          searchText: query, searchType: searchCategory.rawValue.lowercased())
+        completion(results)
+      }
+    }
+
+    debounceWorkItem = workItem
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+  }
 }
