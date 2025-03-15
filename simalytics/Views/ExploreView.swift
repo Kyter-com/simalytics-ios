@@ -15,7 +15,6 @@ struct ExploreView: View {
   @State private var trendingAnimes: [TrendingAnimeModel] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
-  @State private var movieSyncItems: [MovieSyncItemModel] = []
 
   var body: some View {
     NavigationView {
@@ -33,10 +32,9 @@ struct ExploreView: View {
                 }
                 .onAppear {
                   Task {
-                    await getTrendingShows()
+                    trendingShows = await ExploreView.getTrendingShows()
                     trendingMovies = await ExploreView.getTrendingMovies()
                     trendingAnimes = await ExploreView.getTrendingAnimes()
-                    await getMovieSyncItems()
                   }
                 }
               } else {
@@ -178,68 +176,35 @@ struct ExploreView: View {
     }
   }
 
-  private func getTrendingShows() async {
-    do {
-      var trendingShowsURLComponents = URLComponents()
-      trendingShowsURLComponents.scheme = "https"
-      trendingShowsURLComponents.host = "api.simkl.com"
-      trendingShowsURLComponents.path = "/tv/trending"
-      trendingShowsURLComponents.queryItems = [
-        URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres,trailer"),
-        URLQueryItem(
-          name: "client_id",
-          value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
-      ]
-      var request = URLRequest(url: trendingShowsURLComponents.url!)
-      request.httpMethod = "GET"
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-        trendingShows = []
-        return
-      }
-      let decoder = JSONDecoder()
-      let showsResponse = try decoder.decode([TrendingShowModel].self, from: data)
-      if showsResponse.count > 0 {
-        trendingShows = showsResponse
-      } else {
-        trendingShows = []
-      }
-    } catch {
-      trendingShows = []
-      return
-    }
-  }
-
-  private func getMovieSyncItems() async {
-    do {
-      var movieSyncURLComponents = URLComponents()
-      movieSyncURLComponents.scheme = "https"
-      movieSyncURLComponents.host = "api.simkl.com"
-      movieSyncURLComponents.path = "/sync/all-items/movies"
-
-      var request = URLRequest(url: movieSyncURLComponents.url!)
-      request.httpMethod = "GET"
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(
-        "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
-        forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-        movieSyncItems = []
-        return
-      }
-      let decoder = JSONDecoder()
-      let res = try decoder.decode([MovieSyncItemModel].self, from: data)
-      if res.count > 0 {
-        movieSyncItems = res
-      } else {
-        movieSyncItems = []
-      }
-    } catch {
-      movieSyncItems = []
-      return
-    }
-  }
+  //  private func getMovieSyncItems() async {
+  //    do {
+  //      var movieSyncURLComponents = URLComponents()
+  //      movieSyncURLComponents.scheme = "https"
+  //      movieSyncURLComponents.host = "api.simkl.com"
+  //      movieSyncURLComponents.path = "/sync/all-items/movies"
+  //
+  //      var request = URLRequest(url: movieSyncURLComponents.url!)
+  //      request.httpMethod = "GET"
+  //      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+  //      request.setValue(
+  //        "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9",
+  //        forHTTPHeaderField: "simkl-api-key")
+  //      request.setValue("Bearer \(auth.simklAccessToken)", forHTTPHeaderField: "Authorization")
+  //      let (data, response) = try await URLSession.shared.data(for: request)
+  //      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+  //        movieSyncItems = []
+  //        return
+  //      }
+  //      let decoder = JSONDecoder()
+  //      let res = try decoder.decode([MovieSyncItemModel].self, from: data)
+  //      if res.count > 0 {
+  //        movieSyncItems = res
+  //      } else {
+  //        movieSyncItems = []
+  //      }
+  //    } catch {
+  //      movieSyncItems = []
+  //      return
+  //    }
+  //  }
 }
