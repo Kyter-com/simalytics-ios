@@ -5,7 +5,6 @@
 //  Created by Nick Reisenauer on 3/1/25.
 //
 
-import Kingfisher
 import Sentry
 import SwiftUI
 
@@ -23,66 +22,32 @@ struct SearchResultsView: View {
   @State private var searchResults: [SearchResultModel] = []
   @State private var debounceWorkItem: DispatchWorkItem?
 
-  let columns = [
-    GridItem(.flexible()),
-    GridItem(.flexible()),
-    GridItem(.flexible()),
-  ]
-
-  private func customKFImage(_ url: URL?) -> KFImage {
-    let result = KFImage(url)
-    result.options = KingfisherParsedOptionsInfo(
-      KingfisherManager.shared.defaultOptions + [
-        .forceTransition, .keepCurrentImageWhileLoading, .cacheMemoryOnly,
-      ])
-    return result
-  }
-
   var body: some View {
     ScrollView {
-      LazyVGrid(columns: columns, spacing: 16) {
+      LazyVGrid(
+        columns: [
+          GridItem(.flexible()),
+          GridItem(.flexible()),
+          GridItem(.flexible()),
+        ], spacing: 16
+      ) {
         ForEach(searchResults, id: \.ids.simkl_id) { searchResult in
           NavigationLink(destination: destinationView(for: searchResult)) {
             VStack {
               if let poster = searchResult.poster {
                 ZStack(alignment: .bottomLeading) {
-                  customKFImage(
-                    URL(string: "https://wsrv.nl/?url=https://simkl.in/posters/\(poster)_m.jpg")
-                  )
-                  .fade(duration: 0.33)
-                  .placeholder {
-                    ProgressView()
-                  }
-                  .resizable()
-                  .aspectRatio(contentMode: .fit)
-                  .frame(width: 100, height: 147.62)
-                  .clipShape(RoundedRectangle(cornerRadius: 8))
-                  .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                      .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+                  CustomKFImage(
+                    imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
+                    memoryCacheOnly: true,
+                    height: 147.62,
+                    width: 100
                   )
                   if let year = searchResult.year {
-                    Text(String(year))
-                      .font(.caption2)
-                      .padding(4)
-                      .background(
-                        Color(
-                          UIColor { traitCollection in
-                            traitCollection.userInterfaceStyle == .dark ? .black : .white
-                          }
-                        ).opacity(0.8)
-                      )
-                      .cornerRadius(6)
-                      .padding([.leading, .bottom], 6)
+                    YearOverlayTitle(year: year)
                   }
                 }
               }
-              Text(searchResult.title)
-                .font(.subheadline)
-                .padding(.top, 2)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(width: 100)
+              ExploreTitle(title: searchResult.title)
             }
           }
           .buttonStyle(.plain)
@@ -126,43 +91,14 @@ struct SearchResultsView: View {
 
   private func getSearchResults(searchText: String, searchType: String) async {
     if searchType == "all" {
-      let tvResults = await fetchResults(for: searchText, type: "tv")
-      let movieResults = await fetchResults(for: searchText, type: "movie")
-      let animeResults = await fetchResults(for: searchText, type: "anime")
+      let tvResults = await SearchResultsView.fetchResults(searchText: searchText, type: "tv")
+      let movieResults = await SearchResultsView.fetchResults(searchText: searchText, type: "movie")
+      let animeResults = await SearchResultsView.fetchResults(searchText: searchText, type: "anime")
       searchResults = tvResults + movieResults + animeResults
     } else if searchType == "movies" {
-      searchResults = await fetchResults(for: searchText, type: "movie")
+      searchResults = await SearchResultsView.fetchResults(searchText: searchText, type: "movie")
     } else {
-      searchResults = await fetchResults(for: searchText, type: searchType)
-    }
-  }
-
-  private func fetchResults(for searchText: String, type: String) async -> [SearchResultModel] {
-    do {
-      var searchResultsURLComponents = URLComponents()
-      searchResultsURLComponents.scheme = "https"
-      searchResultsURLComponents.host = "api.simkl.com"
-      searchResultsURLComponents.path = "/search/\(type)"
-      searchResultsURLComponents.queryItems = [
-        URLQueryItem(name: "q", value: searchText.lowercased()),
-        URLQueryItem(name: "limit", value: "10"),
-        URLQueryItem(
-          name: "client_id",
-          value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
-      ]
-      var request = URLRequest(url: searchResultsURLComponents.url!)
-      request.httpMethod = "GET"
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-        return []
-      }
-      let decoder = JSONDecoder()
-      let results = try decoder.decode([SearchResultModel].self, from: data)
-      return results
-    } catch {
-      SentrySDK.capture(error: error)
-      return []
+      searchResults = await SearchResultsView.fetchResults(searchText: searchText, type: searchType)
     }
   }
 }
