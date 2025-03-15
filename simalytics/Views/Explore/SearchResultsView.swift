@@ -56,15 +56,15 @@ struct SearchResultsView: View {
   }
 
   private func destinationView(for searchResult: SearchResultModel) -> some View {
-    switch searchResult.endpoint_type {
-    case "tv":
+    let type = searchResult.endpoint_type
+    if type == "tv" {
       return AnyView(ShowDetailView())
-    case "movies":
+    } else if type == "movies" {
       return AnyView(MovieDetailView(simkl_id: searchResult.ids.simkl_id))
-    case "anime":
+    } else if type == "anime" {
       return AnyView(AnimeDetailView())
-    default:
-      return AnyView(Text("Unknown type"))
+    } else {
+      return AnyView(Text("Unknown Type"))
     }
   }
 
