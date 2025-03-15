@@ -10,8 +10,8 @@ import SwiftUI
 
 struct MovieDetailView: View {
   @State private var movieDetails: MovieDetailsModel?
-  var simkl_id: Int
   @State private var showWatchlistSheet = false
+  var simkl_id: Int
 
   var body: some View {
     VStack {
@@ -98,43 +98,10 @@ struct MovieDetailView: View {
         ProgressView("Loading Movie...")
           .onAppear {
             Task {
-              await getMovieDetails(simkl_id: simkl_id)
+              movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
             }
           }
       }
-    }
-  }
-
-  private func getMovieDetails(simkl_id: Int) async {
-    do {
-      var movieDetailsURLComponents = URLComponents()
-      movieDetailsURLComponents.scheme = "https"
-      movieDetailsURLComponents.host = "api.simkl.com"
-      movieDetailsURLComponents.path = "/movies/\(simkl_id)"
-      movieDetailsURLComponents.queryItems = [
-        URLQueryItem(name: "extended", value: "full"),
-        URLQueryItem(
-          name: "client_id",
-          value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
-      ]
-      var request = URLRequest(url: movieDetailsURLComponents.url!)
-      request.httpMethod = "GET"
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-        movieDetails = nil
-        return
-      }
-      let decoder = JSONDecoder()
-      let movieResponse = try decoder.decode(MovieDetailsModel.self, from: data)
-      if movieResponse.title != "" {
-        movieDetails = movieResponse
-      } else {
-        movieDetails = nil
-      }
-    } catch {
-      movieDetails = nil
-      return
     }
   }
 }
