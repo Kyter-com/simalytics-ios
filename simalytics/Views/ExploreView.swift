@@ -26,10 +26,7 @@ struct ExploreView: View {
             VStack(alignment: .leading) {
 
               Group {
-                Text("Trending Shows")
-                  .font(.title2)
-                  .bold()
-                  .padding([.top, .leading])
+                ExploreGroupTitle(title: "Trending Shows")
                 ScrollView(.horizontal, showsIndicators: true) {
                   HStack(spacing: 16) {
                     ForEach(trendingShows, id: \.ids.simkl_id) { showItem in
@@ -41,12 +38,7 @@ struct ExploreView: View {
                           height: 147.62,
                           width: 100
                         )
-                        Text(showItem.title)
-                          .font(.subheadline)
-                          .padding(.top, 4)
-                          .lineLimit(1)
-                          .truncationMode(.tail)
-                          .frame(width: 100)
+                        ExploreTitle(title: showItem.title)
                       }
                     }
                   }
@@ -55,10 +47,7 @@ struct ExploreView: View {
               }
 
               Group {
-                Text("Trending Movies")
-                  .font(.title2)
-                  .bold()
-                  .padding([.top, .leading])
+                ExploreGroupTitle(title: "Trending Movies")
                 ScrollView(.horizontal, showsIndicators: true) {
                   HStack(spacing: 16) {
                     ForEach(trendingMovies, id: \.ids.simkl_id) { movieItem in
@@ -73,12 +62,7 @@ struct ExploreView: View {
                             height: 147.62,
                             width: 100
                           )
-                          Text(movieItem.title)
-                            .font(.subheadline)
-                            .padding(.top, 4)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(width: 100)
+                          ExploreTitle(title: movieItem.title)
                         }
                       }
                       .buttonStyle(.plain)
@@ -89,10 +73,7 @@ struct ExploreView: View {
               }
 
               Group {
-                Text("Trending Animes")
-                  .font(.title2)
-                  .bold()
-                  .padding([.top, .leading])
+                ExploreGroupTitle(title: "Trending Animes")
                 ScrollView(.horizontal, showsIndicators: true) {
                   HStack(spacing: 16) {
                     ForEach(trendingAnimes, id: \.ids.simkl_id) { animeItem in
@@ -104,12 +85,7 @@ struct ExploreView: View {
                           height: 147.62,
                           width: 100
                         )
-                        Text(animeItem.title)
-                          .font(.subheadline)
-                          .padding(.top, 4)
-                          .lineLimit(1)
-                          .truncationMode(.tail)
-                          .frame(width: 100)
+                        ExploreTitle(title: animeItem.title)
                       }
                     }
                   }
