@@ -12,4 +12,5 @@ struct MovieDetailsModel: Codable {
   let year: Int?
   let poster: String?
   let runtime: Int?
+  let fanart: String?
 }
