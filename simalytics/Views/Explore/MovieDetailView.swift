@@ -17,33 +17,8 @@ struct MovieDetailView: View {
   var body: some View {
     GeometryReader { geometry in
       VStack {
-        if let movieDetails = movieDetails {
-          ZStack(alignment: .bottomLeading) {
-            if let fanart = movieDetails.fanart {
-              KFImage(
-                URL(string: "https://wsrv.nl/?url=https://simkl.in/fanart/\(fanart)_mobile.jpg")
-              )
-              .resizable()
-              .aspectRatio(contentMode: .fill)
-              .frame(width: geometry.size.width, height: geometry.size.height * 0.4)
-              .clipped()
-              .edgesIgnoringSafeArea(.top)
-            }
-
-            VStack(alignment: .leading) {
-              Text(movieDetails.title)
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .padding()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.black.opacity(0.5))
-          }
-
-          Spacer()
-
-          // Additional movie details can go here
+        if let title = movieDetails?.title {
+          Text(title)
         } else {
           ProgressView("Loading...")
             .onAppear {
