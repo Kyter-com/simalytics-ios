@@ -37,7 +37,6 @@ struct SimalyticsApp: App {
   var body: some Scene {
     WindowGroup {
       IndexView()
-        .environmentObject(auth)
     }
   }
 }
