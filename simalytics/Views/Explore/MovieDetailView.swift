@@ -14,7 +14,9 @@ struct MovieDetailView: View {
   var body: some View {
     VStack {
       if movieDetails != nil {
-        Text(movieDetails.title)
+        if let title = movieDetails?.title {
+          Text(title)
+        }
       } else {
         ProgressView("Loading...")
           .onAppear {
