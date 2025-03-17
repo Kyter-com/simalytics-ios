@@ -36,7 +36,7 @@ struct MovieDetailView: View {
           )
         }
         Spacer()
-        MovieWatchlistButton(status: movieWatchlist?.list)
+        MovieWatchlistButton()
       }
       .padding([.trailing, .leading])
 
