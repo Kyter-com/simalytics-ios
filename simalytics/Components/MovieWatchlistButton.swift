@@ -36,6 +36,8 @@ struct MovieWatchlistButton: View {
       HStack {
         Image(systemName: mapStatusToIcon(status))
         Text(mapStatus(status))
+          .multilineTextAlignment(.center)
+          .frame(maxWidth: .infinity)
       }
       .foregroundColor(foregroundColor(status))
       .bold()
@@ -43,6 +45,7 @@ struct MovieWatchlistButton: View {
       .padding(.vertical, 15)
       .background(mapStatusToColor(status))
       .cornerRadius(10)
+      .frame(width: 175)
     }
   }
 

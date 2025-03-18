@@ -46,6 +46,8 @@ struct MovieDetailView: View {
         Text(title)
           .font(.title)
           .bold()
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding([.trailing, .leading])
       }
 
       Spacer()
