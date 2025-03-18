@@ -91,7 +91,7 @@ struct MovieDetailView: View {
           }
 
           Spacer()
-          MovieWatchlistButton(status: $watchlistStatus)
+          MovieWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
         }
         .frame(maxHeight: 221.43)
       }

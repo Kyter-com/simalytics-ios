@@ -8,8 +8,10 @@
 import SwiftUI
 
 struct MovieWatchlistButton: View {
+  @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Binding var status: String?
+  var simkl_id: Int
   let statusOptions = ["plantowatch", "dropped", "completed"]
 
   var body: some View {
@@ -46,6 +48,12 @@ struct MovieWatchlistButton: View {
       .padding(.vertical, 15)
       .background(mapStatusToColor(status))
       .cornerRadius(10)
+    }
+    .onChange(of: status ?? "nil") { _, newValue in
+      Task {
+        await MovieWatchlistButton.updateMovieList(
+          simkl_id, auth.simklAccessToken, newValue)
+      }
     }
   }
 
