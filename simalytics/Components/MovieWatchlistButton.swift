@@ -45,7 +45,6 @@ struct MovieWatchlistButton: View {
       .padding(.vertical, 15)
       .background(mapStatusToColor(status))
       .cornerRadius(10)
-      .frame(width: 175)
     }
   }
 
@@ -120,13 +119,5 @@ extension Color {
       blue: min(b + percentage / 100, 1.0),
       opacity: Double(a)
     )
-  }
-}
-
-struct MovieWatchlistMenu_Previews: PreviewProvider {
-  static var previews: some View {
-    Group {
-      MovieWatchlistButton(status: .constant("plantowatch"))
-    }
   }
 }

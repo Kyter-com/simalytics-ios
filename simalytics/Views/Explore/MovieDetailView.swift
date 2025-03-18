@@ -38,7 +38,62 @@ struct MovieDetailView: View {
           )
         }
         Spacer()
-        MovieWatchlistButton(status: $watchlistStatus)
+        VStack(alignment: .leading) {
+          if let year = movieDetails?.year {
+            LabeledContent {
+              Text(String(year))
+                .fontDesign(.monospaced)
+                .foregroundColor(.secondary)
+            } label: {
+              Label("Released", systemImage: "calendar")
+                .foregroundColor(.secondary)
+            }
+          }
+          if let runtime = movieDetails?.runtime {
+            LabeledContent {
+              Text("\(String(runtime)) Min")
+                .fontDesign(.monospaced)
+                .foregroundColor(.secondary)
+            } label: {
+              Label("Runtime", systemImage: "clock")
+                .foregroundColor(.secondary)
+            }
+          }
+          if let certification = movieDetails?.certification {
+            LabeledContent {
+              Text(certification)
+                .fontDesign(.monospaced)
+                .foregroundColor(.secondary)
+            } label: {
+              Label("MPAA Rating", systemImage: "figure.and.child.holdinghands")
+                .foregroundColor(.secondary)
+            }
+          }
+          if let rank = movieDetails?.rank {
+            LabeledContent {
+              Text(String(rank))
+                .fontDesign(.monospaced)
+                .foregroundColor(.secondary)
+            } label: {
+              Label("SIMKL Rank", systemImage: "number")
+                .foregroundColor(.secondary)
+            }
+          }
+          if let language = movieDetails?.language {
+            LabeledContent {
+              Text(language)
+                .fontDesign(.monospaced)
+                .foregroundColor(.secondary)
+            } label: {
+              Label("Language", systemImage: "globe")
+                .foregroundColor(.secondary)
+            }
+          }
+
+          Spacer()
+          MovieWatchlistButton(status: $watchlistStatus)
+        }
+        .frame(maxHeight: 221.43)
       }
       .padding([.trailing, .leading])
 

@@ -13,4 +13,7 @@ struct MovieDetailsModel: Codable {
   let poster: String?
   let runtime: Int?
   let fanart: String?
+  let rank: Int?
+  let certification: String?
+  let language: String?
 }
