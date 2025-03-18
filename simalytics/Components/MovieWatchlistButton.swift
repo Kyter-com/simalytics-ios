@@ -37,10 +37,11 @@ struct MovieWatchlistButton: View {
         Image(systemName: mapStatusToIcon(status))
         Text(mapStatus(status))
       }
-      .foregroundColor(.blue)  // Apply to both icon and text
+      .foregroundColor(foregroundColor(status))
+      .bold()
       .padding(.horizontal, 75)
       .padding(.vertical, 15)
-      .background(Color.blue.opacity(0.1))
+      .background(mapStatusToColor(status))
       .cornerRadius(10)
     }
   }
@@ -69,6 +70,53 @@ struct MovieWatchlistButton: View {
     default:
       return "Add to List"
     }
+  }
+
+  private func mapStatusToColor(_ status: String?) -> Color {
+    switch status {
+    case "plantowatch":
+      return Color.yellow.opacity(0.1)
+    case "dropped":
+      return Color.red.opacity(0.1)
+    case "completed":
+      return Color.green.opacity(0.1)
+    default:
+      return Color.blue.opacity(0.1)
+    }
+  }
+
+  private func foregroundColor(_ status: String?) -> Color {
+    switch status {
+    case "plantowatch":
+      return Color.yellow.darker()
+    case "dropped":
+      return Color.red
+    case "completed":
+      return Color.green
+    default:
+      return Color.blue
+    }
+  }
+}
+
+extension Color {
+  func darker(by percentage: CGFloat = 30.0) -> Color {
+    return self.adjust(by: -1 * abs(percentage))
+  }
+
+  func adjust(by percentage: CGFloat = 30.0) -> Color {
+    let uiColor = UIColor(self)
+    var r: CGFloat = 0
+    var g: CGFloat = 0
+    var b: CGFloat = 0
+    var a: CGFloat = 0
+    uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+    return Color(
+      red: min(r + percentage / 100, 1.0),
+      green: min(g + percentage / 100, 1.0),
+      blue: min(b + percentage / 100, 1.0),
+      opacity: Double(a)
+    )
   }
 }
 
