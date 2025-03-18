@@ -8,12 +8,21 @@
 import SwiftUI
 
 struct MovieWatchlistButton: View {
-  @State private var status: String?
+  @Binding var status: String?
   let statusOptions = ["plantowatch", "dropped", "completed"]
 
   var body: some View {
     Menu {
+      ForEach(statusOptions, id: \.self) { option in
+        Button(action: {
+          status = option
+        }) {
+          Label(mapStatus(option), systemImage: mapStatusToIcon(option))
+        }
+      }
+
       if status != nil {
+        Divider()
         Button(
           role: .destructive,
           action: {
@@ -21,15 +30,6 @@ struct MovieWatchlistButton: View {
           }
         ) {
           Label("Remove from List", systemImage: "trash")
-        }
-        Divider()
-      }
-
-      ForEach(statusOptions, id: \.self) { option in
-        Button(action: {
-          status = option
-        }) {
-          Label(mapStatus(option), systemImage: mapStatusToIcon(option))
         }
       }
     } label: {
@@ -39,7 +39,7 @@ struct MovieWatchlistButton: View {
       }
       .foregroundColor(foregroundColor(status))
       .bold()
-      .padding(.horizontal, 75)
+      .padding(.horizontal, 15)
       .padding(.vertical, 15)
       .background(mapStatusToColor(status))
       .cornerRadius(10)
@@ -75,7 +75,7 @@ struct MovieWatchlistButton: View {
   private func mapStatusToColor(_ status: String?) -> Color {
     switch status {
     case "plantowatch":
-      return Color.yellow.opacity(0.1)
+      return Color.yellow.opacity(0.2)
     case "dropped":
       return Color.red.opacity(0.1)
     case "completed":
@@ -123,7 +123,7 @@ extension Color {
 struct MovieWatchlistMenu_Previews: PreviewProvider {
   static var previews: some View {
     Group {
-      MovieWatchlistButton()
+      MovieWatchlistButton(status: .constant("plantowatch"))
     }
   }
 }

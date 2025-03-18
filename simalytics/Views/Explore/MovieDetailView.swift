@@ -12,6 +12,7 @@ struct MovieDetailView: View {
   @State private var movieDetails: MovieDetailsModel?
   @State private var movieWatchlist: MovieWatchlistModel?
   @State private var isLoading = true
+  @State private var watchlistStatus: String?
   var simkl_id: Int
 
   var body: some View {
@@ -22,6 +23,7 @@ struct MovieDetailView: View {
             movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
             movieWatchlist = await MovieDetailView.getMovieWatchlist(
               simkl_id, auth.simklAccessToken)
+            watchlistStatus = movieWatchlist?.list
             isLoading = false
           }
         }
@@ -36,7 +38,7 @@ struct MovieDetailView: View {
           )
         }
         Spacer()
-        MovieWatchlistButton()
+        MovieWatchlistButton(status: $watchlistStatus)
       }
       .padding([.trailing, .leading])
 
