@@ -16,4 +16,15 @@ struct MovieDetailsModel: Codable {
   let rank: Int?
   let certification: String?
   let language: String?
+  let ratings: MovieDetailsModelRatings?
+}
+
+struct MovieDetailsModelRatings: Codable {
+  let simkl: MovieDetailsModelRating?
+  let imdb: MovieDetailsModelRating?
+}
+
+struct MovieDetailsModelRating: Codable {
+  let rating: Double?
+  let votes: Int?
 }

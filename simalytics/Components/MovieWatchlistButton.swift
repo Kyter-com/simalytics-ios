@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct MovieWatchlistButton: View {
+  @Environment(\.colorScheme) var colorScheme
   @Binding var status: String?
   let statusOptions = ["plantowatch", "dropped", "completed"]
 
@@ -79,24 +80,24 @@ struct MovieWatchlistButton: View {
     case "plantowatch":
       return Color.yellow.opacity(0.2)
     case "dropped":
-      return Color.red.opacity(0.1)
+      return Color.red.opacity(0.2)
     case "completed":
-      return Color.green.opacity(0.1)
+      return Color.green.opacity(0.2)
     default:
-      return Color.blue.opacity(0.1)
+      return Color.blue.opacity(0.2)
     }
   }
 
   private func foregroundColor(_ status: String?) -> Color {
     switch status {
     case "plantowatch":
-      return Color.yellow.darker()
+      return colorScheme == .dark ? Color.yellow : Color.yellow.darker()
     case "dropped":
-      return Color.red
+      return colorScheme == .dark ? Color.red : Color.red.darker()
     case "completed":
-      return Color.green
+      return colorScheme == .dark ? Color.green : Color.green.darker()
     default:
-      return Color.blue
+      return colorScheme == .dark ? Color.blue : Color.blue.darker()
     }
   }
 }

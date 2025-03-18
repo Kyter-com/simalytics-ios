@@ -4,11 +4,13 @@
     "autoreverses",
     "checkmark",
     "fanart",
+    "imdb",
     "kyter",
     "refreshable",
     "simalytics",
     "simkl",
     "subheadline",
-    "tmdb"
+    "tmdb",
+    "watchlist"
   ]
 }

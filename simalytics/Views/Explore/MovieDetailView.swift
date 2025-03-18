@@ -69,16 +69,6 @@ struct MovieDetailView: View {
                 .foregroundColor(.secondary)
             }
           }
-          if let rank = movieDetails?.rank {
-            LabeledContent {
-              Text(String(rank))
-                .fontDesign(.monospaced)
-                .foregroundColor(.secondary)
-            } label: {
-              Label("SIMKL Rank", systemImage: "number")
-                .foregroundColor(.secondary)
-            }
-          }
           if let language = movieDetails?.language {
             LabeledContent {
               Text(language)
@@ -86,6 +76,16 @@ struct MovieDetailView: View {
                 .foregroundColor(.secondary)
             } label: {
               Label("Language", systemImage: "globe")
+                .foregroundColor(.secondary)
+            }
+          }
+          if let simklRating = movieDetails?.ratings?.simkl?.rating {
+            LabeledContent {
+              Text(String(simklRating))
+                .fontDesign(.monospaced)
+                .foregroundColor(.secondary)
+            } label: {
+              Label("SIMKL Rating", systemImage: "number")
                 .foregroundColor(.secondary)
             }
           }
