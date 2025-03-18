@@ -17,6 +17,8 @@ struct MovieDetailsModel: Codable {
   let certification: String?
   let language: String?
   let ratings: MovieDetailsModelRatings?
+  let overview: String?
+  let genres: [String]?
 }
 
 struct MovieDetailsModelRatings: Codable {
