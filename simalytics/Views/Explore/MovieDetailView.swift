@@ -5,10 +5,12 @@
 //  Created by Nick Reisenauer on 3/6/25.
 //
 
+import Kingfisher
 import SwiftUI
 
 struct MovieDetailView: View {
   @EnvironmentObject private var auth: Auth
+  @Environment(\.colorScheme) var colorScheme
   @State private var movieDetails: MovieDetailsModel?
   @State private var movieWatchlist: MovieWatchlistModel?
   @State private var isLoading = true
@@ -29,6 +31,21 @@ struct MovieDetailView: View {
         }
     } else {
       ScrollView {
+        GeometryReader { reader in
+          if reader.frame(in: .global).minY > -500 {
+            KFImage(URL(string: "https://simkl.in/fanart/\(movieDetails?.fanart ?? "")_mobile.jpg"))
+              .resizable()
+              .aspectRatio(contentMode: .fill)
+              .offset(y: -reader.frame(in: .global).minY)
+              .frame(
+                width: UIScreen.main.bounds.width,
+                height: reader.frame(in: .global).minY > 0
+                  ? reader.frame(in: .global).minY + 150 : 150
+              )
+          }
+        }
+        .frame(height: 150)
+
         HStack {
           if let poster = movieDetails?.poster {
             CustomKFImage(
@@ -37,9 +54,15 @@ struct MovieDetailView: View {
               height: 221.43,
               width: 150
             )
+            .shadow(radius: 1)
+            .overlay(
+              RoundedRectangle(cornerRadius: 8).stroke(
+                colorScheme == .dark ? Color.black : Color.white, lineWidth: 2)
+            )
           }
           Spacer()
           VStack(alignment: .leading) {
+            Spacer()
             if let year = movieDetails?.year {
               LabeledContent {
                 Text(String(year))
@@ -90,13 +113,13 @@ struct MovieDetailView: View {
                   .foregroundColor(.secondary)
               }
             }
-
             Spacer()
-
             MovieWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
           }
         }
         .padding([.leading, .trailing])
+        .offset(y: -10)
+        .background(colorScheme == .dark ? Color.black : Color.white)
 
         if let title = movieDetails?.title {
           Text(title)
