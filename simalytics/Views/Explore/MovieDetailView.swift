@@ -60,23 +60,19 @@ struct MovieDetailView: View {
           }
           .frame(height: 150)
         }
-
+        // TODO: Fix other image ratios
         HStack {
           if let poster = movieDetails?.poster {
             CustomKFImage(
               imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
               memoryCacheOnly: true,
-              height: 221,
-              width: 150.28
+              height: 225,
+              width: 150
             )
-            //            .overlay(
-            //              RoundedRectangle(cornerRadius: 7).strokeBorder(
-            //                colorScheme == .dark ? Color.black : Color.white, lineWidth: 2)
-            //            )
-            //            .overlay(
-            //              RoundedRectangle(cornerRadius: 10).stroke(
-            //                colorScheme == .dark ? Color.black : Color.white, lineWidth: 2)
-            //            )
+            .overlay(
+              RoundedRectangle(cornerRadius: 8).stroke(
+                colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
+            )
           }
           Spacer()
           VStack(alignment: .leading) {
