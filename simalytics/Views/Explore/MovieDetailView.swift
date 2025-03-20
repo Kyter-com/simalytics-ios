@@ -68,6 +68,10 @@ struct MovieDetailView: View {
                 RoundedRectangle(cornerRadius: 7).strokeBorder(
                   colorScheme == .dark ? Color.black : Color.white, lineWidth: 2)
               )
+              .overlay(
+                RoundedRectangle(cornerRadius: 7).stroke(
+                  colorScheme == .dark ? Color.black : Color.white, lineWidth: 2)
+              )
             }
             Spacer()
             VStack(alignment: .leading) {
