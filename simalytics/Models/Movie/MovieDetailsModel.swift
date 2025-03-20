@@ -19,6 +19,7 @@ struct MovieDetailsModel: Codable {
   let ratings: MovieDetailsModelRatings?
   let overview: String?
   let genres: [String]?
+  let trailers: [MovieDetailsModelTrailer]?
 }
 
 struct MovieDetailsModelRatings: Codable {
@@ -29,4 +30,10 @@ struct MovieDetailsModelRatings: Codable {
 struct MovieDetailsModelRating: Codable {
   let rating: Double?
   let votes: Int?
+}
+
+struct MovieDetailsModelTrailer: Codable {
+  let name: String?
+  let youtube: String?
+  let size: Int?
 }
