@@ -35,7 +35,7 @@ struct ExploreView: View {
                           imageUrlString:
                             "\(SIMKL_CDN_URL)/posters/\(showItem.poster)_m.jpg",
                           memoryCacheOnly: true,
-                          height: 150,
+                          height: 147,
                           width: 100
                         )
                         ExploreTitle(title: showItem.title)

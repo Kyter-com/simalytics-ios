@@ -29,8 +29,8 @@ struct HomeView: View {
           CustomKFImage(
             imageUrlString: "\(SIMKL_CDN_URL)/posters/\(showItem.show.poster)_m.jpg",
             memoryCacheOnly: false,
-            height: 112.5,
-            width: 75
+            height: 118,
+            width: 80
           )
 
           VStack(alignment: .leading) {

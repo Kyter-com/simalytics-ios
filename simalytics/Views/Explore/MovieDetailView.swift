@@ -146,6 +146,7 @@ struct MovieDetailView: View {
             .fontDesign(.rounded)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
+            .offset(y: -10)
         }
 
         if let genres = movieDetails?.genres {
@@ -153,7 +154,6 @@ struct MovieDetailView: View {
             .font(.footnote)
             .foregroundColor(.secondary)
             .padding([.leading, .trailing])
-            .padding(.top, 1)
             .fontDesign(.monospaced)
         }
 
