@@ -35,7 +35,7 @@ struct ExploreView: View {
                           imageUrlString:
                             "\(SIMKL_CDN_URL)/posters/\(showItem.poster)_m.jpg",
                           memoryCacheOnly: true,
-                          height: 147.62,
+                          height: 150,
                           width: 100
                         )
                         ExploreTitle(title: showItem.title)
@@ -59,7 +59,7 @@ struct ExploreView: View {
                             imageUrlString:
                               "\(SIMKL_CDN_URL)/posters/\(movieItem.poster)_m.jpg",
                             memoryCacheOnly: true,
-                            height: 147.62,
+                            height: 150,
                             width: 100
                           )
                           ExploreTitle(title: movieItem.title)
@@ -82,7 +82,7 @@ struct ExploreView: View {
                           imageUrlString:
                             "\(SIMKL_CDN_URL)/posters/\(animeItem.poster)_m.jpg",
                           memoryCacheOnly: true,
-                          height: 147.62,
+                          height: 150,
                           width: 100
                         )
                         ExploreTitle(title: animeItem.title)

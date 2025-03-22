@@ -60,7 +60,7 @@ struct MovieDetailView: View {
           }
           .frame(height: 150)
         }
-        // TODO: Fix other image ratios
+
         HStack {
           if let poster = movieDetails?.poster {
             CustomKFImage(

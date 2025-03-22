@@ -41,7 +41,7 @@ struct SearchResultsView: View {
                   CustomKFImage(
                     imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
                     memoryCacheOnly: true,
-                    height: 147.62,
+                    height: 150,
                     width: 100
                   )
                   if let year = searchResult.year {

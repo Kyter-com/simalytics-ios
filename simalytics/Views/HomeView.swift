@@ -29,7 +29,7 @@ struct HomeView: View {
           CustomKFImage(
             imageUrlString: "\(SIMKL_CDN_URL)/posters/\(showItem.show.poster)_m.jpg",
             memoryCacheOnly: false,
-            height: 110.71,
+            height: 112.5,
             width: 75
           )
 
