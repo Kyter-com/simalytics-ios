@@ -77,7 +77,7 @@ struct MovieDetailView: View {
           Spacer()
           VStack(alignment: .leading) {
             Spacer()
-              .frame(height: 10)
+              .frame(height: 8)
             Spacer()
             if let year = movieDetails?.year {
               LabeledContent {
@@ -131,6 +131,8 @@ struct MovieDetailView: View {
             }
             Spacer()
             MovieWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
+            Spacer()
+              .frame(height: 2)
           }
         }
         .padding([.leading, .trailing])
