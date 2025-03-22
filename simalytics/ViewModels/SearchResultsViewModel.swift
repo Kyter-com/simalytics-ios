@@ -74,6 +74,6 @@ extension SearchResultsView {
     }
 
     debounceWorkItem = workItem
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: workItem)
   }
 }

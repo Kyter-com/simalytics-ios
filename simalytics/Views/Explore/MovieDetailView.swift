@@ -165,6 +165,33 @@ struct MovieDetailView: View {
         }
 
         Spacer()
+
+        if let recommendations = movieDetails?.users_recommendations?.filter({ $0.poster != nil }) {
+          VStack(alignment: .leading) {
+            Group {
+              ExploreGroupTitle(title: "Users Also Watched")
+
+              ScrollView(.horizontal, showsIndicators: true) {
+                HStack(spacing: 16) {
+                  ForEach(
+                    recommendations, id: \.ids.simkl
+                  ) { movieItem in
+                    VStack {
+                      CustomKFImage(
+                        imageUrlString: "\(SIMKL_CDN_URL)/posters/\(movieItem.poster ?? "")_m.jpg",
+                        memoryCacheOnly: true,
+                        height: 147,
+                        width: 100
+                      )
+                      ExploreTitle(title: movieItem.title)
+                    }
+                  }
+                }
+                .padding([.leading, .trailing, .bottom])
+              }
+            }
+          }
+        }
       }
     }
   }
