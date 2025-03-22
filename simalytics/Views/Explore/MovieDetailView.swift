@@ -29,7 +29,7 @@ struct MovieDetailView: View {
 
             if let fanart = movieDetails?.fanart {
               let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
-              preloadImage(imageURL)
+              KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
             }
 
             isLoading = false
@@ -194,10 +194,5 @@ struct MovieDetailView: View {
         }
       }
     }
-  }
-
-  /// Preloads the background image into memory cache
-  private func preloadImage(_ url: URL) {
-    KingfisherManager.shared.retrieveImage(with: url) { _ in }
   }
 }

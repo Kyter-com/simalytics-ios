@@ -30,16 +30,21 @@ struct ExploreView: View {
                 ScrollView(.horizontal, showsIndicators: true) {
                   HStack(spacing: 16) {
                     ForEach(trendingShows, id: \.ids.simkl_id) { showItem in
-                      VStack {
-                        CustomKFImage(
-                          imageUrlString:
-                            "\(SIMKL_CDN_URL)/posters/\(showItem.poster)_m.jpg",
-                          memoryCacheOnly: true,
-                          height: 147,
-                          width: 100
-                        )
-                        ExploreTitle(title: showItem.title)
+                      NavigationLink(
+                        destination: ShowDetailView(simkl_id: showItem.ids.simkl_id)
+                      ) {
+                        VStack {
+                          CustomKFImage(
+                            imageUrlString:
+                              "\(SIMKL_CDN_URL)/posters/\(showItem.poster)_m.jpg",
+                            memoryCacheOnly: true,
+                            height: 147,
+                            width: 100
+                          )
+                          ExploreTitle(title: showItem.title)
+                        }
                       }
+                      .buttonStyle(.plain)
                     }
                   }
                   .padding([.leading, .trailing, .bottom])

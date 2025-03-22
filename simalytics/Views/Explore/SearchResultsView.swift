@@ -28,7 +28,7 @@ struct SearchResultsView: View {
             let type = searchResult.endpoint_type
             let id = searchResult.ids.simkl_id
             if type == "tv" {
-              ShowDetailView()
+              ShowDetailView(simkl_id: id)
             } else if type == "movies" {
               MovieDetailView(simkl_id: id)
             } else if type == "anime" {
