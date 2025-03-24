@@ -23,6 +23,8 @@ struct ShowDetailView: View {
   @State private var showEpisodes: [ShowEpisodeModel] = []
   @State private var isLoading = true
   @State private var watchlistStatus: String?
+  @State private var filteredEpisodes: [ShowEpisodeModel] = []
+  @State private var selectedSeason: String?
   var simkl_id: Int
 
   var seasons: [Int] {
@@ -47,6 +49,17 @@ struct ShowDetailView: View {
             if let fanart = showDetails?.fanart {
               let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
               KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
+            }
+
+            // Setup initial shows to Season 1 or Specials if nothing is aired yet
+            if !showEpisodes.filter({ $0.season == 1 }).isEmpty {
+              filteredEpisodes = showEpisodes.filter({ $0.season == 1 })
+              selectedSeason = "Season 1"
+            } else if !showEpisodes.filter({ $0.type == "special" }).isEmpty {
+              filteredEpisodes = showEpisodes.filter({ $0.type == "special" })
+              selectedSeason = "Specials"
+            } else {
+              filteredEpisodes = []
             }
 
             isLoading = false
@@ -185,9 +198,30 @@ struct ShowDetailView: View {
 
         Spacer()
 
-        if !seasons.isEmpty || hasSpecials {
+        if !filteredEpisodes.isEmpty {
           VStack {
-            ForEach(showEpisodes, id: \.ids.simkl_id) { episode in
+            Menu {
+              ForEach(seasons, id: \.self) { season in
+                Button(action: {
+                  filteredEpisodes = showEpisodes.filter { $0.season == season }
+                  selectedSeason = "Season \(season)"
+                }) {
+                  Text("Season \(season)")
+                }
+              }
+              if hasSpecials {
+                Button(action: {
+                  filteredEpisodes = showEpisodes.filter { $0.type == "special" }
+                  selectedSeason = "Specials"
+                }) {
+                  Text("Specials")
+                }
+              }
+            } label: {
+              Text(selectedSeason ?? "")
+            }
+
+            ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
               Text(episode.title ?? "")
             }
           }
@@ -205,7 +239,8 @@ struct ShowDetailView: View {
                   ) { movieItem in
                     VStack {
                       CustomKFImage(
-                        imageUrlString: "\(SIMKL_CDN_URL)/posters/\(movieItem.poster ?? "")_m.jpg",
+                        imageUrlString:
+                          "\(SIMKL_CDN_URL)/posters/\(movieItem.poster ?? "")_m.jpg",
                         memoryCacheOnly: true,
                         height: 147,
                         width: 100
