@@ -185,9 +185,11 @@ struct ShowDetailView: View {
 
         Spacer()
 
-        VStack {
-          ForEach(showEpisodes, id: \.ids.simkl_id) { episode in
-            Text(episode.title ?? "")
+        if !seasons.isEmpty || hasSpecials {
+          VStack {
+            ForEach(showEpisodes, id: \.ids.simkl_id) { episode in
+              Text(episode.title ?? "")
+            }
           }
         }
 
