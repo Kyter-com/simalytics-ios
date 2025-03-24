@@ -199,7 +199,7 @@ struct ShowDetailView: View {
         Spacer()
 
         if !filteredEpisodes.isEmpty {
-          VStack {
+          VStack(alignment: .leading) {  // Align content to the left
             Menu {
               ForEach(seasons, id: \.self) { season in
                 Button(action: {
@@ -220,9 +220,11 @@ struct ShowDetailView: View {
             } label: {
               Text(selectedSeason ?? "")
             }
+            .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
 
             ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
               Text(episode.title ?? "")
+                .frame(maxWidth: .infinity, alignment: .leading)  // Ensures text is left-aligned
             }
           }
         }
