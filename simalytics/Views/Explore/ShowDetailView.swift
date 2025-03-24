@@ -8,6 +8,13 @@
 import Kingfisher
 import SwiftUI
 
+// TODO: MOVE OUT
+extension Array where Element: Hashable {
+  func unique() -> [Element] {
+    Array(Set(self))
+  }
+}
+
 struct ShowDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
@@ -17,6 +24,14 @@ struct ShowDetailView: View {
   @State private var isLoading = true
   @State private var watchlistStatus: String?
   var simkl_id: Int
+
+  var seasons: [Int] {
+    showEpisodes.compactMap { $0.season }.unique().sorted()
+  }
+
+  var hasSpecials: Bool {
+    showEpisodes.contains { $0.type == "special" }
+  }
 
   var body: some View {
     if isLoading {
@@ -171,9 +186,8 @@ struct ShowDetailView: View {
         Spacer()
 
         VStack {
-          ForEach(showEpisodes.filter { ($0.title ?? "").isEmpty == false }, id: \.ids.simkl_id) {
-            episode in
-            Text(episode.title ?? "Title")
+          ForEach(showEpisodes, id: \.ids.simkl_id) { episode in
+            Text(episode.title ?? "")
           }
         }
 
