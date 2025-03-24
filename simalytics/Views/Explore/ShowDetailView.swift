@@ -51,7 +51,7 @@ struct ShowDetailView: View {
               KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
             }
 
-            // Setup initial shows to Season 1 or Specials if nothing is aired yet
+            // Setup initial filteredShows to Season 1 or Specials if nothing is aired yet
             if !showEpisodes.filter({ $0.season == 1 }).isEmpty {
               filteredEpisodes = showEpisodes.filter({ $0.season == 1 })
               selectedSeason = "Season 1"
