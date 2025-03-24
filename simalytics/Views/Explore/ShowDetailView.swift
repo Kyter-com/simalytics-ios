@@ -13,6 +13,7 @@ struct ShowDetailView: View {
   @Environment(\.colorScheme) var colorScheme
   @State private var showDetails: ShowDetailsModel?
   @State private var showWatchlist: ShowWatchlistModel?
+  @State private var showEpisodes: [ShowEpisodeModel] = []
   @State private var isLoading = true
   @State private var watchlistStatus: String?
   var simkl_id: Int
@@ -26,6 +27,7 @@ struct ShowDetailView: View {
             showWatchlist = await ShowDetailView.getShowWatchlist(
               simkl_id, auth.simklAccessToken)
             watchlistStatus = showWatchlist?.list
+            showEpisodes = await ShowDetailView.getShowEpisodes(simkl_id)
 
             if let fanart = showDetails?.fanart {
               let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
@@ -167,6 +169,13 @@ struct ShowDetailView: View {
         }
 
         Spacer()
+
+        VStack {
+          ForEach(showEpisodes.filter { ($0.title ?? "").isEmpty == false }, id: \.ids.simkl_id) {
+            episode in
+            Text(episode.title ?? "Title")
+          }
+        }
 
         if let recommendations = showDetails?.users_recommendations?.filter({ $0.poster != nil }) {
           VStack(alignment: .leading) {
