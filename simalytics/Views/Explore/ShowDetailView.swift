@@ -105,8 +105,10 @@ struct ShowDetailView: View {
                   .fontDesign(.monospaced)
                   .foregroundColor(.secondary)
               } label: {
-                Label("Total Episodes", systemImage: "popcorn")
-                  .foregroundColor(.secondary)
+                Label(
+                  "Total Episodes", systemImage: "checkmark.arrow.trianglehead.counterclockwise"
+                )
+                .foregroundColor(.secondary)
               }
             }
             if let progress = showDetails?.total_episodes {
@@ -138,6 +140,60 @@ struct ShowDetailView: View {
         .padding([.leading, .trailing])
         .offset(y: -10)
         .background(colorScheme == .dark ? Color.black : Color.white)
+
+        if let title = showDetails?.title {
+          Text(title)
+            .font(.title)
+            .bold()
+            .fontDesign(.rounded)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding([.leading, .trailing])
+            .offset(y: -10)
+        }
+
+        if let genres = showDetails?.genres {
+          Text(genres.joined(separator: " • "))
+            .font(.footnote)
+            .foregroundColor(.secondary)
+            .padding([.leading, .trailing])
+            .fontDesign(.monospaced)
+        }
+
+        if let overview = showDetails?.overview {
+          Text(overview)
+            .font(.footnote)
+            .padding([.leading, .trailing])
+            .padding(.top, 8)
+        }
+
+        Spacer()
+
+        if let recommendations = showDetails?.users_recommendations?.filter({ $0.poster != nil }) {
+          VStack(alignment: .leading) {
+            Group {
+              ExploreGroupTitle(title: "Users Also Watched")
+
+              ScrollView(.horizontal, showsIndicators: true) {
+                HStack(spacing: 16) {
+                  ForEach(
+                    recommendations, id: \.ids.simkl
+                  ) { movieItem in
+                    VStack {
+                      CustomKFImage(
+                        imageUrlString: "\(SIMKL_CDN_URL)/posters/\(movieItem.poster ?? "")_m.jpg",
+                        memoryCacheOnly: true,
+                        height: 147,
+                        width: 100
+                      )
+                      ExploreTitle(title: movieItem.title)
+                    }
+                  }
+                }
+                .padding([.leading, .trailing, .bottom])
+              }
+            }
+          }
+        }
       }
     }
   }

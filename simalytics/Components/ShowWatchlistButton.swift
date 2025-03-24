@@ -12,7 +12,7 @@ struct ShowWatchlistButton: View {
   @Environment(\.colorScheme) var colorScheme
   @Binding var status: String?
   var simkl_id: Int
-  let statusOptions = ["plantowatch", "dropped", "completed"]
+  let statusOptions = ["watching", "plantowatch", "completed", "hold", "dropped"]
 
   var body: some View {
     Menu {
@@ -51,7 +51,7 @@ struct ShowWatchlistButton: View {
     }
     .onChange(of: status ?? "nil") { _, newValue in
       Task {
-        await MovieWatchlistButton.updateMovieList(
+        await ShowWatchlistButton.updateShowList(
           simkl_id, auth.simklAccessToken, newValue)
       }
     }
@@ -65,6 +65,10 @@ struct ShowWatchlistButton: View {
       return "hand.thumbsdown"
     case "completed":
       return "checkmark.circle"
+    case "hold":
+      return "pause"
+    case "watching":
+      return "popcorn"
     default:
       return "list.bullet.indent"
     }
@@ -78,6 +82,10 @@ struct ShowWatchlistButton: View {
       return "Dropped"
     case "completed":
       return "Completed"
+    case "hold":
+      return "On Hold"
+    case "watching":
+      return "Watching"
     default:
       return "Add to List"
     }
@@ -91,6 +99,10 @@ struct ShowWatchlistButton: View {
       return Color.red.opacity(0.2)
     case "completed":
       return Color.green.opacity(0.2)
+    case "hold":
+      return Color.gray.opacity(0.2)
+    case "watching":
+      return Color.indigo.opacity(0.2)
     default:
       return Color.blue.opacity(0.2)
     }
@@ -104,6 +116,10 @@ struct ShowWatchlistButton: View {
       return colorScheme == .dark ? Color.red : Color.red.darker()
     case "completed":
       return colorScheme == .dark ? Color.green : Color.green.darker()
+    case "hold":
+      return colorScheme == .dark ? Color.gray : Color.gray.darker()
+    case "watching":
+      return colorScheme == .dark ? Color.indigo : Color.indigo.darker()
     default:
       return colorScheme == .dark ? Color.blue : Color.blue.darker()
     }

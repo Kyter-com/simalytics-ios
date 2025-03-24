@@ -54,3 +54,55 @@ extension ShowDetailView {
     }
   }
 }
+
+extension ShowWatchlistButton {
+  static func updateShowList(_ simkl_id: Int, _ accessToken: String, _ list: String) async {
+    do {
+      if list == "nil" {
+        let urlComponents = URLComponents(string: "https://api.simkl.com/sync/history/remove")!
+        var request = URLRequest(url: urlComponents.url!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        let body: [String: Any] = [
+          "shows": [
+            [
+              "ids": [
+                "simkl": simkl_id
+              ]
+            ]
+          ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        _ = try await URLSession.shared.data(for: request)
+      } else {
+        let urlComponents = URLComponents(string: "https://api.simkl.com/sync/add-to-list")!
+
+        var request = URLRequest(url: urlComponents.url!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let body: [String: Any] = [
+          "shows": [
+            [
+              "to": list,
+              "ids": [
+                "simkl": simkl_id
+              ],
+            ]
+          ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        _ = try await URLSession.shared.data(for: request)
+      }
+    } catch {
+      SentrySDK.capture(error: error)
+      return
+    }
+  }
+}
