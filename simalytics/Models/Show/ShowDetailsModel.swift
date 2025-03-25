@@ -35,6 +35,7 @@ struct ShowDetailsModelRecommendation: Codable {
   let title: String
   let year: Int?
   let poster: String?
+  let type: String
   let ids: ShowDetailsModelRecommendationIds
 }
 

@@ -44,6 +44,7 @@ struct MovieDetailsModelRecommendation: Codable {
   let year: Int?
   let poster: String?
   let ids: MovieDetailsModelRecommendationIds
+  let type: String
 }
 
 struct MovieDetailsModelRecommendationIds: Codable {
