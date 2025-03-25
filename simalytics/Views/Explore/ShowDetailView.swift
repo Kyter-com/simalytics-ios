@@ -218,13 +218,24 @@ struct ShowDetailView: View {
                 }
               }
             } label: {
-              Text(selectedSeason ?? "")
+              HStack {
+                Text(selectedSeason ?? "")
+                Image(systemName: "chevron.right")
+              }
+              .foregroundColor(colorScheme == .dark ? Color.gray : Color.gray.darker())
+              .bold()
+              .padding(.horizontal, 10)
+              .padding(.vertical, 10)
+              .background(Color.gray.opacity(0.2))
+              .cornerRadius(10)
             }
             .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
+            .padding([.leading, .trailing])
 
             ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
               Text(episode.title ?? "")
                 .frame(maxWidth: .infinity, alignment: .leading)  // Ensures text is left-aligned
+                .padding([.leading, .trailing])
             }
           }
         }
