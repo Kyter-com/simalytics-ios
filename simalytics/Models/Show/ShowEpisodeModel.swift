@@ -8,7 +8,7 @@
 import Foundation
 
 struct ShowEpisodeModel: Codable {
-  let title: String?
+  let title: String
   let description: String?
   let season: Int?
   let episode: Int?

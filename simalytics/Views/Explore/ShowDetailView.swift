@@ -232,12 +232,10 @@ struct ShowDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
             .padding([.leading, .trailing])
 
-            List(filteredEpisodes, id: \.ids.simkl_id) { episode in
+            ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
               Text(String(episode.ids.simkl_id))
             }
             .listStyle(.inset)
-            .scaledToFit()
-            .scrollDisabled(true)
           }
           .padding(.top)
         }
