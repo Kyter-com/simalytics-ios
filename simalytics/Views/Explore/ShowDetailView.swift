@@ -222,22 +222,24 @@ struct ShowDetailView: View {
                 Text(selectedSeason ?? "")
                 Image(systemName: "chevron.right")
               }
-              .foregroundColor(colorScheme == .dark ? Color.gray : Color.gray.darker())
+              .foregroundColor(.accentColor)
               .bold()
               .padding(.horizontal, 10)
-              .padding(.vertical, 10)
-              .background(Color.gray.opacity(0.2))
-              .cornerRadius(10)
+              .padding(.vertical, 8)
+              .background(Color.gray.opacity(0.1))
+              .cornerRadius(8)
             }
             .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
             .padding([.leading, .trailing])
 
-            ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
-              Text(episode.title ?? "")
-                .frame(maxWidth: .infinity, alignment: .leading)  // Ensures text is left-aligned
-                .padding([.leading, .trailing])
+            List(filteredEpisodes, id: \.ids.simkl_id) { episode in
+              Text(String(episode.ids.simkl_id))
             }
+            .listStyle(.inset)
+            .scaledToFit()
+            .scrollDisabled(true)
           }
+          .padding(.top)
         }
 
         if let recommendations = showDetails?.users_recommendations?.filter({ $0.poster != nil }) {
@@ -249,17 +251,32 @@ struct ShowDetailView: View {
                 HStack(spacing: 16) {
                   ForEach(
                     recommendations, id: \.ids.simkl
-                  ) { movieItem in
-                    VStack {
-                      CustomKFImage(
-                        imageUrlString:
-                          "\(SIMKL_CDN_URL)/posters/\(movieItem.poster ?? "")_m.jpg",
-                        memoryCacheOnly: true,
-                        height: 147,
-                        width: 100
-                      )
-                      ExploreTitle(title: movieItem.title)
+                  ) { item in
+                    NavigationLink(
+                      destination: {
+                        let type = item.type
+                        let id = item.ids.simkl
+                        if type == "tv" {
+                          ShowDetailView(simkl_id: id)
+                        } else if type == "movie" {
+                          MovieDetailView(simkl_id: id)
+                        } else if type == "anime" {
+                          AnimeDetailView()
+                        }
+                      }
+                    ) {
+                      VStack {
+                        CustomKFImage(
+                          imageUrlString:
+                            "\(SIMKL_CDN_URL)/posters/\(item.poster ?? "")_m.jpg",
+                          memoryCacheOnly: true,
+                          height: 147,
+                          width: 100
+                        )
+                        ExploreTitle(title: item.title)
+                      }
                     }
+                    .buttonStyle(.plain)
                   }
                 }
                 .padding([.leading, .trailing, .bottom])

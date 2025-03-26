@@ -47,7 +47,7 @@ struct ShowWatchlistButton: View {
       .padding(.horizontal, 15)
       .padding(.vertical, 15)
       .background(mapStatusToColor(status))
-      .cornerRadius(10)
+      .cornerRadius(8)
     }
     .onChange(of: status ?? "nil") { _, newValue in
       Task {

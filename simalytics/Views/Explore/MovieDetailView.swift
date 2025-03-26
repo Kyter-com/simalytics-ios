@@ -175,16 +175,30 @@ struct MovieDetailView: View {
                 HStack(spacing: 16) {
                   ForEach(
                     recommendations, id: \.ids.simkl
-                  ) { movieItem in
-                    VStack {
-                      CustomKFImage(
-                        imageUrlString: "\(SIMKL_CDN_URL)/posters/\(movieItem.poster ?? "")_m.jpg",
-                        memoryCacheOnly: true,
-                        height: 147,
-                        width: 100
-                      )
-                      ExploreTitle(title: movieItem.title)
+                  ) { item in
+                    NavigationLink(destination: {
+                      let type = item.type
+                      let id = item.ids.simkl
+                      if type == "tv" {
+                        ShowDetailView(simkl_id: id)
+                      } else if type == "movie" {
+                        MovieDetailView(simkl_id: id)
+                      } else if type == "anime" {
+                        AnimeDetailView()
+                      }
+                    }) {
+                      VStack {
+                        CustomKFImage(
+                          imageUrlString:
+                            "\(SIMKL_CDN_URL)/posters/\(item.poster ?? "")_m.jpg",
+                          memoryCacheOnly: true,
+                          height: 147,
+                          width: 100
+                        )
+                        ExploreTitle(title: item.title)
+                      }
                     }
+                    .buttonStyle(.plain)
                   }
                 }
                 .padding([.leading, .trailing, .bottom])
