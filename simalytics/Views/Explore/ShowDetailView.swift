@@ -175,8 +175,15 @@ struct ShowDetailView: View {
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding([.leading, .trailing])
 
-              Toggle("Blur Images", isOn: $hideEpisodeImages)
-                .padding(.trailing)
+              // TODO: Move to settings in a UserDefaults setting
+              VStack(alignment: .trailing) {
+                Text("Blur Images")
+                  .font(.subheadline)  // Smaller text
+                  .foregroundColor(.gray)  // Optional: Change text color
+                Toggle("", isOn: $hideEpisodeImages)  // Empty label for toggle
+                  .padding(.top, 5)  // Adjust spacing between the text and toggle
+              }
+              .padding(.trailing)
             }
 
             List(filteredEpisodes, id: \.ids.simkl_id) { episode in
