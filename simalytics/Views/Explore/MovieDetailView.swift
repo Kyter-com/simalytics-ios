@@ -62,18 +62,18 @@ struct MovieDetailView: View {
         }
 
         HStack {
-          if let poster = movieDetails?.poster {
-            CustomKFImage(
-              imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
-              memoryCacheOnly: true,
-              height: 225,
-              width: 150
-            )
-            .overlay(
-              RoundedRectangle(cornerRadius: 8).stroke(
-                colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
-            )
-          }
+          CustomKFImage(
+            imageUrlString: movieDetails?.poster != nil
+              ? "\(SIMKL_CDN_URL)/posters/\(movieDetails?.poster ?? "")_m.jpg" : NO_IMAGE_URL,
+            memoryCacheOnly: true,
+            height: 225,
+            width: 150
+          )
+          .overlay(
+            RoundedRectangle(cornerRadius: 8).stroke(
+              colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
+          )
+
           Spacer()
           VStack(alignment: .leading) {
             Spacer()

@@ -61,8 +61,9 @@ struct ExploreView: View {
                       ) {
                         VStack {
                           CustomKFImage(
-                            imageUrlString:
-                              "\(SIMKL_CDN_URL)/posters/\(movieItem.poster)_m.jpg",
+                            imageUrlString: movieItem.poster != nil
+                              ? "\(SIMKL_CDN_URL)/posters/\(movieItem.poster!)_m.jpg"
+                              : NO_IMAGE_URL,
                             memoryCacheOnly: true,
                             height: 150,
                             width: 100

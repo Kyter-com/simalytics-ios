@@ -9,7 +9,7 @@ import Foundation
 
 struct TrendingShowModel: Codable {
   let title: String
-  let poster: String
+  let poster: String  // TODO: Make optional and use default image
   let ids: TrendingShowModel_ids
 }
 

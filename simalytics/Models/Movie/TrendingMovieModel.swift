@@ -9,7 +9,7 @@ import Foundation
 
 struct TrendingMovieModel: Codable {
   let title: String
-  let poster: String
+  let poster: String?
   let ids: TrendingMovieModel_ids
 }
 
