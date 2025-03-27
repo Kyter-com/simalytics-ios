@@ -232,10 +232,16 @@ struct ShowDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
             .padding([.leading, .trailing])
 
-            ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
-              Text(String(episode.ids.simkl_id))
+            List(filteredEpisodes, id: \.ids.simkl_id) { episode in
+              VStack {
+                Text(episode.title)
+                  .font(.headline)
+                  .lineLimit(1)
+              }
             }
             .listStyle(.inset)
+            .frame(height: CGFloat(filteredEpisodes.count) * 44)
+            .scrollDisabled(true)
           }
           .padding(.top)
         }
