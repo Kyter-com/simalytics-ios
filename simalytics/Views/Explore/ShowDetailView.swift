@@ -7,12 +7,25 @@
 
 import Kingfisher
 import SwiftUI
+import UIKit
 
 // TODO: MOVE OUT
 extension Array where Element: Hashable {
   func unique() -> [Element] {
     Array(Set(self))
   }
+}
+
+struct BlurView: UIViewRepresentable {
+  var style: UIBlurEffect.Style
+
+  func makeUIView(context: Context) -> UIVisualEffectView {
+    let blurEffect = UIBlurEffect(style: style)
+    let blurView = UIVisualEffectView(effect: blurEffect)
+    return blurView
+  }
+
+  func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
 }
 
 struct ShowDetailView: View {
@@ -25,6 +38,7 @@ struct ShowDetailView: View {
   @State private var watchlistStatus: String?
   @State private var filteredEpisodes: [ShowEpisodeModel] = []
   @State private var selectedSeason: String?
+  @State private var hideEpisodeImages = false  // Toggle state
   var simkl_id: Int
 
   var seasons: [Int] {
@@ -200,58 +214,72 @@ struct ShowDetailView: View {
 
         if !filteredEpisodes.isEmpty {
           VStack(alignment: .leading) {  // Align content to the left
-            Menu {
-              ForEach(seasons, id: \.self) { season in
-                Button(action: {
-                  filteredEpisodes = showEpisodes.filter { $0.season == season }
-                  selectedSeason = "Season \(season)"
-                }) {
-                  Text("Season \(season)")
+            HStack {
+              Menu {
+                ForEach(seasons, id: \.self) { season in
+                  Button(action: {
+                    filteredEpisodes = showEpisodes.filter { $0.season == season }
+                    selectedSeason = "Season \(season)"
+                  }) {
+                    Text("Season \(season)")
+                  }
                 }
-              }
-              if hasSpecials {
-                Button(action: {
-                  filteredEpisodes = showEpisodes.filter { $0.type == "special" }
-                  selectedSeason = "Specials"
-                }) {
-                  Text("Specials")
+                if hasSpecials {
+                  Button(action: {
+                    filteredEpisodes = showEpisodes.filter { $0.type == "special" }
+                    selectedSeason = "Specials"
+                  }) {
+                    Text("Specials")
+                  }
                 }
+              } label: {
+                HStack {
+                  Text(selectedSeason ?? "")
+                  Image(systemName: "chevron.right")
+                }
+                .foregroundColor(.accentColor)
+                .bold()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
               }
-            } label: {
-              HStack {
-                Text(selectedSeason ?? "")
-                Image(systemName: "chevron.right")
-              }
-              .foregroundColor(.accentColor)
-              .bold()
-              .padding(.horizontal, 10)
-              .padding(.vertical, 8)
-              .background(Color.gray.opacity(0.1))
-              .cornerRadius(8)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
-            .padding([.leading, .trailing])
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding([.leading, .trailing])
 
-            // TODO: No image for episodes
+              Toggle("Blur Images", isOn: $hideEpisodeImages)
+                .padding(.trailing)
+            }
+
             List(filteredEpisodes, id: \.ids.simkl_id) { episode in
               HStack {
-                CustomKFImage(
-                  imageUrlString: episode.img != nil
-                    ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
-                  memoryCacheOnly: true,
-                  height: 70.42,
-                  width: 125
-                )
+                ZStack {
+                  CustomKFImage(
+                    imageUrlString: episode.img != nil
+                      ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
+                    memoryCacheOnly: true,
+                    height: 70.42,
+                    width: 125
+                  )
+                  if hideEpisodeImages {
+                    Rectangle()
+                      .fill(Color.clear)
+                      .frame(width: 125, height: 70.42)
+                      .background(BlurView(style: .regular))
+                      .cornerRadius(8)
+                  }
+                }
+
                 VStack {
                   Text(episode.title)
                     .font(.headline)
                     .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
+                    .frame(maxWidth: .infinity, alignment: .leading)
                   if let description = episode.description {
                     Text(description)
                       .font(.caption)
                       .lineLimit(3)
-                      .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
+                      .frame(maxWidth: .infinity, alignment: .leading)
                   }
                 }
               }
