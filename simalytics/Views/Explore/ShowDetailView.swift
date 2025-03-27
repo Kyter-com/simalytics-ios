@@ -232,15 +232,32 @@ struct ShowDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
             .padding([.leading, .trailing])
 
+            // TODO: No image for episodes
             List(filteredEpisodes, id: \.ids.simkl_id) { episode in
-              VStack {
-                Text(episode.title)
-                  .font(.headline)
-                  .lineLimit(1)
+              HStack {
+                CustomKFImage(
+                  imageUrlString: episode.img != nil
+                    ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
+                  memoryCacheOnly: true,
+                  height: 70.42,
+                  width: 125
+                )
+                VStack {
+                  Text(episode.title)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
+                  if let description = episode.description {
+                    Text(description)
+                      .font(.caption)
+                      .lineLimit(3)
+                      .frame(maxWidth: .infinity, alignment: .leading)  // Ensures menu is left-aligned
+                  }
+                }
               }
             }
             .listStyle(.inset)
-            .frame(height: CGFloat(filteredEpisodes.count) * 44)
+            .frame(height: CGFloat(filteredEpisodes.count) * 94)
             .scrollDisabled(true)
           }
           .padding(.top)
