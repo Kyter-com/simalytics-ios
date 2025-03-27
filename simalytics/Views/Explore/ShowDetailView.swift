@@ -7,26 +7,6 @@
 
 import Kingfisher
 import SwiftUI
-import UIKit
-
-// TODO: MOVE OUT
-extension Array where Element: Hashable {
-  func unique() -> [Element] {
-    Array(Set(self))
-  }
-}
-
-struct BlurView: UIViewRepresentable {
-  var style: UIBlurEffect.Style
-
-  func makeUIView(context: Context) -> UIVisualEffectView {
-    let blurEffect = UIBlurEffect(style: style)
-    let blurView = UIVisualEffectView(effect: blurEffect)
-    return blurView
-  }
-
-  func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
-}
 
 struct ShowDetailView: View {
   @EnvironmentObject private var auth: Auth
@@ -38,7 +18,7 @@ struct ShowDetailView: View {
   @State private var watchlistStatus: String?
   @State private var filteredEpisodes: [ShowEpisodeModel] = []
   @State private var selectedSeason: String?
-  @State private var hideEpisodeImages = false  // Toggle state
+  @State private var hideEpisodeImages = false
   var simkl_id: Int
 
   var seasons: [Int] {
@@ -84,7 +64,6 @@ struct ShowDetailView: View {
         if let fanart = showDetails?.fanart {
           GeometryReader { reader in
             if reader.frame(in: .global).minY > -150 {
-
               KFImage(
                 URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")
               )
@@ -119,62 +98,11 @@ struct ShowDetailView: View {
             )
           }
           Spacer()
-          VStack(alignment: .leading) {
+          VStack {
             Spacer()
               .frame(height: 8)
             Spacer()
-            if let year = showDetails?.year_start_end {
-              LabeledContent {
-                Text(String(year).replacingOccurrences(of: " - ", with: "-"))
-                  .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
-              } label: {
-                Label("Year", systemImage: "calendar")
-                  .foregroundColor(.secondary)
-              }
-            }
-            if let runtime = showDetails?.runtime {
-              LabeledContent {
-                Text("\(String(runtime)) Min")
-                  .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
-              } label: {
-                Label("Ep. Runtime", systemImage: "clock")
-                  .foregroundColor(.secondary)
-              }
-            }
-            if let total_episodes = showDetails?.total_episodes {
-              LabeledContent {
-                Text(String(total_episodes))
-                  .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
-              } label: {
-                Label(
-                  "Total Episodes", systemImage: "checkmark.arrow.trianglehead.counterclockwise"
-                )
-                .foregroundColor(.secondary)
-              }
-            }
-            if let progress = showDetails?.total_episodes {
-              LabeledContent {
-                Text("0%")
-                  .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
-              } label: {
-                Label("Watched", systemImage: "percent")
-                  .foregroundColor(.secondary)
-              }
-            }
-            if let simklRating = showDetails?.ratings?.simkl?.rating {
-              LabeledContent {
-                Text(String(simklRating))
-                  .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
-              } label: {
-                Label("SIMKL Rating", systemImage: "number")
-                  .foregroundColor(.secondary)
-              }
-            }
+            HeaderInfo(showDetails: $showDetails)
             Spacer()
             ShowWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
             Spacer()
