@@ -13,6 +13,7 @@ import SwiftUI
 struct SettingsView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
+  @AppStorage("blurEpisodeImages") private var blurImages = false
   @State private var showErrorAlert = false
 
   var body: some View {
@@ -106,6 +107,16 @@ struct SettingsView: View {
             }
           } header: {
             Text("Simkl Connection")
+          }
+
+          Section {
+            HStack {
+              Text("Blur Episode Images")
+              Spacer()
+              Toggle("", isOn: $blurImages)
+            }
+          } header: {
+            Text("TV Show Settings")
           }
         }
         .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {

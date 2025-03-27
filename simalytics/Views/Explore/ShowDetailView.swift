@@ -19,6 +19,7 @@ struct ShowDetailView: View {
   @State private var filteredEpisodes: [ShowEpisodeModel] = []
   @State private var selectedSeason: String?
   @State private var hideEpisodeImages = false
+  @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
   var simkl_id: Int
 
   var seasons: [Int] {
@@ -174,16 +175,6 @@ struct ShowDetailView: View {
               }
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding([.leading, .trailing])
-
-              // TODO: Move to settings in a UserDefaults setting
-              VStack(alignment: .trailing) {
-                Text("Blur Images")
-                  .font(.subheadline)  // Smaller text
-                  .foregroundColor(.gray)  // Optional: Change text color
-                Toggle("", isOn: $hideEpisodeImages)  // Empty label for toggle
-                  .padding(.top, 5)  // Adjust spacing between the text and toggle
-              }
-              .padding(.trailing)
             }
 
             List(filteredEpisodes, id: \.ids.simkl_id) { episode in
@@ -196,7 +187,7 @@ struct ShowDetailView: View {
                     height: 70.42,
                     width: 125
                   )
-                  if hideEpisodeImages {
+                  if blurImages {
                     Rectangle()
                       .fill(Color.clear)
                       .frame(width: 125, height: 70.42)
