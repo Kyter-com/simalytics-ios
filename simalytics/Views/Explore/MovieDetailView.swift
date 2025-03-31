@@ -144,7 +144,7 @@ struct MovieDetailView: View {
 
         Spacer()
 
-        Recommendations(recommendations: movieDetails?.users_recommendations ?? [])
+        Recommendations(recommendations: movieDetails?.users_recommendations)
       }
     }
   }

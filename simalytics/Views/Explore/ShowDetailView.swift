@@ -197,7 +197,7 @@ struct ShowDetailView: View {
           .padding(.top)
         }
 
-        Recommendations(recommendations: showDetails?.users_recommendations ?? [])
+        Recommendations(recommendations: showDetails?.users_recommendations)
       }
     }
   }
