@@ -166,9 +166,7 @@ struct MovieDetailView: View {
 
         Spacer()
 
-        if let recommendations = movieDetails?.users_recommendations {
-          Recommendations(recommendations: recommendations)
-        }
+        Recommendations(recommendations: movieDetails?.users_recommendations ?? [])
       }
     }
   }

@@ -18,7 +18,6 @@ struct ShowDetailView: View {
   @State private var watchlistStatus: String?
   @State private var filteredEpisodes: [ShowEpisodeModel] = []
   @State private var selectedSeason: String?
-  @State private var hideEpisodeImages = false
   @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
   var simkl_id: Int
 
@@ -201,6 +200,7 @@ struct ShowDetailView: View {
                     .font(.headline)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
+
                   if let description = episode.description {
                     Text(description)
                       .font(.caption)
@@ -208,6 +208,7 @@ struct ShowDetailView: View {
                       .frame(maxWidth: .infinity, alignment: .leading)
                   }
                 }
+
               }
             }
             .listStyle(.inset)
@@ -217,9 +218,7 @@ struct ShowDetailView: View {
           .padding(.top)
         }
 
-        if let recommendations = showDetails?.users_recommendations {
-          Recommendations(recommendations: recommendations)
-        }
+        Recommendations(recommendations: showDetails?.users_recommendations ?? [])
       }
     }
   }
