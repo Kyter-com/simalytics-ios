@@ -217,47 +217,8 @@ struct ShowDetailView: View {
           .padding(.top)
         }
 
-        if let recommendations = showDetails?.users_recommendations?.filter({ $0.poster != nil }) {
-          VStack(alignment: .leading) {
-            Group {
-              ExploreGroupTitle(title: "Users Also Watched")
-
-              ScrollView(.horizontal, showsIndicators: true) {
-                HStack(spacing: 16) {
-                  ForEach(
-                    recommendations, id: \.ids.simkl
-                  ) { item in
-                    NavigationLink(
-                      destination: {
-                        let type = item.type
-                        let id = item.ids.simkl
-                        if type == "tv" {
-                          ShowDetailView(simkl_id: id)
-                        } else if type == "movie" {
-                          MovieDetailView(simkl_id: id)
-                        } else if type == "anime" {
-                          AnimeDetailView()
-                        }
-                      }
-                    ) {
-                      VStack {
-                        CustomKFImage(
-                          imageUrlString:
-                            "\(SIMKL_CDN_URL)/posters/\(item.poster ?? "")_m.jpg",
-                          memoryCacheOnly: true,
-                          height: 147,
-                          width: 100
-                        )
-                        ExploreTitle(title: item.title)
-                      }
-                    }
-                    .buttonStyle(.plain)
-                  }
-                }
-                .padding([.leading, .trailing, .bottom])
-              }
-            }
-          }
+        if let recommendations = showDetails?.users_recommendations {
+          Recommendations(recommendations: recommendations)
         }
       }
     }
