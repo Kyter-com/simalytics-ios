@@ -21,5 +21,47 @@ struct AnimeHeaderInfo: View {
           .foregroundColor(.secondary)
       }
     }
+    if let runtime = animeDetails?.runtime {
+      LabeledContent {
+        Text("\(String(runtime)) Min")
+          .fontDesign(.monospaced)
+          .foregroundColor(.secondary)
+      } label: {
+        Label("Ep. Runtime", systemImage: "clock")
+          .foregroundColor(.secondary)
+      }
+    }
+    if let total_episodes = animeDetails?.total_episodes {
+      LabeledContent {
+        Text(String(total_episodes))
+          .fontDesign(.monospaced)
+          .foregroundColor(.secondary)
+      } label: {
+        Label(
+          "Total Episodes", systemImage: "checkmark.arrow.trianglehead.counterclockwise"
+        )
+        .foregroundColor(.secondary)
+      }
+    }
+    if let progress = animeDetails?.total_episodes {
+      LabeledContent {
+        Text("0%")
+          .fontDesign(.monospaced)
+          .foregroundColor(.secondary)
+      } label: {
+        Label("Watched", systemImage: "percent")
+          .foregroundColor(.secondary)
+      }
+    }
+    if let simklRating = animeDetails?.ratings?.simkl?.rating {
+      LabeledContent {
+        Text(String(simklRating))
+          .fontDesign(.monospaced)
+          .foregroundColor(.secondary)
+      } label: {
+        Label("SIMKL Rating", systemImage: "number")
+          .foregroundColor(.secondary)
+      }
+    }
   }
 }

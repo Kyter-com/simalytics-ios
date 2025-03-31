@@ -11,8 +11,10 @@ import SwiftUI
 struct AnimeDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
+  @State private var animeWatchlist: AnimeWatchlistModel?
   @State private var animeDetails: AnimeDetailsModel?
   @State private var isLoading = true
+  @State private var watchlistStatus: String?
   var simkl_id: Int
 
   var body: some View {
@@ -21,6 +23,9 @@ struct AnimeDetailView: View {
         .onAppear {
           Task {
             animeDetails = await AnimeDetailView.getAnimeDetails(simkl_id)
+            animeWatchlist = await AnimeDetailView.getAnimeWatchlist(
+              simkl_id, auth.simklAccessToken)
+            watchlistStatus = animeWatchlist?.list
 
             if let fanart = animeDetails?.fanart {
               let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
@@ -54,7 +59,7 @@ struct AnimeDetailView: View {
             Spacer()
             AnimeHeaderInfo(animeDetails: $animeDetails)
             Spacer()
-            // ShowWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
+            AnimeWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
             Spacer()
               .frame(height: 2)
           }
