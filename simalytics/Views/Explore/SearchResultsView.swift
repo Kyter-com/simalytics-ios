@@ -32,7 +32,7 @@ struct SearchResultsView: View {
             } else if type == "movies" {
               MovieDetailView(simkl_id: id)
             } else if type == "anime" {
-              AnimeDetailView()
+              AnimeDetailView(simkl_id: id)
             }
           }) {
             VStack {

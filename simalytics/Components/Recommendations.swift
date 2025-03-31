@@ -29,7 +29,7 @@ struct Recommendations: View {
                   } else if type == "movie" {
                     MovieDetailView(simkl_id: id)
                   } else if type == "anime" {
-                    AnimeDetailView()
+                    AnimeDetailView(simkl_id: id)
                   }
                 }
               ) {

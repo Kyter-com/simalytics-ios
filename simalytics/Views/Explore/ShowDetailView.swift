@@ -142,7 +142,7 @@ struct ShowDetailView: View {
               } label: {
                 HStack {
                   Text(selectedSeason ?? "")
-                  Image(systemName: "chevron.right")
+                  Image(systemName: "chevron.up.chevron.down")
                 }
                 .foregroundColor(.accentColor)
                 .bold()

@@ -83,16 +83,21 @@ struct ExploreView: View {
                 ScrollView(.horizontal, showsIndicators: true) {
                   HStack(spacing: 16) {
                     ForEach(trendingAnimes, id: \.ids.simkl_id) { animeItem in
-                      VStack {
-                        CustomKFImage(
-                          imageUrlString:
-                            "\(SIMKL_CDN_URL)/posters/\(animeItem.poster)_m.jpg",
-                          memoryCacheOnly: true,
-                          height: 150,
-                          width: 100
-                        )
-                        ExploreTitle(title: animeItem.title)
+                      NavigationLink(
+                        destination: AnimeDetailView(simkl_id: animeItem.ids.simkl_id)
+                      ) {
+                        VStack {
+                          CustomKFImage(
+                            imageUrlString:
+                              "\(SIMKL_CDN_URL)/posters/\(animeItem.poster)_m.jpg",
+                            memoryCacheOnly: true,
+                            height: 150,
+                            width: 100
+                          )
+                          ExploreTitle(title: animeItem.title)
+                        }
                       }
+                      .buttonStyle(.plain)
                     }
                   }
                   .padding([.leading, .trailing, .bottom])
