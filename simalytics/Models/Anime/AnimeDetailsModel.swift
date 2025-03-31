@@ -14,4 +14,5 @@ struct AnimeDetailsModel: Codable {
   let genres: [String]?
   let overview: String?
   let year_start_end: String?
+  let users_recommendations: [RecommendationModel]?
 }

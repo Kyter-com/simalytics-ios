@@ -82,13 +82,15 @@ struct AnimeDetailView: View {
         }
 
         if let overview = animeDetails?.overview {
-          Text(overview)
+          Text(overview.stripHTML)
             .font(.footnote)
             .padding([.leading, .trailing])
             .padding(.top, 8)
         }
 
         Spacer()
+
+        Recommendations(recommendations: animeDetails?.users_recommendations ?? [])
       }
     }
   }

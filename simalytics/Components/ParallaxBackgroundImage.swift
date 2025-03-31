@@ -32,6 +32,8 @@ struct ParallaxBackgroundImage: View {
         }
       }
       .frame(height: 150)
+    } else {
+      Spacer()
     }
   }
 }
