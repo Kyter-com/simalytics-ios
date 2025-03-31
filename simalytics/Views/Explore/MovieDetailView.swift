@@ -37,29 +37,7 @@ struct MovieDetailView: View {
         }
     } else {
       ScrollView {
-        if let fanart = movieDetails?.fanart {
-          GeometryReader { reader in
-            if reader.frame(in: .global).minY > -150 {
-
-              KFImage(
-                URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")
-              )
-              .serialize(as: .JPEG)
-              .cacheMemoryOnly(true)
-              .memoryCacheExpiration(.days(7))
-              .fade(duration: 0.10)
-              .resizable()
-              .aspectRatio(contentMode: .fill)
-              .offset(y: -reader.frame(in: .global).minY)
-              .frame(
-                width: UIScreen.main.bounds.width,
-                height: reader.frame(in: .global).minY > 0
-                  ? reader.frame(in: .global).minY + 150 : 150
-              )
-            }
-          }
-          .frame(height: 150)
-        }
+        ParallaxBackgroundImage(fanart: movieDetails?.fanart)
 
         HStack {
           CustomKFImage(
