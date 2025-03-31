@@ -33,6 +33,62 @@ struct AnimeDetailView: View {
     } else {
       ScrollView {
         ParallaxBackgroundImage(fanart: animeDetails?.fanart)
+
+        HStack {
+          if let poster = animeDetails?.poster {
+            CustomKFImage(
+              imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
+              memoryCacheOnly: true,
+              height: 220.59,
+              width: 150
+            )
+            .overlay(
+              RoundedRectangle(cornerRadius: 8).stroke(
+                colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
+            )
+          }
+          Spacer()
+          VStack {
+            Spacer()
+              .frame(height: 8)
+            Spacer()
+            AnimeHeaderInfo(animeDetails: $animeDetails)
+            Spacer()
+            // ShowWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
+            Spacer()
+              .frame(height: 2)
+          }
+        }
+        .padding([.leading, .trailing])
+        .offset(y: -10)
+        .background(colorScheme == .dark ? Color.black : Color.white)
+
+        if let title = animeDetails?.title {
+          Text(title)
+            .font(.title)
+            .bold()
+            .fontDesign(.rounded)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding([.leading, .trailing])
+            .offset(y: -10)
+        }
+
+        if let genres = animeDetails?.genres {
+          Text(genres.joined(separator: " • "))
+            .font(.footnote)
+            .foregroundColor(.secondary)
+            .padding([.leading, .trailing])
+            .fontDesign(.monospaced)
+        }
+
+        if let overview = animeDetails?.overview {
+          Text(overview)
+            .font(.footnote)
+            .padding([.leading, .trailing])
+            .padding(.top, 8)
+        }
+
+        Spacer()
       }
     }
   }

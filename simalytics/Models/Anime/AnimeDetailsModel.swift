@@ -11,4 +11,7 @@ struct AnimeDetailsModel: Codable {
   let title: String
   let fanart: String?
   let poster: String?
+  let genres: [String]?
+  let overview: String?
+  let year_start_end: String?
 }

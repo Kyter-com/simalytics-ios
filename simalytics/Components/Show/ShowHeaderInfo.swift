@@ -1,5 +1,5 @@
 //
-//  HeaderInfo.swift
+//  ShowHeaderInfo.swift
 //  simalytics
 //
 //  Created by Nick Reisenauer on 3/27/25.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct HeaderInfo: View {
+struct ShowHeaderInfo: View {
   @Binding var showDetails: ShowDetailsModel?
 
   var body: some View {

@@ -81,7 +81,7 @@ struct ShowDetailView: View {
             Spacer()
               .frame(height: 8)
             Spacer()
-            HeaderInfo(showDetails: $showDetails)
+            ShowHeaderInfo(showDetails: $showDetails)
             Spacer()
             ShowWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
             Spacer()
