@@ -15,6 +15,8 @@ struct AnimeEpisodeModel: Codable {
   let aired: Bool?
   let img: String?
   let date: String?
+  // Added in ViewModel
+  var season: Int?
   let ids: AnimeEpisodeModelIds
 }
 

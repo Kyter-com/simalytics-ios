@@ -17,7 +17,17 @@ struct AnimeDetailView: View {
   @State private var filteredEpisodes: [AnimeEpisodeModel] = []
   @State private var isLoading = true
   @State private var watchlistStatus: String?
+  @State private var selectedSeason: String?
+  @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
   var simkl_id: Int
+
+  var seasons: [Int] {
+    animeEpisodes.compactMap { $0.season }.unique().filter { $0 > 0 }.sorted()
+  }
+
+  var hasSpecials: Bool {
+    animeEpisodes.contains { $0.type == "special" }
+  }
 
   var body: some View {
     if isLoading {
@@ -33,6 +43,17 @@ struct AnimeDetailView: View {
             if let fanart = animeDetails?.fanart {
               let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
               KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
+            }
+
+            // Setup initial filteredShows to Season 1 or Specials if nothing is aired yet
+            if !animeEpisodes.filter({ $0.season! == 1 }).isEmpty {
+              filteredEpisodes = animeEpisodes.filter({ $0.season == 1 })
+              selectedSeason = "Season 1"
+            } else if !animeEpisodes.filter({ $0.type == "special" }).isEmpty {
+              filteredEpisodes = animeEpisodes.filter({ $0.type == "special" })
+              selectedSeason = "Specials"
+            } else {
+              filteredEpisodes = []
             }
 
             isLoading = false
@@ -97,6 +118,83 @@ struct AnimeDetailView: View {
         }
 
         Spacer()
+
+        if !filteredEpisodes.isEmpty {
+          VStack(alignment: .leading) {
+            HStack {
+              Menu {
+                ForEach(seasons, id: \.self) { season in
+                  Button(action: {
+                    filteredEpisodes = animeEpisodes.filter { $0.season == season }
+                    selectedSeason = "Season \(season)"
+                  }) {
+                    Text("Season \(season)")
+                  }
+                }
+                if hasSpecials {
+                  Button(action: {
+                    filteredEpisodes = animeEpisodes.filter { $0.type == "special" }
+                    selectedSeason = "Specials"
+                  }) {
+                    Text("Specials")
+                  }
+                }
+              } label: {
+                HStack {
+                  Text(selectedSeason ?? "")
+                  Image(systemName: "chevron.up.chevron.down")
+                }
+                .foregroundColor(.accentColor)
+                .bold()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
+              }
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding([.leading, .trailing])
+            }
+
+            List(filteredEpisodes, id: \.ids.simkl_id) { episode in
+              HStack {
+                ZStack {
+                  CustomKFImage(
+                    imageUrlString: episode.img != nil
+                      ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
+                    memoryCacheOnly: true,
+                    height: 70.42,
+                    width: 125
+                  )
+                  if blurImages {
+                    Rectangle()
+                      .fill(Color.clear)
+                      .frame(width: 125, height: 70.42)
+                      .background(BlurView(style: .regular))
+                      .cornerRadius(8)
+                  }
+                }
+
+                VStack {
+                  Text(episode.title)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                  if let description = episode.description {
+                    Text(description)
+                      .font(.caption)
+                      .lineLimit(3)
+                      .frame(maxWidth: .infinity, alignment: .leading)
+                  }
+                }
+              }
+            }
+            .listStyle(.inset)
+            .frame(height: CGFloat(filteredEpisodes.count) * 93.5)
+            .scrollDisabled(true)
+          }
+          .padding(.top)
+        }
 
         Recommendations(recommendations: animeDetails?.users_recommendations ?? [])
       }

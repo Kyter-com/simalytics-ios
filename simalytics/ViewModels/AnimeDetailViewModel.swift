@@ -70,7 +70,18 @@ extension AnimeDetailView {
         return []
       }
 
-      return try JSONDecoder().decode([AnimeEpisodeModel].self, from: data)
+      let episodes = try JSONDecoder().decode([AnimeEpisodeModel].self, from: data)
+      // Map through the episodes and assign custom seasons
+      let processedEpisodes = episodes.map { episode -> AnimeEpisodeModel in
+        var modifiedEpisode = episode
+        if episode.type != "special", let episodeNumber = episode.episode {
+          modifiedEpisode.season = episodeNumber / 100 + 1
+        } else {
+          modifiedEpisode.season = 0
+        }
+        return modifiedEpisode
+      }
+      return processedEpisodes
     } catch {
       SentrySDK.capture(error: error)
       return []

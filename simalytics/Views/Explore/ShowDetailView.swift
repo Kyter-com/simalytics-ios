@@ -187,7 +187,6 @@ struct ShowDetailView: View {
                       .frame(maxWidth: .infinity, alignment: .leading)
                   }
                 }
-
               }
             }
             .listStyle(.inset)
