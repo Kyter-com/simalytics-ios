@@ -22,11 +22,16 @@ struct IndexView: View {
           Label("Explore", systemImage: "magnifyingglass")
         }
         .tag(1)
+      ListView()
+        .tabItem {
+          Label("Lists", systemImage: "list.bullet.indent")
+        }
+        .tag(2)
       SettingsView()
         .tabItem {
           Label("Settings", systemImage: "gearshape.fill")
         }
-        .tag(2)
+        .tag(3)
     }
     .onChange(of: selectedTab) {
       let generator = UIImpactFeedbackGenerator(style: .light)
