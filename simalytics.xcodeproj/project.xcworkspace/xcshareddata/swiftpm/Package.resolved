@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/auth0/SimpleKeychain",
       "state" : {
-        "revision" : "b694f155907b189bc82e93586695a26f558c742f",
-        "version" : "1.2.0"
+        "revision" : "776c4a6db74d5c6c143974be91c383680d468630",
+        "version" : "1.3.0"
       }
     }
   ],

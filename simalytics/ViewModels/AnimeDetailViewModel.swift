@@ -53,6 +53,29 @@ extension AnimeDetailView {
       return nil
     }
   }
+
+  static func getAnimeEpisodes(_ simkl_id: Int) async -> [AnimeEpisodeModel] {
+    do {
+      var urlComponents = URLComponents(string: "https://api.simkl.com/anime/episodes/\(simkl_id)")!
+      urlComponents.queryItems = [
+        URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
+        URLQueryItem(name: "extended", value: "full"),
+      ]
+
+      var request = URLRequest(url: urlComponents.url!)
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+      let (data, response) = try await URLSession.shared.data(for: request)
+      guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+        return []
+      }
+
+      return try JSONDecoder().decode([AnimeEpisodeModel].self, from: data)
+    } catch {
+      SentrySDK.capture(error: error)
+      return []
+    }
+  }
 }
 
 extension AnimeWatchlistButton {

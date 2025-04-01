@@ -13,6 +13,8 @@ struct AnimeDetailView: View {
   @Environment(\.colorScheme) var colorScheme
   @State private var animeWatchlist: AnimeWatchlistModel?
   @State private var animeDetails: AnimeDetailsModel?
+  @State private var animeEpisodes: [AnimeEpisodeModel] = []
+  @State private var filteredEpisodes: [AnimeEpisodeModel] = []
   @State private var isLoading = true
   @State private var watchlistStatus: String?
   var simkl_id: Int
@@ -26,6 +28,7 @@ struct AnimeDetailView: View {
             animeWatchlist = await AnimeDetailView.getAnimeWatchlist(
               simkl_id, auth.simklAccessToken)
             watchlistStatus = animeWatchlist?.list
+            animeEpisodes = await AnimeDetailView.getAnimeEpisodes(simkl_id)
 
             if let fanart = animeDetails?.fanart {
               let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
