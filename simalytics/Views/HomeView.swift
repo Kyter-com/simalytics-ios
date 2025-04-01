@@ -11,6 +11,7 @@ struct HomeView: View {
   @EnvironmentObject private var auth: Auth
   @State private var shows: [UpNextShowModel_show] = []
   @State private var searchText: String = ""
+  @State private var globalLoadingIndicator = GlobalLoadingIndicator()
   var filteredShows: [UpNextShowModel_show] {
     if searchText.isEmpty {
       return shows
@@ -74,6 +75,13 @@ struct HomeView: View {
       }
       .task { shows = await HomeView.fetchShows(accessToken: auth.simklAccessToken) }
       .navigationTitle("Up Next")
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          if globalLoadingIndicator.isSyncing {
+            ProgressView()
+          }
+        }
+      }
     }
   }
 }

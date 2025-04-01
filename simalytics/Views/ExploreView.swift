@@ -15,6 +15,7 @@ struct ExploreView: View {
   @State private var trendingAnimes: [TrendingAnimeModel] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
+  @State private var globalLoadingIndicator = GlobalLoadingIndicator()
 
   var body: some View {
     NavigationView {
@@ -24,7 +25,6 @@ struct ExploreView: View {
         } else {
           ScrollView {
             VStack(alignment: .leading) {
-
               Group {
                 ExploreGroupTitle(title: "Trending Shows")
                 ScrollView(.horizontal, showsIndicators: true) {
@@ -109,6 +109,13 @@ struct ExploreView: View {
         }
       }
       .navigationTitle("Explore")
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          if globalLoadingIndicator.isSyncing {
+            ProgressView()
+          }
+        }
+      }
     }
     .onAppear {
       Task {

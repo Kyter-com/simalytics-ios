@@ -15,6 +15,7 @@ struct SettingsView: View {
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
   @AppStorage("blurEpisodeImages") private var blurImages = false
   @State private var showErrorAlert = false
+  @State private var globalLoadingIndicator = GlobalLoadingIndicator()
 
   var body: some View {
     NavigationView {
@@ -126,6 +127,13 @@ struct SettingsView: View {
         }
       }
       .navigationTitle("Settings")
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          if globalLoadingIndicator.isSyncing {
+            ProgressView()
+          }
+        }
+      }
     }
   }
 }
