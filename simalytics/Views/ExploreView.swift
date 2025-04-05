@@ -15,7 +15,7 @@ struct ExploreView: View {
   @State private var trendingAnimes: [TrendingAnimeModel] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
-  @State private var globalLoadingIndicator = GlobalLoadingIndicator()
+  @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
 
   var body: some View {
     NavigationView {

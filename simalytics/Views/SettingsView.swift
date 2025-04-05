@@ -15,7 +15,7 @@ struct SettingsView: View {
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
   @AppStorage("blurEpisodeImages") private var blurImages = false
   @State private var showErrorAlert = false
-  @State private var globalLoadingIndicator = GlobalLoadingIndicator()
+  @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
 
   var body: some View {
     NavigationView {
