@@ -39,11 +39,12 @@ struct SimalyticsApp: App {
     WindowGroup {
       IndexView()
         .environmentObject(auth)
+        .environment(globalLoadingIndicator)
         .task {
           if !auth.simklAccessToken.isEmpty {
             globalLoadingIndicator.startSync()
             await fetchAndStoreLatestActivities(auth.simklAccessToken)
-            globalLoading.stopSync()
+            globalLoadingIndicator.stopSync()
           }
         }
     }

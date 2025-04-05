@@ -11,7 +11,8 @@ struct HomeView: View {
   @EnvironmentObject private var auth: Auth
   @State private var shows: [UpNextShowModel_show] = []
   @State private var searchText: String = ""
-  @State private var globalLoadingIndicator = GlobalLoadingIndicator()
+  // TODO: REplace the others
+  @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   var filteredShows: [UpNextShowModel_show] {
     if searchText.isEmpty {
       return shows
