@@ -75,7 +75,6 @@ extension ShowDetailView {
       SentrySDK.capture(error: error)
       return []
     }
-
   }
 }
 

@@ -26,6 +26,7 @@ class Auth: ObservableObject {
 @main
 struct SimalyticsApp: App {
   @StateObject private var auth = Auth()
+  @State private var globalLoadingIndicator = GlobalLoadingIndicator()
 
   init() {
     SentrySDK.start { options in
@@ -38,6 +39,13 @@ struct SimalyticsApp: App {
     WindowGroup {
       IndexView()
         .environmentObject(auth)
+        .task {
+          if !auth.simklAccessToken.isEmpty {
+            globalLoadingIndicator.startSync()
+            await fetchAndStoreLatestActivities(auth.simklAccessToken)
+            globalLoading.stopSync()
+          }
+        }
     }
   }
 }
