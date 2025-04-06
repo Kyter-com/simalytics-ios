@@ -7,6 +7,7 @@
 
 import Foundation
 import Sentry
+import SwiftData
 
 func fetchAndStoreLatestActivities(_ accessToken: String) async {
   do {
@@ -21,9 +22,11 @@ func fetchAndStoreLatestActivities(_ accessToken: String) async {
     let (data, _) = try await URLSession.shared.data(for: request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
 
-    // Wait 10 seconds fake
-    await Task.sleep(10 * 1_000_000_000)
-
+    let context = try ModelContext(.init(for: SDLastActivities.self))
+    let existing = try context.fetch(FetchDescriptor<SDLastActivities>())
+    try context.delete(model: SDLastActivities.self)
+    context.insert(SDLastActivities(all: result.all))
+    try context.save()
   } catch {
     SentrySDK.capture(error: error)
   }
