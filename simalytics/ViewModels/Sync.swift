@@ -23,9 +23,21 @@ func fetchAndStoreLatestActivities(_ accessToken: String) async {
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
 
     let context = try ModelContext(.init(for: SDLastActivities.self))
-    let existing = try context.fetch(FetchDescriptor<SDLastActivities>())
     try context.delete(model: SDLastActivities.self)
-    context.insert(SDLastActivities(all: result.all))
+    context.insert(
+      SDLastActivities(
+        all: result.all,
+        settings_all: result.settings?.all,
+        tv_shows_all: result.tv_shows?.all,
+        tv_shows_rated_at: result.tv_shows?.rated_at,
+        tv_shows_plantowatch: result.tv_shows?.plantowatch,
+        tv_shows_watching: result.tv_shows?.watching,
+        tv_shows_completed: result.tv_shows?.completed,
+        tv_shows_hold: result.tv_shows?.hold,
+        tv_shows_dropped: result.tv_shows?.dropped,
+        tv_shows_removed_from_list: result.tv_shows?.removed_from_list
+      )
+    )
     try context.save()
   } catch {
     SentrySDK.capture(error: error)

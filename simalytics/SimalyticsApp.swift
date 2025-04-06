@@ -8,6 +8,7 @@
 
 import Sentry
 import SimpleKeychain
+import SwiftData
 import SwiftUI
 
 class Auth: ObservableObject {
