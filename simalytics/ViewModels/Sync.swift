@@ -35,7 +35,21 @@ func fetchAndStoreLatestActivities(_ accessToken: String) async {
         tv_shows_completed: result.tv_shows?.completed,
         tv_shows_hold: result.tv_shows?.hold,
         tv_shows_dropped: result.tv_shows?.dropped,
-        tv_shows_removed_from_list: result.tv_shows?.removed_from_list
+        tv_shows_removed_from_list: result.tv_shows?.removed_from_list,
+        movies_all: result.movies?.all,
+        movies_rated_at: result.movies?.rated_at,
+        movies_plantowatch: result.movies?.plantowatch,
+        movies_completed: result.movies?.completed,
+        movies_dropped: result.movies?.dropped,
+        movies_removed_from_list: result.movies?.removed_from_list,
+        anime_all: result.anime?.all,
+        anime_rated_at: result.anime?.rated_at,
+        anime_plantowatch: result.anime?.plantowatch,
+        anime_watching: result.anime?.watching,
+        anime_completed: result.anime?.completed,
+        anime_hold: result.anime?.hold,
+        anime_dropped: result.anime?.dropped,
+        anime_removed_from_list: result.anime?.removed_from_list
       )
     )
     try context.save()
