@@ -53,7 +53,49 @@ func fetchAndStoreLatestActivities(_ accessToken: String) async {
       )
     )
     try context.save()
+
+    await fetchAndStoreMoviesPlanToWatch(accessToken, result.movies?.plantowatch)
   } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: String?) async {
+  do {
+    if lastActivity == nil { return }
+
+    let context = try ModelContext(.init(for: SDLastSync.self))
+    let lastSyncDate =
+      try context.fetch(FetchDescriptor<SDLastSync>()).first?.movies_plantowatch
+      ?? "2025-04-09T01:03:36.832Z"
+
+    var fetchFrom = ""
+    if lastSyncDate == nil {
+      fetchFrom = "all"
+    } else if lastActivity! > lastSyncDate {
+      fetchFrom = lastActivity!
+    }
+    print("📡 fetchAndStoreMoviesPlanToWatch", fetchFrom)
+
+    var urlComponents = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/movies/plantowatch?memos=yes")!
+    if fetchFrom != "all" {
+      urlComponents.queryItems = [
+        URLQueryItem(name: "date_from", value: fetchFrom)
+      ]
+    }
+    print(urlComponents.url!)
+    var request = URLRequest(url: urlComponents.url!)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    let result = try JSONDecoder().decode(MoviesPlanToWatchModel.self, from: data)
+
+  } catch {
+    print(error)
     SentrySDK.capture(error: error)
   }
 }
