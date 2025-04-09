@@ -41,11 +41,10 @@ struct SimalyticsApp: App {
       IndexView()
         .environmentObject(auth)
         .environment(globalLoadingIndicator)
-        .modelContainer(for: SDLastActivities.self)
         .task {
           if !auth.simklAccessToken.isEmpty {
             globalLoadingIndicator.startSync()
-            await fetchAndStoreLatestActivities(auth.simklAccessToken)
+            await syncLatestActivities(auth.simklAccessToken)
             globalLoadingIndicator.stopSync()
           }
         }
