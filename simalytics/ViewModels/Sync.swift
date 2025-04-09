@@ -62,29 +62,29 @@ func fetchAndStoreLatestActivities(_ accessToken: String) async {
 
 func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: String?) async {
   do {
-    if lastActivity == nil { return }
+    guard let lastActivityStr = lastActivity else { return }
 
     let context = try ModelContext(.init(for: SDLastSync.self))
-    let lastSyncDate =
-      try context.fetch(FetchDescriptor<SDLastSync>()).first?.movies_plantowatch
-      ?? "2025-04-09T01:03:36.832Z"
+    let lastSyncDate = try context.fetch(FetchDescriptor<SDLastSync>()).first?.movies_plantowatch
 
-    var fetchFrom = ""
-    if lastSyncDate == nil {
-      fetchFrom = "all"
-    } else if lastActivity! > lastSyncDate {
-      fetchFrom = lastActivity!
+    let formatter = ISO8601DateFormatter()
+    var dateFrom: String? = nil
+    if let lastSyncStr = lastSyncDate,
+      let lastSyncDate = formatter.date(from: lastSyncStr),
+      let lastActivityDate = formatter.date(from: lastActivityStr),
+      lastActivityDate > lastSyncDate
+    {
+      dateFrom = lastActivityStr
     }
-    print("📡 fetchAndStoreMoviesPlanToWatch", fetchFrom)
 
     var urlComponents = URLComponents(
       string: "https://api.simkl.com/sync/all-items/movies/plantowatch?memos=yes")!
-    if fetchFrom != "all" {
+    if let dateFrom {
       urlComponents.queryItems = [
-        URLQueryItem(name: "date_from", value: fetchFrom)
+        URLQueryItem(name: "date_from", value: dateFrom)
       ]
     }
-    print(urlComponents.url!)
+    print("📡", urlComponents.url!)
     var request = URLRequest(url: urlComponents.url!)
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
