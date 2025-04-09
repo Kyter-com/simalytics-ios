@@ -29,6 +29,14 @@ struct SimalyticsApp: App {
   @StateObject private var auth = Auth()
   @State private var globalLoadingIndicator = GlobalLoadingIndicator()
 
+  let modelContainer: ModelContainer = {
+    do {
+      return try ModelContainer(for: SDLastSync.self, SDMoviesPlanToWatch.self)
+    } catch {
+      fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
+    }
+  }()
+
   init() {
     SentrySDK.start { options in
       options.dsn =
@@ -41,10 +49,11 @@ struct SimalyticsApp: App {
       IndexView()
         .environmentObject(auth)
         .environment(globalLoadingIndicator)
+        .modelContainer(modelContainer)
         .task {
           if !auth.simklAccessToken.isEmpty {
             globalLoadingIndicator.startSync()
-            await syncLatestActivities(auth.simklAccessToken)
+            await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContainer)
             globalLoadingIndicator.stopSync()
           }
         }

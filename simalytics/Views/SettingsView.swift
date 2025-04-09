@@ -8,6 +8,7 @@
 import AuthenticationServices
 import Sentry
 import SimpleKeychain
+import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
@@ -16,6 +17,7 @@ struct SettingsView: View {
   @AppStorage("blurEpisodeImages") private var blurImages = false
   @State private var showErrorAlert = false
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
+  @Environment(\.modelContext) private var modelContext
 
   var body: some View {
     NavigationView {
@@ -118,6 +120,22 @@ struct SettingsView: View {
             }
           } header: {
             Text("TV Show Settings")
+          }
+
+          Section {
+            Button(
+              "Clear SwiftData Records",
+              action: {
+                let first = try? modelContext.fetch(FetchDescriptor<SDLastSync>())
+                first?.forEach { modelContext.delete($0) }
+
+                let second = try? modelContext.fetch(FetchDescriptor<SDMoviesPlanToWatch>())
+                second?.forEach { modelContext.delete($0) }
+
+                try? modelContext.save()
+              })
+          } header: {
+            Text("Developer Settings")
           }
         }
         .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {

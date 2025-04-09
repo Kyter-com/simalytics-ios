@@ -11,8 +11,10 @@ import SwiftData
 @Model
 class SDMoviesPlanToWatch {
   @Attribute(.unique) var simkl: Int
+  var title: String?
 
-  init(simkl: Int) {
+  init(simkl: Int, title: String?) {
     self.simkl = simkl
+    self.title = title
   }
 }
