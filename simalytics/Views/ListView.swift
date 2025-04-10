@@ -10,7 +10,7 @@ import SwiftUI
 
 struct ListView: View {
   @Environment(\.modelContext) private var modelContext
-  @Query private var moviesPlanToWatch: [SDMoviesPlanToWatch]
+  @Query private var moviesPlanToWatch: [V1.SDMoviesPlanToWatch]
 
   var body: some View {
     List(moviesPlanToWatch) { movie in

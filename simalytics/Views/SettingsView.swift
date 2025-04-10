@@ -126,10 +126,10 @@ struct SettingsView: View {
             Button(
               "Clear SwiftData Records",
               action: {
-                let first = try? modelContext.fetch(FetchDescriptor<SDLastSync>())
+                let first = try? modelContext.fetch(FetchDescriptor<V1.SDLastSync>())
                 first?.forEach { modelContext.delete($0) }
 
-                let second = try? modelContext.fetch(FetchDescriptor<SDMoviesPlanToWatch>())
+                let second = try? modelContext.fetch(FetchDescriptor<V1.SDMoviesPlanToWatch>())
                 second?.forEach { modelContext.delete($0) }
 
                 try? modelContext.save()

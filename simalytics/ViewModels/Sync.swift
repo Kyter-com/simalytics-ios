@@ -32,7 +32,7 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
   let formatter = ISO8601DateFormatter()
 
   do {
-    let lastSync = try context.fetch(FetchDescriptor<SDLastSync>()).first?.movies_plantowatch
+    let lastSync = try context.fetch(FetchDescriptor<V1.SDLastSync>()).first?.movies_plantowatch
     if lastActivity == lastSync { return }
 
     var endpoint = URLComponents(string: "https://api.simkl.com/sync/all-items/movies/plantowatch?memos=yes")!
@@ -55,9 +55,9 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
     let result = try JSONDecoder().decode(MoviesPlanToWatchModel.self, from: data)
 
     for movieItem in result.movies ?? [] {
-      context.insert(SDMoviesPlanToWatch(simkl: (movieItem.movie?.ids!.simkl)!, title: movieItem.movie?.title))
+      context.insert(V1.SDMoviesPlanToWatch(simkl: (movieItem.movie?.ids!.simkl)!, title: movieItem.movie?.title))
     }
-    context.insert(SDLastSync(movies_plantowatch: lastActivity))
+    context.insert(V1.SDLastSync(movies_plantowatch: lastActivity))
     try context.save()
   } catch {
     SentrySDK.capture(error: error)
