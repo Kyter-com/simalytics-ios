@@ -23,7 +23,7 @@ struct ListView: View {
               .foregroundColor(colorScheme == .dark ? Color.yellow : Color.yellow.darker())
               .frame(width: 30, height: 30)
               .background(
-                Circle()
+                RoundedRectangle(cornerRadius: 8)
                   .fill(Color.yellow.opacity(0.2))
               )
               .padding(.trailing, 5)
@@ -46,7 +46,7 @@ struct ListView: View {
               .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
               .frame(width: 30, height: 30)
               .background(
-                Circle()
+                RoundedRectangle(cornerRadius: 8)
                   .fill(Color.red.opacity(0.2))
               )
               .padding(.trailing, 5)
@@ -69,7 +69,7 @@ struct ListView: View {
               .foregroundColor(colorScheme == .dark ? Color.green : Color.green.darker())
               .frame(width: 30, height: 30)
               .background(
-                Circle()
+                RoundedRectangle(cornerRadius: 8)
                   .fill(Color.green.opacity(0.2))
               )
               .padding(.trailing, 5)
@@ -92,8 +92,7 @@ struct ListView: View {
       .navigationTitle("Lists")
       .onAppear {
         Task {
-          let descriptor = FetchDescriptor<V1.SDMoviesPlanToWatch>()
-          moviesPlanToWatchCount = (try? modelContext.fetchCount(descriptor)) ?? 0
+          moviesPlanToWatchCount = (try? modelContext.fetchCount(FetchDescriptor<V1.SDMoviesPlanToWatch>())) ?? 0
         }
       }
     }
