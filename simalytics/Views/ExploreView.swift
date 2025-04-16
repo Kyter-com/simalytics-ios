@@ -124,7 +124,7 @@ struct ExploreView: View {
         trendingAnimes = await ExploreView.getTrendingAnimes()
       }
     }
-    .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+    .searchable(text: $searchText, placement: .automatic)
     .searchScopes($searchCategory) {
       ForEach(SearchCategory.allCases) { category in
         Text(category.rawValue).tag(category)
