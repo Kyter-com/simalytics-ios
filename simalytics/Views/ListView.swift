@@ -92,7 +92,7 @@ struct ListView: View {
       .navigationTitle("Lists")
       .onAppear {
         Task {
-          moviesPlanToWatchCount = (try? modelContext.fetchCount(FetchDescriptor<V1.SDMoviesPlanToWatch>())) ?? 0
+          moviesPlanToWatchCount = (try? modelContext.fetchCount(FetchDescriptor<V1.SDMovies>())) ?? 0
         }
       }
     }

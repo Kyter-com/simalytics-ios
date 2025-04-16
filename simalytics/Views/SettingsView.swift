@@ -129,7 +129,7 @@ struct SettingsView: View {
                 let first = try? modelContext.fetch(FetchDescriptor<V1.SDLastSync>())
                 first?.forEach { modelContext.delete($0) }
 
-                let second = try? modelContext.fetch(FetchDescriptor<V1.SDMoviesPlanToWatch>())
+                let second = try? modelContext.fetch(FetchDescriptor<V1.SDMovies>())
                 second?.forEach { modelContext.delete($0) }
 
                 try? modelContext.save()

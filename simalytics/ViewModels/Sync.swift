@@ -52,10 +52,21 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
     let (data, _) = try await URLSession.shared.data(for: request)
-    let result = try JSONDecoder().decode(MoviesPlanToWatchModel.self, from: data)
+    let result = try JSONDecoder().decode(MoviesModel.self, from: data)
 
     for movieItem in result.movies ?? [] {
-      context.insert(V1.SDMoviesPlanToWatch(simkl: (movieItem.movie?.ids!.simkl)!, title: movieItem.movie?.title))
+      context.insert(
+        V1.SDMovies(
+          simkl: (movieItem.movie?.ids!.simkl)!,
+          title: movieItem.movie?.title,
+          added_to_watchlist_at: movieItem.added_to_watchlist_at,
+          last_watched_at: movieItem.last_watched_at,
+          user_rated_at: movieItem.user_rated_at,
+          status: movieItem.status,
+          user_rating: movieItem.user_rating,
+          poster: movieItem.movie?.poster
+        )
+      )
     }
     context.insert(V1.SDLastSync(movies_plantowatch: lastActivity))
     try context.save()
