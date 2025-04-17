@@ -1,5 +1,5 @@
 //
-//  HomeView.swift
+//  UpNextView.swift
 //  simalytics
 //
 //  Created by Nick Reisenauer on 2/24/25.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct HomeView: View {
+struct UpNextView: View {
   @EnvironmentObject private var auth: Auth
   @State private var shows: [UpNextShowModel_show] = []
   @State private var searchText: String = ""
@@ -59,8 +59,8 @@ struct HomeView: View {
         .swipeActions(edge: .trailing) {
           Button {
             Task {
-              await HomeView.markAsWatched(show: showItem, accessToken: auth.simklAccessToken)
-              shows = await HomeView.fetchShows(accessToken: auth.simklAccessToken)
+              await UpNextView.markAsWatched(show: showItem, accessToken: auth.simklAccessToken)
+              shows = await UpNextView.fetchShows(accessToken: auth.simklAccessToken)
             }
           } label: {
             Label("Watched", systemImage: "checkmark.circle")
@@ -71,9 +71,9 @@ struct HomeView: View {
       .listStyle(.inset)
       .searchable(text: $searchText, placement: .automatic)
       .refreshable {
-        shows = await HomeView.fetchShows(accessToken: auth.simklAccessToken)
+        shows = await UpNextView.fetchShows(accessToken: auth.simklAccessToken)
       }
-      .task { shows = await HomeView.fetchShows(accessToken: auth.simklAccessToken) }
+      .task { shows = await UpNextView.fetchShows(accessToken: auth.simklAccessToken) }
       .navigationTitle("Up Next")
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {

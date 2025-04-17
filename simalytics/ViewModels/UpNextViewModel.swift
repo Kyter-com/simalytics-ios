@@ -1,5 +1,5 @@
 //
-//  HomeViewModel.swift
+//  UpNextViewModel.swift
 //  simalytics
 //
 //  Created by Nick Reisenauer on 3/11/25.
@@ -8,7 +8,7 @@
 import Foundation
 import Sentry
 
-extension HomeView {
+extension UpNextView {
   static func markAsWatched(
     show: UpNextShowModel_show,
     accessToken: String

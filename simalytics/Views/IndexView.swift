@@ -12,9 +12,9 @@ struct IndexView: View {
 
   var body: some View {
     TabView(selection: $selectedTab) {
-      HomeView()
+      ListView()
         .tabItem {
-          Label("Home", systemImage: "play.house.fill")
+          Label("Lists", systemImage: "list.bullet.indent")
         }
         .tag(0)
       ExploreView()
@@ -22,14 +22,14 @@ struct IndexView: View {
           Label("Explore", systemImage: "magnifyingglass")
         }
         .tag(1)
-      ListView()
+      UpNextView()
         .tabItem {
-          Label("Lists", systemImage: "list.bullet.indent")
+          Label("Up Next", systemImage: "play.tv")
         }
         .tag(2)
       SettingsView()
         .tabItem {
-          Label("Settings", systemImage: "gearshape.fill")
+          Label("Settings", systemImage: "gearshape")
         }
         .tag(3)
     }
