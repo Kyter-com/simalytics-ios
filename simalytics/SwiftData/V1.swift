@@ -23,16 +23,22 @@ enum V1: VersionedSchema {
     var movies_plantowatch: String?
     var movies_dropped: String?
     var movies_completed: String?
+    var movies_removed_from_list: String?
+    var movies_rated_at: String?
     init(
       id: Int = 1,
       movies_plantowatch: String? = nil,
       movies_dropped: String? = nil,
-      movies_completed: String? = nil
+      movies_completed: String? = nil,
+      movies_removed_from_list: String? = nil,
+      movies_rated_at: String? = nil
     ) {
       self.id = id
       self.movies_plantowatch = movies_plantowatch
       self.movies_dropped = movies_dropped
       self.movies_completed = movies_completed
+      self.movies_removed_from_list = movies_removed_from_list
+      self.movies_rated_at = movies_rated_at
     }
   }
 
