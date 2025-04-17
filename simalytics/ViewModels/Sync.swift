@@ -26,17 +26,22 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     await fetchAndStoreMoviesCompleted(accessToken, result.movies?.completed, context)
     await fetchAndStoreMoviesRemovedFromList(accessToken, result.movies?.removed_from_list, context)
     await fetchAndStoreMoviesRatedAt(accessToken, result.movies?.rated_at, context)
+    await fetchAndStoreTVPlanToWatch(accessToken, result.tv_shows?.plantowatch, context)
   } catch {
     SentrySDK.capture(error: error)
   }
 }
 
-func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesPlanToWatch(
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
   do {
-    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
     if syncRecord == nil {
       syncRecord = V1.SDLastSync(id: 1)
       context.insert(syncRecord!)
@@ -44,13 +49,18 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
 
     if lastActivity == syncRecord!.movies_plantowatch { return }
 
-    var endpoint = URLComponents(string: "https://api.simkl.com/sync/all-items/movies/plantowatch?memos=yes")!
+    var endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/movies/plantowatch?memos=yes")!
 
     let lastActivityDate = formatter.date(from: lastActivity)!
     if let previousSyncDate = syncRecord!.movies_plantowatch.flatMap(formatter.date(from:)) {
       if lastActivityDate > previousSyncDate {
-        let dateFrom = formatter.string(from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
-        endpoint = URLComponents(string: "https://api.simkl.com/sync/all-items/movies/plantowatch?memos=yes&date_from=\(dateFrom)")!
+        let dateFrom = formatter.string(
+          from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
+        endpoint = URLComponents(
+          string:
+            "https://api.simkl.com/sync/all-items/movies/plantowatch?memos=yes&date_from=\(dateFrom)"
+        )!
       }
     }
 
@@ -101,12 +111,16 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
   }
 }
 
-func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesDropped(
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
   do {
-    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
     if syncRecord == nil {
       syncRecord = V1.SDLastSync(id: 1)
       context.insert(syncRecord!)
@@ -114,13 +128,17 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
 
     if lastActivity == syncRecord!.movies_dropped { return }
 
-    var endpoint = URLComponents(string: "https://api.simkl.com/sync/all-items/movies/dropped?memos=yes")!
+    var endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/movies/dropped?memos=yes")!
 
     let lastActivityDate = formatter.date(from: lastActivity)!
     if let previousSyncDate = syncRecord!.movies_dropped.flatMap(formatter.date(from:)) {
       if lastActivityDate > previousSyncDate {
-        let dateFrom = formatter.string(from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
-        endpoint = URLComponents(string: "https://api.simkl.com/sync/all-items/movies/dropped?memos=yes&date_from=\(dateFrom)")!
+        let dateFrom = formatter.string(
+          from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
+        endpoint = URLComponents(
+          string:
+            "https://api.simkl.com/sync/all-items/movies/dropped?memos=yes&date_from=\(dateFrom)")!
       }
     }
 
@@ -171,12 +189,16 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
   }
 }
 
-func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesCompleted(
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
   do {
-    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
     if syncRecord == nil {
       syncRecord = V1.SDLastSync(id: 1)
       context.insert(syncRecord!)
@@ -184,13 +206,17 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
 
     if lastActivity == syncRecord!.movies_completed { return }
 
-    var endpoint = URLComponents(string: "https://api.simkl.com/sync/all-items/movies/completed?memos=yes")!
+    var endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/movies/completed?memos=yes")!
 
     let lastActivityDate = formatter.date(from: lastActivity)!
     if let previousSyncDate = syncRecord!.movies_completed.flatMap(formatter.date(from:)) {
       if lastActivityDate > previousSyncDate {
-        let dateFrom = formatter.string(from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
-        endpoint = URLComponents(string: "https://api.simkl.com/sync/all-items/movies/completed?memos=yes&date_from=\(dateFrom)")!
+        let dateFrom = formatter.string(
+          from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
+        endpoint = URLComponents(
+          string:
+            "https://api.simkl.com/sync/all-items/movies/completed?memos=yes&date_from=\(dateFrom)")!
       }
     }
 
@@ -241,11 +267,15 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
   }
 }
 
-func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesRemovedFromList(
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+) async {
   guard let lastActivity = lastActivity else { return }
 
   do {
-    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
     if syncRecord == nil {
       syncRecord = V1.SDLastSync(id: 1)
       context.insert(syncRecord!)
@@ -253,7 +283,8 @@ func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: S
 
     if lastActivity == syncRecord!.movies_removed_from_list { return }
 
-    let endpoint = URLComponents(string: "https://api.simkl.com/sync/all-items/movies?extended=simkl_ids_only")!
+    let endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/movies?extended=simkl_ids_only")!
 
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
@@ -289,11 +320,15 @@ func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: S
   }
 }
 
-func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesRatedAt(
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+) async {
   guard let lastActivity = lastActivity else { return }
 
   do {
-    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
     if syncRecord == nil {
       syncRecord = V1.SDLastSync(id: 1)
       context.insert(syncRecord!)
@@ -305,6 +340,92 @@ func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, 
     await fetchAndStoreMoviesCompleted(accessToken, lastActivity, context)
 
     syncRecord!.movies_rated_at = lastActivity
+    try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func fetchAndStoreTVPlanToWatch(
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+) async {
+  guard let lastActivity = lastActivity else { return }
+  let formatter = ISO8601DateFormatter()
+
+  do {
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
+
+    if lastActivity == syncRecord!.tv_plantowatch { return }
+
+    var endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/shows/plantowatch?memos=yes")!
+
+    let lastActivityDate = formatter.date(from: lastActivity)!
+    if let previousSyncDate = syncRecord!.tv_plantowatch.flatMap(formatter.date(from:)) {
+      if lastActivityDate > previousSyncDate {
+        let dateFrom = formatter.string(
+          from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
+        endpoint = URLComponents(
+          string:
+            "https://api.simkl.com/sync/all-items/shows/plantowatch?memos=yes&date_from=\(dateFrom)"
+        )!
+      }
+    }
+
+    print("\(endpoint.url!)")
+    var request = URLRequest(url: endpoint.url!)
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
+      syncRecord!.tv_plantowatch = lastActivity
+      try context.save()
+      return
+    }
+
+    let shows = result.shows ?? []
+    for showItem in shows {
+      context.insert(
+        V1.SDShows(
+          simkl: (showItem.show?.ids?.simkl)!,
+          added_to_watchlist_at: showItem.added_to_watchlist_at,
+          last_watched_at: showItem.last_watched_at,
+          user_rated_at: showItem.user_rated_at,
+          user_rating: showItem.user_rating,
+          status: showItem.status,
+          last_watched: showItem.last_watched,
+          next_to_watch: showItem.next_to_watch,
+          watched_episodes_count: showItem.watched_episodes_count,
+          total_episodes_count: showItem.total_episodes_count,
+          not_aired_episodes_count: showItem.not_aired_episodes_count,
+          title: showItem.show?.title,
+          poster: showItem.show?.poster,
+          year: showItem.show?.year,
+          memo_text: showItem.show?.memo?.text,
+          memo_is_private: showItem.show?.memo?.is_private,
+          id_slug: showItem.show?.ids?.slug,
+          id_offen: showItem.show?.ids?.offen,
+          id_tvdbslug: showItem.show?.ids?.tvdbslug,
+          id_instagram: showItem.show?.ids?.instagram,
+          id_tw: showItem.show?.ids?.tw,
+          id_imdb: showItem.show?.ids?.imdb,
+          id_tmdb: showItem.show?.ids?.tmdb,
+          id_traktslug: showItem.show?.ids?.traktslug,
+          id_jwslug: showItem.show?.ids?.jwslug,
+          id_tvdb: showItem.show?.ids?.tvdb
+        )
+      )
+    }
+
+    syncRecord!.tv_plantowatch = lastActivity
     try context.save()
   } catch {
     SentrySDK.capture(error: error)

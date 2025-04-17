@@ -14,7 +14,7 @@ enum V1: VersionedSchema {
   }
 
   static var models: [any PersistentModel.Type] {
-    [SDLastSync.self, SDMovies.self]
+    [SDLastSync.self, SDMovies.self, SDShows.self]
   }
 
   @Model
@@ -25,13 +25,17 @@ enum V1: VersionedSchema {
     var movies_completed: String?
     var movies_removed_from_list: String?
     var movies_rated_at: String?
+
+    var tv_plantowatch: String?
     init(
       id: Int = 1,
       movies_plantowatch: String? = nil,
       movies_dropped: String? = nil,
       movies_completed: String? = nil,
       movies_removed_from_list: String? = nil,
-      movies_rated_at: String? = nil
+      movies_rated_at: String? = nil,
+
+      tv_plantowatch: String? = nil
     ) {
       self.id = id
       self.movies_plantowatch = movies_plantowatch
@@ -39,6 +43,8 @@ enum V1: VersionedSchema {
       self.movies_completed = movies_completed
       self.movies_removed_from_list = movies_removed_from_list
       self.movies_rated_at = movies_rated_at
+
+      self.tv_plantowatch = tv_plantowatch
     }
   }
 
@@ -104,6 +110,91 @@ enum V1: VersionedSchema {
       self.id_tmdb = id_tmdb
       self.memo_text = memo_text
       self.memo_is_private = memo_is_private
+    }
+  }
+
+  @Model
+  class SDShows {
+    @Attribute(.unique) var simkl: Int
+    var added_to_watchlist_at: String?
+    var last_watched_at: String?
+    var user_rated_at: String?
+    var user_rating: Int?
+    var status: String?
+    var last_watched: String?
+    var next_to_watch: String?
+    var watched_episodes_count: Int?
+    var total_episodes_count: Int?
+    var not_aired_episodes_count: Int?
+    var title: String?
+    var poster: String?
+    var year: Int?
+    var memo_text: String?
+    var memo_is_private: Bool?
+    var id_slug: String?
+    var id_offen: String?
+    var id_tvdbslug: String?
+    var id_instagram: String?
+    var id_tw: String?
+    var id_imdb: String?
+    var id_tmdb: String?
+    var id_traktslug: String?
+    var id_jwslug: String?
+    var id_tvdb: String?
+    init(
+      simkl: Int,
+      added_to_watchlist_at: String?,
+      last_watched_at: String?,
+      user_rated_at: String?,
+      user_rating: Int?,
+      status: String?,
+      last_watched: String?,
+      next_to_watch: String?,
+      watched_episodes_count: Int?,
+      total_episodes_count: Int?,
+      not_aired_episodes_count: Int?,
+      title: String?,
+      poster: String?,
+      year: Int?,
+      memo_text: String?,
+      memo_is_private: Bool?,
+      id_slug: String?,
+      id_offen: String?,
+      id_tvdbslug: String?,
+      id_instagram: String?,
+      id_tw: String?,
+      id_imdb: String?,
+      id_tmdb: String?,
+      id_traktslug: String?,
+      id_jwslug: String?,
+      id_tvdb: String?
+    ) {
+      self.simkl = simkl
+      self.added_to_watchlist_at = added_to_watchlist_at
+      self.last_watched_at = last_watched_at
+      self.user_rated_at = user_rated_at
+      self.user_rating = user_rating
+      self.status = status
+      self.last_watched = last_watched
+      self.next_to_watch = next_to_watch
+      self.watched_episodes_count = watched_episodes_count
+      self.total_episodes_count = total_episodes_count
+      self.not_aired_episodes_count = not_aired_episodes_count
+      self.title = title
+      self.poster = poster
+      self.year = year
+      self.memo_text = memo_text
+      self.memo_is_private = memo_is_private
+      self.id_slug = id_slug
+      self.id_offen = id_offen
+      self.id_tvdbslug = id_tvdbslug
+      self.id_instagram = id_instagram
+      self.id_tw = id_tw
+      self.id_imdb = id_imdb
+      self.id_tmdb = id_tmdb
+      self.id_traktslug = id_traktslug
+      self.id_jwslug = id_jwslug
+      self.id_tvdb = id_tvdb
     }
   }
 }

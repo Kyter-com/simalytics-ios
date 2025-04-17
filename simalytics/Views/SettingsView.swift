@@ -132,6 +132,9 @@ struct SettingsView: View {
                 let second = try? modelContext.fetch(FetchDescriptor<V1.SDMovies>())
                 second?.forEach { modelContext.delete($0) }
 
+                let third = try? modelContext.fetch(FetchDescriptor<V1.SDShows>())
+                third?.forEach { modelContext.delete($0) }
+
                 try? modelContext.save()
               })
           } header: {
