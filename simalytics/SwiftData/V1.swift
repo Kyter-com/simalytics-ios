@@ -19,7 +19,7 @@ enum V1: VersionedSchema {
 
   @Model
   class SDLastSync {
-    @Attribute(.unique) var id: Int
+    @Attribute(.unique) var id: Int = 1
     var movies_plantowatch: String?
     var movies_dropped: String?
     var movies_completed: String?

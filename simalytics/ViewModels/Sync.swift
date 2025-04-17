@@ -34,7 +34,7 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
   let formatter = ISO8601DateFormatter()
 
   do {
-    let lastSync = try context.fetch(FetchDescriptor<V1.SDLastSync>()).first?.movies_plantowatch ?? V1.SDLastSync()
+    let lastSync = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first?.movies_plantowatch
     if lastActivity == lastSync { return }
 
     var endpoint = URLComponents(string: "https://api.simkl.com/sync/all-items/movies/plantowatch?memos=yes")!
@@ -56,7 +56,14 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
 
     let (data, _) = try await URLSession.shared.data(for: request)
     guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
-      context.insert(V1.SDLastSync(movies_plantowatch: lastActivity))
+      let syncRecord =
+        try context.fetch(
+          FetchDescriptor<V1.SDLastSync>(
+            predicate: #Predicate { $0.id == 1 }
+          )
+        ).first ?? V1.SDLastSync(id: 1)
+      syncRecord.movies_plantowatch = lastActivity
+      context.insert(syncRecord)
       try context.save()
       return
     }
@@ -87,7 +94,14 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
         )
       )
     }
-    context.insert(V1.SDLastSync(movies_plantowatch: lastActivity))
+    let syncRecord =
+      try context.fetch(
+        FetchDescriptor<V1.SDLastSync>(
+          predicate: #Predicate { $0.id == 1 }
+        )
+      ).first ?? V1.SDLastSync(id: 1)
+    syncRecord.movies_plantowatch = lastActivity
+    context.insert(syncRecord)
     try context.save()
   } catch {
     print(error)
@@ -122,7 +136,7 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
 
     let (data, _) = try await URLSession.shared.data(for: request)
     guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
-      context.insert(V1.SDLastSync(movies_dropped: lastActivity))
+      context.insert(V1.SDLastSync(id: 1, movies_dropped: lastActivity))
       try context.save()
       return
     }
@@ -153,7 +167,7 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
         )
       )
     }
-    context.insert(V1.SDLastSync(movies_dropped: lastActivity))
+    context.insert(V1.SDLastSync(id: 1, movies_dropped: lastActivity))
     try context.save()
   } catch {
     print(error)
@@ -189,7 +203,7 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
 
     let (data, _) = try await URLSession.shared.data(for: request)
     guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
-      context.insert(V1.SDLastSync(movies_completed: lastActivity))
+      context.insert(V1.SDLastSync(id: 1, movies_completed: lastActivity))
       try context.save()
       return
     }
@@ -220,7 +234,7 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
         )
       )
     }
-    context.insert(V1.SDLastSync(movies_completed: lastActivity))
+    context.insert(V1.SDLastSync(id: 1, movies_completed: lastActivity))
     try context.save()
   } catch {
     print(error)
