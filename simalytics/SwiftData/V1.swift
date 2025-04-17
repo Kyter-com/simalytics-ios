@@ -21,12 +21,15 @@ enum V1: VersionedSchema {
   class SDLastSync {
     @Attribute(.unique) var id: Int
     var movies_plantowatch: String?
+    var movies_dropped: String?
     init(
       id: Int = 1,
-      movies_plantowatch: String? = nil
+      movies_plantowatch: String? = nil,
+      movies_dropped: String? = nil
     ) {
       self.id = id
       self.movies_plantowatch = movies_plantowatch
+      self.movies_dropped = movies_dropped
     }
   }
 
@@ -40,6 +43,17 @@ enum V1: VersionedSchema {
     var status: String?
     var user_rating: Int?
     var poster: String?
+    var year: Int?
+    var id_slug: String?
+    var id_tvdbmslug: String?
+    var id_imdb: String?
+    var id_offen: String?
+    var id_traktslug: String?
+    var id_letterslug: String?
+    var id_jwslug: String?
+    var id_tmdb: String?
+    var memo_text: String?
+    var memo_is_private: Bool?
 
     init(
       simkl: Int,
@@ -49,7 +63,18 @@ enum V1: VersionedSchema {
       user_rated_at: String?,
       status: String?,
       user_rating: Int?,
-      poster: String?
+      poster: String?,
+      year: Int?,
+      id_slug: String?,
+      id_tvdbmslug: String?,
+      id_imdb: String?,
+      id_offen: String?,
+      id_traktslug: String?,
+      id_letterslug: String?,
+      id_jwslug: String?,
+      id_tmdb: String?,
+      memo_text: String?,
+      memo_is_private: Bool?
     ) {
       self.simkl = simkl
       self.title = title
@@ -59,6 +84,17 @@ enum V1: VersionedSchema {
       self.status = status
       self.user_rating = user_rating
       self.poster = poster
+      self.year = year
+      self.id_slug = id_slug
+      self.id_tvdbmslug = id_tvdbmslug
+      self.id_imdb = id_imdb
+      self.id_offen = id_offen
+      self.id_traktslug = id_traktslug
+      self.id_letterslug = id_letterslug
+      self.id_jwslug = id_jwslug
+      self.id_tmdb = id_tmdb
+      self.memo_text = memo_text
+      self.memo_is_private = memo_is_private
     }
   }
 }

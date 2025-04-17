@@ -9,60 +9,62 @@ import SwiftData
 import SwiftUI
 
 struct ListView: View {
+  @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
   @State private var moviesPlanToWatchCount: Int = 0
+  @State private var moviesDroppedCount: Int = 0
+  @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
 
   var body: some View {
     NavigationView {
       List {
         Section(header: Text("Movies")) {
-          HStack {
-            Image(systemName: "star")
-              .bold()
-              .foregroundColor(colorScheme == .dark ? Color.yellow : Color.yellow.darker())
-              .frame(width: 30, height: 30)
-              .background(
-                RoundedRectangle(cornerRadius: 8)
-                  .fill(Color.yellow.opacity(0.2))
-              )
-              .padding(.trailing, 5)
 
-            Text("Plan to Watch")
+          NavigationLink(destination: MovieListView(status: "plantowatch")) {
+            HStack {
+              Image(systemName: "star")
+                .bold()
+                .foregroundColor(colorScheme == .dark ? Color.yellow : Color.yellow.darker())
+                .frame(width: 30, height: 30)
+                .background(
+                  RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.yellow.opacity(0.2))
+                )
+                .padding(.trailing, 5)
 
-            Spacer()
+              Text("Plan to Watch")
 
-            Text("\(moviesPlanToWatchCount)")
-              .foregroundColor(.gray)
-              .font(.subheadline)
+              Spacer()
 
-            Image(systemName: "chevron.right")
-              .foregroundColor(.gray)
-              .font(.system(size: 14))
+              Text("\(moviesPlanToWatchCount)")
+                .foregroundColor(.gray)
+                .font(.subheadline)
+            }
           }
-          HStack {
-            Image(systemName: "hand.thumbsdown")
-              .bold()
-              .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
-              .frame(width: 30, height: 30)
-              .background(
-                RoundedRectangle(cornerRadius: 8)
-                  .fill(Color.red.opacity(0.2))
-              )
-              .padding(.trailing, 5)
 
-            Text("Dropped")
+          NavigationLink(destination: MovieListView(status: "dropped")) {
+            HStack {
+              Image(systemName: "hand.thumbsdown")
+                .bold()
+                .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
+                .frame(width: 30, height: 30)
+                .background(
+                  RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.red.opacity(0.2))
+                )
+                .padding(.trailing, 5)
 
-            Spacer()
+              Text("Dropped")
 
-            Text("1")
-              .foregroundColor(.gray)
-              .font(.subheadline)
+              Spacer()
 
-            Image(systemName: "chevron.right")
-              .foregroundColor(.gray)
-              .font(.system(size: 14))
+              Text("\(moviesDroppedCount)")
+                .foregroundColor(.gray)
+                .font(.subheadline)
+            }
           }
+
           HStack {
             Image(systemName: "checkmark.circle")
               .bold()
@@ -81,10 +83,6 @@ struct ListView: View {
             Text("1")
               .foregroundColor(.gray)
               .font(.subheadline)
-
-            Image(systemName: "chevron.right")
-              .foregroundColor(.gray)
-              .font(.system(size: 14))
           }
         }
       }
@@ -92,9 +90,44 @@ struct ListView: View {
       .navigationTitle("Lists")
       .onAppear {
         Task {
-          moviesPlanToWatchCount = (try? modelContext.fetchCount(FetchDescriptor<V1.SDMovies>())) ?? 0
+          getCounts()
+        }
+      }
+      .refreshable {
+        Task {
+          if !auth.simklAccessToken.isEmpty {
+            globalLoadingIndicator.startSync()
+            await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
+            getCounts()
+            globalLoadingIndicator.stopSync()
+          }
+        }
+      }
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          if globalLoadingIndicator.isSyncing {
+            ProgressView()
+          }
         }
       }
     }
+  }
+
+  func getCounts() {
+    moviesPlanToWatchCount =
+      (try? modelContext.fetchCount(
+        FetchDescriptor<V1.SDMovies>(
+          predicate: #Predicate { movie in
+            movie.status == "plantowatch"
+          }
+        ))) ?? 0
+
+    moviesDroppedCount =
+      (try? modelContext.fetchCount(
+        FetchDescriptor<V1.SDMovies>(
+          predicate: #Predicate { movie in
+            movie.status == "dropped"
+          }
+        ))) ?? 0
   }
 }
