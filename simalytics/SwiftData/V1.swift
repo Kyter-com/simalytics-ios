@@ -22,14 +22,17 @@ enum V1: VersionedSchema {
     @Attribute(.unique) var id: Int
     var movies_plantowatch: String?
     var movies_dropped: String?
+    var movies_completed: String?
     init(
       id: Int = 1,
       movies_plantowatch: String? = nil,
-      movies_dropped: String? = nil
+      movies_dropped: String? = nil,
+      movies_completed: String? = nil
     ) {
       self.id = id
       self.movies_plantowatch = movies_plantowatch
       self.movies_dropped = movies_dropped
+      self.movies_completed = movies_completed
     }
   }
 

@@ -14,6 +14,7 @@ struct ListView: View {
   @Environment(\.modelContext) private var modelContext
   @State private var moviesPlanToWatchCount: Int = 0
   @State private var moviesDroppedCount: Int = 0
+  @State private var moviesCompletedCount: Int = 0
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
 
   var body: some View {
@@ -65,24 +66,26 @@ struct ListView: View {
             }
           }
 
-          HStack {
-            Image(systemName: "checkmark.circle")
-              .bold()
-              .foregroundColor(colorScheme == .dark ? Color.green : Color.green.darker())
-              .frame(width: 30, height: 30)
-              .background(
-                RoundedRectangle(cornerRadius: 8)
-                  .fill(Color.green.opacity(0.2))
-              )
-              .padding(.trailing, 5)
+          NavigationLink(destination: MovieListView(status: "completed")) {
+            HStack {
+              Image(systemName: "checkmark.circle")
+                .bold()
+                .foregroundColor(colorScheme == .dark ? Color.green : Color.green.darker())
+                .frame(width: 30, height: 30)
+                .background(
+                  RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.green.opacity(0.2))
+                )
+                .padding(.trailing, 5)
 
-            Text("Completed")
+              Text("Completed")
 
-            Spacer()
+              Spacer()
 
-            Text("1")
-              .foregroundColor(.gray)
-              .font(.subheadline)
+              Text("\(moviesCompletedCount)")
+                .foregroundColor(.gray)
+                .font(.subheadline)
+            }
           }
         }
       }
@@ -127,6 +130,14 @@ struct ListView: View {
         FetchDescriptor<V1.SDMovies>(
           predicate: #Predicate { movie in
             movie.status == "dropped"
+          }
+        ))) ?? 0
+
+    moviesCompletedCount =
+      (try? modelContext.fetchCount(
+        FetchDescriptor<V1.SDMovies>(
+          predicate: #Predicate { movie in
+            movie.status == "completed"
           }
         ))) ?? 0
   }
