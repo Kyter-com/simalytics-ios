@@ -10,15 +10,31 @@ import SwiftUI
 
 struct MovieListView: View {
   var status: String
-  @Query private var movies: [V1.SDMovies]
+  @Environment(\.modelContext) private var context
+  @State private var movies: [V1.SDMovies] = []
   @State private var searchText: String = ""
+  @State private var sortDescriptor: SortDescriptor<V1.SDMovies> = .init(\.title)
+  @AppStorage("movieSortField") private var sortField: String = "title"
+  @AppStorage("movieSortAscending") private var sortAscending: Bool = true
 
-  init(status: String) {
-    self.status = status
-    let predicate = #Predicate<V1.SDMovies> { movie in
-      movie.status == status
+  private var resolvedSortDescriptor: SortDescriptor<V1.SDMovies> {
+    if sortField == "title" {
+      return SortDescriptor(\V1.SDMovies.title, order: sortAscending ? .forward : .reverse)
+    } else {
+      return SortDescriptor(\V1.SDMovies.year, order: sortAscending ? .forward : .reverse)
     }
-    _movies = Query(filter: predicate, sort: \.title)
+  }
+
+  private func fetchMovies() {
+    let descriptor = FetchDescriptor<V1.SDMovies>(
+      predicate: #Predicate { $0.status == status },
+      sortBy: [sortDescriptor]
+    )
+    do {
+      movies = try context.fetch(descriptor)
+    } catch {
+      movies = []
+    }
   }
 
   var filteredMovies: [V1.SDMovies] {
@@ -56,6 +72,10 @@ struct MovieListView: View {
         }
       }
     }
+    .onAppear {
+      sortDescriptor = resolvedSortDescriptor
+      fetchMovies()
+    }
     .listStyle(.inset)
     .navigationTitle(
       status == "plantowatch"
@@ -67,11 +87,33 @@ struct MovieListView: View {
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Menu {
-          Button("Sort A-Z") {
-
+          Menu("Sort by Title") {
+            Button("Ascending (A–Z)") {
+              sortField = "title"
+              sortAscending = true
+              sortDescriptor = .init(\.title, order: .forward)
+              fetchMovies()
+            }
+            Button("Descending (Z–A)") {
+              sortField = "title"
+              sortAscending = false
+              sortDescriptor = .init(\.title, order: .reverse)
+              fetchMovies()
+            }
           }
-          Button("Sort by Year") {
-
+          Menu("Sort by Year") {
+            Button("Ascending (Oldest First)") {
+              sortField = "year"
+              sortAscending = true
+              sortDescriptor = .init(\.year, order: .forward)
+              fetchMovies()
+            }
+            Button("Descending (Newest First)") {
+              sortField = "year"
+              sortAscending = false
+              sortDescriptor = .init(\.year, order: .reverse)
+              fetchMovies()
+            }
           }
         } label: {
           Label("Sort", systemImage: "arrow.up.arrow.down.circle")
