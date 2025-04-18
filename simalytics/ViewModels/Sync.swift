@@ -30,6 +30,9 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     await fetchAndStoreTVCompleted(accessToken, result.tv_shows?.completed, context)
     await fetchAndStoreTVHold(accessToken, result.tv_shows?.hold, context)
     await fetchAndStoreTVDropped(accessToken, result.tv_shows?.dropped, context)
+    await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, context)
+    await fetchAndStoreTVRemovedFromList(accessToken, result.tv_shows?.removed_from_list, context)
+    await fetchAndStoreTVRatedAt(accessToken, result.tv_shows?.rated_at, context)
   } catch {
     SentrySDK.capture(error: error)
   }
@@ -270,9 +273,7 @@ func fetchAndStoreMoviesCompleted(
   }
 }
 
-func fetchAndStoreMoviesRemovedFromList(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
-) async {
+func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
 
   do {
@@ -323,9 +324,7 @@ func fetchAndStoreMoviesRemovedFromList(
   }
 }
 
-func fetchAndStoreMoviesRatedAt(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
-) async {
+func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
 
   do {
@@ -671,6 +670,165 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
     }
 
     syncRecord!.tv_dropped = lastActivity
+    try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func fetchAndStoreTVWatching(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+  guard let lastActivity = lastActivity else { return }
+  let formatter = ISO8601DateFormatter()
+
+  do {
+    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
+
+    if lastActivity == syncRecord!.tv_watching { return }
+
+    var endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/shows/watching?memos=yes")!
+
+    let lastActivityDate = formatter.date(from: lastActivity)!
+    if let previousSyncDate = syncRecord!.tv_watching.flatMap(formatter.date(from:)) {
+      if lastActivityDate > previousSyncDate {
+        let dateFrom = formatter.string(
+          from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
+        endpoint = URLComponents(
+          string:
+            "https://api.simkl.com/sync/all-items/shows/watching?memos=yes&date_from=\(dateFrom)"
+        )!
+      }
+    }
+
+    print("\(endpoint.url!)")
+    var request = URLRequest(url: endpoint.url!)
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
+      syncRecord!.tv_watching = lastActivity
+      try context.save()
+      return
+    }
+
+    let shows = result.shows ?? []
+    for showItem in shows {
+      context.insert(
+        V1.SDShows(
+          simkl: (showItem.show?.ids?.simkl)!,
+          added_to_watchlist_at: showItem.added_to_watchlist_at,
+          last_watched_at: showItem.last_watched_at,
+          user_rated_at: showItem.user_rated_at,
+          user_rating: showItem.user_rating,
+          status: showItem.status,
+          last_watched: showItem.last_watched,
+          next_to_watch: showItem.next_to_watch,
+          watched_episodes_count: showItem.watched_episodes_count,
+          total_episodes_count: showItem.total_episodes_count,
+          not_aired_episodes_count: showItem.not_aired_episodes_count,
+          title: showItem.show?.title,
+          poster: showItem.show?.poster,
+          year: showItem.show?.year,
+          memo_text: showItem.show?.memo?.text,
+          memo_is_private: showItem.show?.memo?.is_private,
+          id_slug: showItem.show?.ids?.slug,
+          id_offen: showItem.show?.ids?.offen,
+          id_tvdbslug: showItem.show?.ids?.tvdbslug,
+          id_instagram: showItem.show?.ids?.instagram,
+          id_tw: showItem.show?.ids?.tw,
+          id_imdb: showItem.show?.ids?.imdb,
+          id_tmdb: showItem.show?.ids?.tmdb,
+          id_traktslug: showItem.show?.ids?.traktslug,
+          id_jwslug: showItem.show?.ids?.jwslug,
+          id_tvdb: showItem.show?.ids?.tvdb
+        )
+      )
+    }
+
+    syncRecord!.tv_watching = lastActivity
+    try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func fetchAndStoreTVRemovedFromList(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+  guard let lastActivity = lastActivity else { return }
+
+  do {
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
+
+    if lastActivity == syncRecord!.tv_removed_from_list { return }
+
+    let endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/shows?extended=simkl_ids_only")!
+
+    print("\(endpoint.url!)")
+    var request = URLRequest(url: endpoint.url!)
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
+      syncRecord!.tv_removed_from_list = lastActivity
+      try context.save()
+      return
+    }
+
+    let shows = result.shows ?? []
+    let currentSimklIds = Set(shows.compactMap { $0.show?.ids?.simkl })
+
+    let existingShowsDescriptor = FetchDescriptor<V1.SDShows>()
+    let existingShows = try context.fetch(existingShowsDescriptor)
+
+    let showsToDelete = existingShows.filter { show in
+      !currentSimklIds.contains(show.simkl)
+    }
+
+    for show in showsToDelete {
+      context.delete(show)
+    }
+
+    syncRecord!.tv_removed_from_list = lastActivity
+    try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+  guard let lastActivity = lastActivity else { return }
+
+  do {
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
+    if lastActivity == syncRecord!.tv_rated_at { return }
+
+    await fetchAndStoreTVPlanToWatch(accessToken, lastActivity, context)
+    await fetchAndStoreTVDropped(accessToken, lastActivity, context)
+    await fetchAndStoreTVCompleted(accessToken, lastActivity, context)
+    await fetchAndStoreTVWatching(accessToken, lastActivity, context)
+    await fetchAndStoreTVHold(accessToken, lastActivity, context)
+
+    syncRecord!.tv_rated_at = lastActivity
     try context.save()
   } catch {
     SentrySDK.capture(error: error)
