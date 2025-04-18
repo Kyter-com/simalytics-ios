@@ -87,38 +87,27 @@ struct MovieListView: View {
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Menu {
-          Menu("Sort by Title") {
-            Button("Ascending (A–Z)") {
-              sortField = "title"
-              sortAscending = true
-              sortDescriptor = .init(\.title, order: .forward)
-              fetchMovies()
-            }
-            Button("Descending (Z–A)") {
-              sortField = "title"
-              sortAscending = false
-              sortDescriptor = .init(\.title, order: .reverse)
-              fetchMovies()
-            }
+          Picker("Sort by", selection: $sortField) {
+            Text("Title").tag("title")
+            Text("Year").tag("year")
           }
-          Menu("Sort by Year") {
-            Button("Ascending (Oldest First)") {
-              sortField = "year"
-              sortAscending = true
-              sortDescriptor = .init(\.year, order: .forward)
-              fetchMovies()
-            }
-            Button("Descending (Newest First)") {
-              sortField = "year"
-              sortAscending = false
-              sortDescriptor = .init(\.year, order: .reverse)
-              fetchMovies()
-            }
+
+          Picker("Order", selection: $sortAscending) {
+            Text("Ascending").tag(true)
+            Text("Descending").tag(false)
           }
         } label: {
           Label("Sort", systemImage: "arrow.up.arrow.down.circle")
         }
       }
+    }
+    .onChange(of: sortField) {
+      sortDescriptor = resolvedSortDescriptor
+      fetchMovies()
+    }
+    .onChange(of: sortAscending) {
+      sortDescriptor = resolvedSortDescriptor
+      fetchMovies()
     }
   }
 }
