@@ -30,11 +30,10 @@ extension ShowDetailView {
     }
   }
 
-  static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async
-    -> ShowWatchlistModel?
-  {
+  static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async -> ShowWatchlistModel? {
     do {
-      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched")!
+      let urlComponents = URLComponents(
+        string: "https://api.simkl.com/sync/watched?extended=specials")!
 
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"

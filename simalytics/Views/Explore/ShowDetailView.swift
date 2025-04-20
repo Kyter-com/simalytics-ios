@@ -29,6 +29,22 @@ struct ShowDetailView: View {
     showEpisodes.contains { $0.type == "special" }
   }
 
+  func hasWatchedEpisode(season targetSeason: Int, episode targetEpisode: Int) -> Bool {
+    print("Checking watched status for season \(targetSeason) episode \(targetEpisode)")
+    guard let seasons = showWatchlist?.seasons else { return false }
+    for season in seasons {
+      if let seasonNumber = season.number,
+        seasonNumber == targetSeason,
+        let episodes = season.episodes,
+        episodes.contains(where: { $0.number == targetEpisode })
+      {
+        print("Has watched episode \(targetEpisode) in season \(targetSeason)")
+        return true
+      }
+    }
+    return false
+  }
+
   var body: some View {
     if isLoading {
       ProgressView("Loading...")
@@ -175,6 +191,10 @@ struct ShowDetailView: View {
                 }
 
                 VStack {
+                  Text(hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1) ? "watched" : "unwatched")
+                    .font(.caption)
+                  Text(episode?.season ?? 0)
+                  Text(episode?.episode ?? 0)
                   Text(episode.title)
                     .font(.headline)
                     .lineLimit(1)
