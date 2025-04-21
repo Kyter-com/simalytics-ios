@@ -30,15 +30,12 @@ struct ShowDetailView: View {
   }
 
   func hasWatchedEpisode(season targetSeason: Int, episode targetEpisode: Int) -> Bool {
-    print("Checking watched status for season \(targetSeason) episode \(targetEpisode)")
     guard let seasons = showWatchlist?.seasons else { return false }
     for season in seasons {
-      if let seasonNumber = season.number,
-        seasonNumber == targetSeason,
-        let episodes = season.episodes,
-        episodes.contains(where: { $0.number == targetEpisode })
-      {
-        print("Has watched episode \(targetEpisode) in season \(targetSeason)")
+      guard let episodes = season.episodes else { continue }
+      if episodes.contains(where: {
+        $0.number == targetEpisode && season.number == targetSeason && $0.watched == true
+      }) {
         return true
       }
     }
@@ -173,28 +170,37 @@ struct ShowDetailView: View {
 
             List(filteredEpisodes, id: \.ids.simkl_id) { episode in
               HStack {
-                ZStack {
-                  CustomKFImage(
-                    imageUrlString: episode.img != nil
-                      ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
-                    memoryCacheOnly: true,
-                    height: 70.42,
-                    width: 125
-                  )
-                  if blurImages {
-                    Rectangle()
-                      .fill(Color.clear)
-                      .frame(width: 125, height: 70.42)
-                      .background(BlurView(style: .regular))
+                ZStack(alignment: .bottomTrailing) {
+                  ZStack {
+                    CustomKFImage(
+                      imageUrlString: episode.img != nil
+                        ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
+                      memoryCacheOnly: true,
+                      height: 70.42,
+                      width: 125
+                    )
+                    if blurImages {
+                      Rectangle()
+                        .fill(Color.clear)
+                        .frame(width: 125, height: 70.42)
+                        .background(BlurView(style: .regular))
+                        .cornerRadius(8)
+                    }
+                  }
+                  if hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1) {
+                    Image(systemName: "checkmark.circle")
+                      .resizable()
+                      .scaledToFit()
+                      .foregroundColor(colorScheme == .dark ? Color.green.darker() : Color.green)
+                      .frame(width: 14, height: 14)
+                      .padding(4)
+                      .background(colorScheme == .dark ? Color.black : Color.white)
                       .cornerRadius(8)
+                      .offset(x: -2, y: -2)
                   }
                 }
 
                 VStack {
-                  Text(hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1) ? "watched" : "unwatched")
-                    .font(.caption)
-                  Text(episode?.season ?? 0)
-                  Text(episode?.episode ?? 0)
                   Text(episode.title)
                     .font(.headline)
                     .lineLimit(1)
