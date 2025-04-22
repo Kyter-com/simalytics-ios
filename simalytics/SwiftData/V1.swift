@@ -242,6 +242,24 @@ enum V1: VersionedSchema {
     var memo_is_private: Bool?
     var id_slug: String?
     var id_offjp: String?
+    var id_ann: String?
+    var id_mal: String?
+    var id_anfo: String?
+    var id_offen: String?
+    var id_wikien: String?
+    var id_wikijp: String?
+    var id_allcin: String?
+    var id_imdb: String?
+    var id_tmdb: String?
+    var id_anilist: String?
+    var id_animeplanet: String?
+    var id_anisearch: String?
+    var id_kitsu: String?
+    var id_livechart: String?
+    var id_traktslug: String?
+    var id_letterslug: String?
+    var id_jwslug: String?
+    var id_anidb: String?
     init(
       simkl: Int,
       added_to_watchlist_at: String? = nil,
@@ -260,7 +278,25 @@ enum V1: VersionedSchema {
       memo_text: String? = nil,
       memo_is_private: Bool? = nil,
       id_slug: String? = nil,
-      id_offjp: String? = nil
+      id_offjp: String? = nil,
+      id_ann: String? = nil,
+      id_mal: String? = nil,
+      id_anfo: String? = nil,
+      id_offen: String? = nil,
+      id_wikien: String? = nil,
+      id_wikijp: String? = nil,
+      id_allcin: String? = nil,
+      id_imdb: String? = nil,
+      id_tmdb: String? = nil,
+      id_anilist: String? = nil,
+      id_animeplanet: String? = nil,
+      id_anisearch: String? = nil,
+      id_kitsu: String? = nil,
+      id_livechart: String? = nil,
+      id_traktslug: String? = nil,
+      id_letterslug: String? = nil,
+      id_jwslug: String? = nil,
+      id_anidb: String? = nil
     ) {
       self.simkl = simkl
       self.added_to_watchlist_at = added_to_watchlist_at
@@ -279,7 +315,25 @@ enum V1: VersionedSchema {
       self.memo_text = memo_text
       self.memo_is_private = memo_is_private
       self.id_slug = id_slug
-      self.offjp = id_offjp
+      self.id_offjp = id_offjp
+      self.id_ann = id_ann
+      self.id_mal = id_mal
+      self.id_anfo = id_anfo
+      self.id_offen = id_offen
+      self.id_wikien = id_wikien
+      self.id_wikijp = id_wikijp
+      self.id_allcin = id_allcin
+      self.id_imdb = id_imdb
+      self.id_tmdb = id_tmdb
+      self.id_anilist = id_anilist
+      self.id_animeplanet = id_animeplanet
+      self.id_anisearch = id_anisearch
+      self.id_kitsu = id_kitsu
+      self.id_livechart = id_livechart
+      self.id_traktslug = id_traktslug
+      self.id_letterslug = id_letterslug
+      self.id_jwslug = id_jwslug
+      self.id_anidb = id_anidb
     }
   }
 }

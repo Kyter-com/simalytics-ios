@@ -896,7 +896,24 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
           poster: animeItem.show?.poster,
           year: animeItem.show?.year,
           id_slug: animeItem.show?.ids.slug,
-          id_offjp: animeItem.show?.ids.offjp
+          id_offjp: animeItem.show?.ids.offjp,
+          id_ann: animeItem.show?.ids.ann,
+          id_mal: animeItem.show?.ids.mal,
+          id_anfo: animeItem.show?.ids.anfo,
+          id_offen: animeItem.show?.ids.offen,
+          id_wikien: animeItem.show?.ids.wikien,
+          id_wikijp: animeItem.show?.ids.wikijp,
+          id_allcin: animeItem.show?.ids.allcin,
+          id_imdb: animeItem.show?.ids.imdb,
+          id_tmdb: animeItem.show?.ids.tmdb,
+          id_animeplanet: animeItem.show?.ids.animeplanet,
+          id_anisearch: animeItem.show?.ids.anisearch,
+          id_kitsu: animeItem.show?.ids.kitsu,
+          id_livechart: animeItem.show?.ids.livechart,
+          id_traktslug: animeItem.show?.ids.traktslug,
+          id_letterslug: animeItem.show?.ids.letterslug,
+          id_jwslug: animeItem.show?.ids.jwslug,
+          id_anidb: animeItem.show?.ids.anidb
         )
       )
     }

@@ -38,6 +38,24 @@ struct AnimeModel_record_item_ids: Codable {
   let simkl: Int
   let slug: String?
   let offjp: String?
+  let ann: String?
+  let mal: String?
+  let anfo: String?
+  let offen: String?
+  let wikien: String?
+  let wikijp: String?
+  let allcin: String?
+  let imdb: String?
+  let tmdb: String?
+  let anilist: String?
+  let animeplanet: String?
+  let anisearch: String?
+  let kitsu: String?
+  let livechart: String?
+  let traktslug: String?
+  let letterslug: String?
+  let jwslug: String?
+  let anidb: String?
 }
 
 struct AnimeModel_record_item_memo: Codable {
