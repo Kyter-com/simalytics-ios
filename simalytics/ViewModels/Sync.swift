@@ -882,7 +882,10 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
       context.insert(
         V1.SDAnimes(
           simkl: (animeItem.show?.ids.simkl)!,
-          added_to_watchlist_at: animeItem.added_to_watchlist_at
+          added_to_watchlist_at: animeItem.added_to_watchlist_at,
+          last_watched_at: animeItem.last_watched_at,
+          user_rated_at: animeItem.user_rated_at,
+          user_rating: animeItem.user_rating
         )
       )
     }

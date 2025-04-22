@@ -13,6 +13,9 @@ struct AnimeModel: Codable {
 
 struct AnimeModel_record: Codable {
   let added_to_watchlist_at: String?
+  let last_watched_at: String?
+  let user_rated_at: String?
+  let user_rating: Int?
   let show: AnimeModel_record_item?
 }
 
