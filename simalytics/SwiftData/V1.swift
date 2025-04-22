@@ -14,7 +14,7 @@ enum V1: VersionedSchema {
   }
 
   static var models: [any PersistentModel.Type] {
-    [SDLastSync.self, SDMovies.self, SDShows.self]
+    [SDLastSync.self, SDMovies.self, SDShows.self, SDAnimes.self]
   }
 
   @Model
@@ -33,6 +33,8 @@ enum V1: VersionedSchema {
     var tv_watching: String?
     var tv_removed_from_list: String?
     var tv_rated_at: String?
+
+    var anime_plantowatch: String?
     init(
       id: Int = 1,
       movies_plantowatch: String? = nil,
@@ -47,7 +49,9 @@ enum V1: VersionedSchema {
       tv_dropped: String? = nil,
       tv_watching: String? = nil,
       tv_removed_from_list: String? = nil,
-      tv_rated_at: String? = nil
+      tv_rated_at: String? = nil,
+
+      anime_plantowatch: String? = nil
     ) {
       self.id = id
       self.movies_plantowatch = movies_plantowatch
@@ -63,6 +67,8 @@ enum V1: VersionedSchema {
       self.tv_watching = tv_watching
       self.tv_removed_from_list = tv_removed_from_list
       self.tv_rated_at = tv_rated_at
+
+      self.anime_plantowatch = anime_plantowatch
     }
   }
 
@@ -213,6 +219,16 @@ enum V1: VersionedSchema {
       self.id_traktslug = id_traktslug
       self.id_jwslug = id_jwslug
       self.id_tvdb = id_tvdb
+    }
+  }
+
+  @Model
+  class SDAnimes {
+    @Attribute(.unique) var simkl: Int
+    init(
+      simkl: Int
+    ) {
+      self.simkl = simkl
     }
   }
 }
