@@ -225,10 +225,13 @@ enum V1: VersionedSchema {
   @Model
   class SDAnimes {
     @Attribute(.unique) var simkl: Int
+    var added_to_watchlist_at: String?
     init(
-      simkl: Int
+      simkl: Int,
+      added_to_watchlist_at: String? = nil
     ) {
       self.simkl = simkl
+      self.added_to_watchlist_at = added_to_watchlist_at
     }
   }
 }

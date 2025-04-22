@@ -33,6 +33,7 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, context)
     await fetchAndStoreTVRemovedFromList(accessToken, result.tv_shows?.removed_from_list, context)
     await fetchAndStoreTVRatedAt(accessToken, result.tv_shows?.rated_at, context)
+    await fetchAndStoreAnimePlanToWatch(accessToken, result.anime?.plantowatch, context)
   } catch {
     SentrySDK.capture(error: error)
   }
@@ -829,6 +830,64 @@ func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ co
     await fetchAndStoreTVHold(accessToken, lastActivity, context)
 
     syncRecord!.tv_rated_at = lastActivity
+    try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+  guard let lastActivity = lastActivity else { return }
+  let formatter = ISO8601DateFormatter()
+
+  do {
+    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
+
+    if lastActivity == syncRecord!.anime_plantowatch { return }
+
+    var endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/anime/plantowatch?memos=yes")!
+
+    let lastActivityDate = formatter.date(from: lastActivity)!
+    if let previousSyncDate = syncRecord!.anime_plantowatch.flatMap(formatter.date(from:)) {
+      if lastActivityDate > previousSyncDate {
+        let dateFrom = formatter.string(
+          from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
+        endpoint = URLComponents(
+          string:
+            "https://api.simkl.com/sync/all-items/anime/plantowatch?memos=yes&date_from=\(dateFrom)"
+        )!
+      }
+    }
+
+    print("\(endpoint.url!)")
+    var request = URLRequest(url: endpoint.url!)
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
+      syncRecord!.anime_plantowatch = lastActivity
+      try context.save()
+      return
+    }
+
+    let animes = result.anime ?? []
+    for animeItem in animes {
+      context.insert(
+        V1.SDAnimes(
+          simkl: (animeItem.show?.ids.simkl)!,
+          added_to_watchlist_at: animeItem.added_to_watchlist_at
+        )
+      )
+    }
+
+    syncRecord!.anime_plantowatch = lastActivity
     try context.save()
   } catch {
     SentrySDK.capture(error: error)
