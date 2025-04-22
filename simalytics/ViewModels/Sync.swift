@@ -885,7 +885,18 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
           added_to_watchlist_at: animeItem.added_to_watchlist_at,
           last_watched_at: animeItem.last_watched_at,
           user_rated_at: animeItem.user_rated_at,
-          user_rating: animeItem.user_rating
+          user_rating: animeItem.user_rating,
+          status: animeItem.status,
+          last_watched: animeItem.last_watched,
+          next_to_watch: animeItem.next_to_watch,
+          watched_episodes_count: animeItem.watched_episodes_count,
+          total_episodes_count: animeItem.total_episodes_count,
+          not_aired_episodes_count: animeItem.not_aired_episodes_count,
+          anime_type: animeItem.anime_type,
+          poster: animeItem.show?.poster,
+          year: animeItem.show?.year,
+          id_slug: animeItem.show?.ids.slug,
+          id_offjp: animeItem.show?.ids.offjp
         )
       )
     }

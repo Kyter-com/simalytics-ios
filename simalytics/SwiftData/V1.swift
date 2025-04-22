@@ -229,18 +229,57 @@ enum V1: VersionedSchema {
     var last_watched_at: String?
     var user_rated_at: String?
     var user_rating: Int?
+    var status: String?
+    var last_watched: String?
+    var next_to_watch: String?
+    var watched_episodes_count: Int?
+    var total_episodes_count: Int?
+    var not_aired_episodes_count: Int?
+    var anime_type: String?
+    var poster: String?
+    var year: Int?
+    var memo_text: String?
+    var memo_is_private: Bool?
+    var id_slug: String?
+    var id_offjp: String?
     init(
       simkl: Int,
       added_to_watchlist_at: String? = nil,
       last_watched_at: String? = nil,
       user_rated_at: String? = nil,
-      user_rating: Int? = nil
+      user_rating: Int? = nil,
+      status: String? = nil,
+      last_watched: String? = nil,
+      next_to_watch: String? = nil,
+      watched_episodes_count: Int? = nil,
+      total_episodes_count: Int? = nil,
+      not_aired_episodes_count: Int? = nil,
+      anime_type: String? = nil,
+      poster: String? = nil,
+      year: Int? = nil,
+      memo_text: String? = nil,
+      memo_is_private: Bool? = nil,
+      id_slug: String? = nil,
+      id_offjp: String? = nil
     ) {
       self.simkl = simkl
       self.added_to_watchlist_at = added_to_watchlist_at
       self.last_watched_at = last_watched_at
       self.user_rated_at = user_rated_at
       self.user_rating = user_rating
+      self.status = status
+      self.last_watched = last_watched
+      self.next_to_watch = next_to_watch
+      self.watched_episodes_count = watched_episodes_count
+      self.total_episodes_count = total_episodes_count
+      self.not_aired_episodes_count = not_aired_episodes_count
+      self.anime_type = anime_type
+      self.poster = poster
+      self.year = year
+      self.memo_text = memo_text
+      self.memo_is_private = memo_is_private
+      self.id_slug = id_slug
+      self.offjp = id_offjp
     }
   }
 }
