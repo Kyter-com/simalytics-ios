@@ -44,9 +44,7 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
   }
 }
 
-func fetchAndStoreMoviesPlanToWatch(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
-) async {
+func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -123,9 +121,7 @@ func fetchAndStoreMoviesPlanToWatch(
   }
 }
 
-func fetchAndStoreMoviesDropped(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
-) async {
+func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -201,9 +197,7 @@ func fetchAndStoreMoviesDropped(
   }
 }
 
-func fetchAndStoreMoviesCompleted(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
-) async {
+func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
