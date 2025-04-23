@@ -17,6 +17,11 @@ struct AnimeListView: View {
   @AppStorage("animeSortField") private var sortField: String = "title"
   @AppStorage("animeSortAscending") private var sortAscending: Bool = true
 
+  private static let isoFormatter: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    return f
+  }()
+
   private var resolvedSortDescriptor: SortDescriptor<V1.SDAnimes> {
     if sortField == "title" {
       return SortDescriptor(\V1.SDAnimes.title, order: sortAscending ? .forward : .reverse)
@@ -65,6 +70,13 @@ struct AnimeListView: View {
 
           if let year = anime.year {
             Text(String(year))
+              .font(.footnote)
+              .foregroundColor(.secondary)
+          }
+          if let isoString = anime.added_to_watchlist_at,
+            let addedDate = Self.isoFormatter.date(from: isoString)
+          {
+            Text("Added: " + addedDate.timeAgoDisplay())
               .font(.footnote)
               .foregroundColor(.secondary)
           }
