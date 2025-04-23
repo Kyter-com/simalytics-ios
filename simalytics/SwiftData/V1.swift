@@ -256,6 +256,7 @@ enum V1: VersionedSchema {
     var anime_type: String?
     var poster: String?
     var year: Int?
+    var title: String?
     var memo_text: String?
     var memo_is_private: Bool?
     var id_slug: String?
@@ -293,6 +294,7 @@ enum V1: VersionedSchema {
       anime_type: String? = nil,
       poster: String? = nil,
       year: Int? = nil,
+      title: String? = nil,
       memo_text: String? = nil,
       memo_is_private: Bool? = nil,
       id_slug: String? = nil,
@@ -330,6 +332,7 @@ enum V1: VersionedSchema {
       self.anime_type = anime_type
       self.poster = poster
       self.year = year
+      self.title = title
       self.memo_text = memo_text
       self.memo_is_private = memo_is_private
       self.id_slug = id_slug

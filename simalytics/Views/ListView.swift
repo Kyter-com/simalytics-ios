@@ -214,7 +214,7 @@ struct ListView: View {
 
         Section(header: Text("Anime")) {
 
-          NavigationLink(destination: MovieListView(status: "plantowatch")) {
+          NavigationLink(destination: AnimeListView(status: "plantowatch")) {
             HStack {
               Image(systemName: "star")
                 .bold()
@@ -236,7 +236,7 @@ struct ListView: View {
             }
           }
 
-          NavigationLink(destination: MovieListView(status: "dropped")) {
+          NavigationLink(destination: AnimeListView(status: "dropped")) {
             HStack {
               Image(systemName: "hand.thumbsdown")
                 .bold()
@@ -258,7 +258,7 @@ struct ListView: View {
             }
           }
 
-          NavigationLink(destination: MovieListView(status: "completed")) {
+          NavigationLink(destination: AnimeListView(status: "completed")) {
             HStack {
               Image(systemName: "checkmark.circle")
                 .bold()
@@ -280,7 +280,7 @@ struct ListView: View {
             }
           }
 
-          NavigationLink(destination: MovieListView(status: "hold")) {
+          NavigationLink(destination: AnimeListView(status: "hold")) {
             HStack {
               Image(systemName: "pause")
                 .bold()
@@ -302,7 +302,7 @@ struct ListView: View {
             }
           }
 
-          NavigationLink(destination: MovieListView(status: "watching")) {
+          NavigationLink(destination: AnimeListView(status: "watching")) {
             HStack {
               Image(systemName: "popcorn")
                 .bold()
