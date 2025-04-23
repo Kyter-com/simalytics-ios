@@ -24,6 +24,7 @@ struct ListView: View {
   @State private var animeDroppedCount: Int = 0
   @State private var animeCompletedCount: Int = 0
   @State private var animeHoldCount: Int = 0
+  @State private var animeWatchingCount: Int = 0
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
 
   var body: some View {
@@ -301,6 +302,28 @@ struct ListView: View {
             }
           }
 
+          NavigationLink(destination: MovieListView(status: "watching")) {
+            HStack {
+              Image(systemName: "popcorn")
+                .bold()
+                .foregroundColor(colorScheme == .dark ? Color.purple : Color.purple.darker())
+                .frame(width: 30, height: 30)
+                .background(
+                  RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.purple.opacity(0.2))
+                )
+                .padding(.trailing, 5)
+
+              Text("Watching")
+
+              Spacer()
+
+              Text("\(animeWatchingCount)")
+                .foregroundColor(.gray)
+                .font(.subheadline)
+            }
+          }
+
         }
       }
       .listStyle(.insetGrouped)
@@ -430,6 +453,14 @@ struct ListView: View {
         FetchDescriptor<V1.SDAnimes>(
           predicate: #Predicate { anime in
             anime.status == "hold"
+          }
+        ))) ?? 0
+
+    animeWatchingCount =
+      (try? modelContext.fetchCount(
+        FetchDescriptor<V1.SDAnimes>(
+          predicate: #Predicate { anime in
+            anime.status == "watching"
           }
         ))) ?? 0
   }
