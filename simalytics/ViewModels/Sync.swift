@@ -37,6 +37,8 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     await fetchAndStoreAnimeDropped(accessToken, result.anime?.dropped, context)
     await fetchAndStoreAnimeCompleted(accessToken, result.anime?.completed, context)
     await fetchAndStoreAnimeHold(accessToken, result.anime?.hold, context)
+    await fetchAndStoreAnimeRatedAt(accessToken, result.anime?.rated_at, context)
+    await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, context)
   } catch {
     SentrySDK.capture(error: error)
   }
@@ -1278,6 +1280,83 @@ func fetchAndStoreAnimeWatching(_ accessToken: String, _ lastActivity: String?, 
     }
 
     syncRecord!.anime_watching = lastActivity
+    try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func fetchAndStoreAnimeRemovedFromList(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+  guard let lastActivity = lastActivity else { return }
+
+  do {
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
+
+    if lastActivity == syncRecord!.anime_removed_from_list { return }
+
+    let endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/anime?extended=simkl_ids_only")!
+
+    print("\(endpoint.url!)")
+    var request = URLRequest(url: endpoint.url!)
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
+      syncRecord!.anime_removed_from_list = lastActivity
+      try context.save()
+      return
+    }
+
+    let items = result.anime ?? []
+    let currentSimklIds = Set(items.compactMap { $0.show?.ids.simkl })
+
+    let existingShowsDescriptor = FetchDescriptor<V1.SDAnimes>()
+    let existingShows = try context.fetch(existingShowsDescriptor)
+
+    let showsToDelete = existingShows.filter { show in
+      !currentSimklIds.contains(show.simkl)
+    }
+
+    for show in showsToDelete {
+      context.delete(show)
+    }
+
+    syncRecord!.anime_removed_from_list = lastActivity
+    try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+  guard let lastActivity = lastActivity else { return }
+
+  do {
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
+    if lastActivity == syncRecord!.anime_rated_at { return }
+
+    await fetchAndStoreAnimePlanToWatch(accessToken, lastActivity, context)
+    await fetchAndStoreAnimeDropped(accessToken, lastActivity, context)
+    await fetchAndStoreAnimeCompleted(accessToken, lastActivity, context)
+    await fetchAndStoreAnimeWatching(accessToken, lastActivity, context)
+    await fetchAndStoreAnimeHold(accessToken, lastActivity, context)
+
+    syncRecord!.anime_rated_at = lastActivity
     try context.save()
   } catch {
     SentrySDK.capture(error: error)

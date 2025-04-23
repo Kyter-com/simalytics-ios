@@ -39,6 +39,8 @@ enum V1: VersionedSchema {
     var anime_completed: String?
     var anime_hold: String?
     var anime_watching: String?
+    var anime_removed_from_list: String?
+    var anime_rated_at: String?
     init(
       id: Int = 1,
       movies_plantowatch: String? = nil,
@@ -59,7 +61,9 @@ enum V1: VersionedSchema {
       anime_dropped: String? = nil,
       anime_completed: String? = nil,
       anime_hold: String? = nil,
-      anime_watching: String? = nil
+      anime_watching: String? = nil,
+      anime_removed_from_list: String? = nil,
+      anime_rated_at: String? = nil
     ) {
       self.id = id
       self.movies_plantowatch = movies_plantowatch
@@ -81,6 +85,8 @@ enum V1: VersionedSchema {
       self.anime_completed = anime_completed
       self.anime_hold = anime_hold
       self.anime_watching = anime_watching
+      self.anime_removed_from_list = anime_removed_from_list
+      self.anime_rated_at = anime_rated_at
     }
   }
 
