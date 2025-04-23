@@ -36,6 +36,7 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     await fetchAndStoreAnimePlanToWatch(accessToken, result.anime?.plantowatch, context)
     await fetchAndStoreAnimeDropped(accessToken, result.anime?.dropped, context)
     await fetchAndStoreAnimeCompleted(accessToken, result.anime?.completed, context)
+    await fetchAndStoreAnimeHold(accessToken, result.anime?.hold, context)
   } catch {
     SentrySDK.capture(error: error)
   }
@@ -1099,6 +1100,95 @@ func fetchAndStoreAnimeCompleted(_ accessToken: String, _ lastActivity: String?,
     }
 
     syncRecord!.anime_completed = lastActivity
+    try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+  guard let lastActivity = lastActivity else { return }
+  let formatter = ISO8601DateFormatter()
+
+  do {
+    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
+
+    if lastActivity == syncRecord!.anime_hold { return }
+
+    var endpoint = URLComponents(
+      string: "https://api.simkl.com/sync/all-items/anime/hold?memos=yes")!
+
+    let lastActivityDate = formatter.date(from: lastActivity)!
+    if let previousSyncDate = syncRecord!.anime_hold.flatMap(formatter.date(from:)) {
+      if lastActivityDate > previousSyncDate {
+        let dateFrom = formatter.string(
+          from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
+        endpoint = URLComponents(
+          string:
+            "https://api.simkl.com/sync/all-items/anime/hold?memos=yes&date_from=\(dateFrom)"
+        )!
+      }
+    }
+
+    print("\(endpoint.url!)")
+    var request = URLRequest(url: endpoint.url!)
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
+      syncRecord!.anime_hold = lastActivity
+      try context.save()
+      return
+    }
+
+    let animes = result.anime ?? []
+    for animeItem in animes {
+      context.insert(
+        V1.SDAnimes(
+          simkl: (animeItem.show?.ids.simkl)!,
+          added_to_watchlist_at: animeItem.added_to_watchlist_at,
+          last_watched_at: animeItem.last_watched_at,
+          user_rated_at: animeItem.user_rated_at,
+          user_rating: animeItem.user_rating,
+          status: animeItem.status,
+          last_watched: animeItem.last_watched,
+          next_to_watch: animeItem.next_to_watch,
+          watched_episodes_count: animeItem.watched_episodes_count,
+          total_episodes_count: animeItem.total_episodes_count,
+          not_aired_episodes_count: animeItem.not_aired_episodes_count,
+          anime_type: animeItem.anime_type,
+          poster: animeItem.show?.poster,
+          year: animeItem.show?.year,
+          id_slug: animeItem.show?.ids.slug,
+          id_offjp: animeItem.show?.ids.offjp,
+          id_ann: animeItem.show?.ids.ann,
+          id_mal: animeItem.show?.ids.mal,
+          id_anfo: animeItem.show?.ids.anfo,
+          id_offen: animeItem.show?.ids.offen,
+          id_wikien: animeItem.show?.ids.wikien,
+          id_wikijp: animeItem.show?.ids.wikijp,
+          id_allcin: animeItem.show?.ids.allcin,
+          id_imdb: animeItem.show?.ids.imdb,
+          id_tmdb: animeItem.show?.ids.tmdb,
+          id_animeplanet: animeItem.show?.ids.animeplanet,
+          id_anisearch: animeItem.show?.ids.anisearch,
+          id_kitsu: animeItem.show?.ids.kitsu,
+          id_livechart: animeItem.show?.ids.livechart,
+          id_traktslug: animeItem.show?.ids.traktslug,
+          id_letterslug: animeItem.show?.ids.letterslug,
+          id_jwslug: animeItem.show?.ids.jwslug,
+          id_anidb: animeItem.show?.ids.anidb
+        )
+      )
+    }
+
+    syncRecord!.anime_hold = lastActivity
     try context.save()
   } catch {
     SentrySDK.capture(error: error)
