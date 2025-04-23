@@ -119,7 +119,7 @@ struct SettingsView: View {
               Toggle("", isOn: $blurImages)
             }
           } header: {
-            Text("TV Show Settings")
+            Text("Show Settings")
           }
 
           Section {
