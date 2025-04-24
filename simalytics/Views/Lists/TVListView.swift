@@ -17,6 +17,11 @@ struct TVListView: View {
   @AppStorage("tvSortField") private var sortField: String = "title"
   @AppStorage("tvSortAscending") private var sortAscending: Bool = true
 
+  private static let isoFormatter: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    return f
+  }()
+
   private var resolvedSortDescriptor: SortDescriptor<V1.SDShows> {
     if sortField == "title" {
       return SortDescriptor(\V1.SDShows.title, order: sortAscending ? .forward : .reverse)
@@ -68,6 +73,13 @@ struct TVListView: View {
               .font(.footnote)
               .foregroundColor(.secondary)
           }
+          if let isoString = show.added_to_watchlist_at,
+            let addedDate = Self.isoFormatter.date(from: isoString)
+          {
+            Text("Added: " + addedDate.timeAgoDisplay())
+              .font(.footnote)
+              .foregroundColor(.secondary)
+          }
 
         }
       }
@@ -82,9 +94,9 @@ struct TVListView: View {
         ? "Plan to Watch"
         : status == "completed"
           ? "Completed"
-          : status == "Dropped"
+          : status == "dropped"
             ? "Dropped"
-            : status == "Hold"
+            : status == "hold"
               ? "On Hold"
               : status == "watching"
                 ? "Watching"

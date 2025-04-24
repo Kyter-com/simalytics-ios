@@ -59,7 +59,7 @@ struct ShowHeaderInfo: View {
           .fontDesign(.monospaced)
           .foregroundColor(.secondary)
       } label: {
-        Label("SIMKL Rating", systemImage: "number")
+        Label("SIMKL Rating", systemImage: "trophy")
           .foregroundColor(.secondary)
       }
     }

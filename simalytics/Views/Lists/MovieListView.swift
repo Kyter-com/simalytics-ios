@@ -17,6 +17,11 @@ struct MovieListView: View {
   @AppStorage("movieSortField") private var sortField: String = "title"
   @AppStorage("movieSortAscending") private var sortAscending: Bool = true
 
+  private static let isoFormatter: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    return f
+  }()
+
   private var resolvedSortDescriptor: SortDescriptor<V1.SDMovies> {
     if sortField == "title" {
       return SortDescriptor(\V1.SDMovies.title, order: sortAscending ? .forward : .reverse)
@@ -65,6 +70,13 @@ struct MovieListView: View {
 
           if let year = movie.year {
             Text(String(year))
+              .font(.footnote)
+              .foregroundColor(.secondary)
+          }
+          if let isoString = movie.added_to_watchlist_at,
+            let addedDate = Self.isoFormatter.date(from: isoString)
+          {
+            Text("Added: " + addedDate.timeAgoDisplay())
               .font(.footnote)
               .foregroundColor(.secondary)
           }

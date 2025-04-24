@@ -103,7 +103,7 @@ struct MovieDetailView: View {
                   .fontDesign(.monospaced)
                   .foregroundColor(.secondary)
               } label: {
-                Label("SIMKL Rating", systemImage: "number")
+                Label("SIMKL Rating", systemImage: "trophy")
                   .foregroundColor(.secondary)
               }
             }
@@ -134,6 +134,10 @@ struct MovieDetailView: View {
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
+
+        RatingView(maxRating: 10, rating: .constant(3), starColor: .blue, starRounding: .roundToFullStar, size: 20)
+          .padding([.leading, .trailing])
+          .padding(.top, 8)
 
         if let overview = movieDetails?.overview {
           Text(overview)
