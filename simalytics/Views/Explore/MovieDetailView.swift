@@ -6,15 +6,19 @@
 //
 
 import Kingfisher
+import SwiftData
 import SwiftUI
 
 struct MovieDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
+  @Environment(\.modelContext) private var modelContext
   @State private var movieDetails: MovieDetailsModel?
   @State private var movieWatchlist: MovieWatchlistModel?
   @State private var isLoading = true
   @State private var watchlistStatus: String?
+  @State private var localRating: Double = 0
+  @State private var originalRating: Double = 0
   var simkl_id: Int
 
   var body: some View {
@@ -33,6 +37,18 @@ struct MovieDetailView: View {
             }
 
             isLoading = false
+
+            Task { @MainActor [modelContext, simkl_id] in
+              do {
+                let movies = try modelContext.fetch(
+                  FetchDescriptor<V1.SDMovies>(predicate: #Predicate { $0.simkl == simkl_id })
+                )
+                if let movie = movies.first {
+                  self.localRating = Double(movie.user_rating ?? 0)
+                  self.originalRating = Double(movie.user_rating ?? 0)
+                }
+              } catch {}
+            }
           }
         }
     } else {
@@ -135,9 +151,15 @@ struct MovieDetailView: View {
             .fontDesign(.monospaced)
         }
 
-        RatingView(maxRating: 10, rating: .constant(3), starColor: .blue, starRounding: .roundToFullStar, size: 20)
-          .padding([.leading, .trailing])
-          .padding(.top, 8)
+        RatingView(
+          maxRating: 10,
+          rating: $localRating,
+          starColor: .blue,
+          starRounding: .roundToFullStar,
+          size: 20
+        )
+        .padding([.leading, .trailing])
+        .padding(.top, 8)
 
         if let overview = movieDetails?.overview {
           Text(overview)
@@ -149,6 +171,13 @@ struct MovieDetailView: View {
         Spacer()
 
         Recommendations(recommendations: movieDetails?.users_recommendations)
+      }
+      .onChange(of: localRating) {
+        if localRating == originalRating { return }
+        Task {
+          await MovieDetailView.addMovieRating(simkl_id, auth.simklAccessToken, localRating)
+          await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
+        }
       }
     }
   }
