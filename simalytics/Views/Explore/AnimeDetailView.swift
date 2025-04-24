@@ -6,11 +6,13 @@
 //
 
 import Kingfisher
+import SwiftData
 import SwiftUI
 
 struct AnimeDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
+  @Environment(\.modelContext) private var modelContext
   @State private var animeWatchlist: AnimeWatchlistModel?
   @State private var animeDetails: AnimeDetailsModel?
   @State private var animeEpisodes: [AnimeEpisodeModel] = []
@@ -18,6 +20,8 @@ struct AnimeDetailView: View {
   @State private var isLoading = true
   @State private var watchlistStatus: String?
   @State private var selectedSeason: String?
+  @State private var localRating: Double = 0
+  @State private var originalRating: Double = 0
   @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
   var simkl_id: Int
 
@@ -57,6 +61,18 @@ struct AnimeDetailView: View {
             }
 
             isLoading = false
+
+            Task { @MainActor [modelContext, simkl_id] in
+              do {
+                let movies = try modelContext.fetch(
+                  FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.simkl == simkl_id })
+                )
+                if let movie = movies.first {
+                  self.localRating = Double(movie.user_rating ?? 0)
+                  self.originalRating = Double(movie.user_rating ?? 0)
+                }
+              } catch {}
+            }
           }
         }
     } else {
@@ -109,6 +125,16 @@ struct AnimeDetailView: View {
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
+
+        RatingView(
+          maxRating: 10,
+          rating: $localRating,
+          starColor: .blue,
+          starRounding: .roundToFullStar,
+          size: 20
+        )
+        .padding([.leading, .trailing])
+        .padding(.top, 8)
 
         if let overview = animeDetails?.overview {
           Text(overview.stripHTML)
@@ -197,6 +223,13 @@ struct AnimeDetailView: View {
         }
 
         Recommendations(recommendations: animeDetails?.users_recommendations ?? [])
+      }
+      .onChange(of: localRating) {
+        if localRating == originalRating { return }
+        Task {
+          await AnimeDetailView.addAnimeRating(simkl_id, auth.simklAccessToken, localRating)
+          await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
+        }
       }
     }
   }
