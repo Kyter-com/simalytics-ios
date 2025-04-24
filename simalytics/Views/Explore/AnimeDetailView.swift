@@ -64,12 +64,12 @@ struct AnimeDetailView: View {
 
             Task { @MainActor [modelContext, simkl_id] in
               do {
-                let movies = try modelContext.fetch(
+                let animes = try modelContext.fetch(
                   FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.simkl == simkl_id })
                 )
-                if let movie = movies.first {
-                  self.localRating = Double(movie.user_rating ?? 0)
-                  self.originalRating = Double(movie.user_rating ?? 0)
+                if let anime = animes.first {
+                  self.localRating = Double(anime.user_rating ?? 0)
+                  self.originalRating = Double(anime.user_rating ?? 0)
                 }
               } catch {}
             }

@@ -6,11 +6,13 @@
 //
 
 import Kingfisher
+import SwiftData
 import SwiftUI
 
 struct ShowDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
+  @Environment(\.modelContext) private var modelContext
   @State private var showDetails: ShowDetailsModel?
   @State private var showWatchlist: ShowWatchlistModel?
   @State private var showEpisodes: [ShowEpisodeModel] = []
@@ -18,6 +20,8 @@ struct ShowDetailView: View {
   @State private var watchlistStatus: String?
   @State private var filteredEpisodes: [ShowEpisodeModel] = []
   @State private var selectedSeason: String?
+  @State private var localRating: Double = 0
+  @State private var originalRating: Double = 0
   @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
   var simkl_id: Int
 
@@ -70,6 +74,18 @@ struct ShowDetailView: View {
             }
 
             isLoading = false
+
+            Task { @MainActor [modelContext, simkl_id] in
+              do {
+                let shows = try modelContext.fetch(
+                  FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.simkl == simkl_id })
+                )
+                if let show = shows.first {
+                  self.localRating = Double(show.user_rating ?? 0)
+                  self.originalRating = Double(show.user_rating ?? 0)
+                }
+              } catch {}
+            }
           }
         }
     } else {
@@ -122,6 +138,16 @@ struct ShowDetailView: View {
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
+
+        RatingView(
+          maxRating: 10,
+          rating: $localRating,
+          starColor: .blue,
+          starRounding: .roundToFullStar,
+          size: 20
+        )
+        .padding([.leading, .trailing])
+        .padding(.top, 8)
 
         if let overview = showDetails?.overview {
           Text(overview)
@@ -223,6 +249,13 @@ struct ShowDetailView: View {
         }
 
         Recommendations(recommendations: showDetails?.users_recommendations)
+      }
+      .onChange(of: localRating) {
+        if localRating == originalRating { return }
+        Task {
+          await ShowDetailView.addShowRating(simkl_id, auth.simklAccessToken, localRating)
+          await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
+        }
       }
     }
   }

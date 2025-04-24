@@ -75,6 +75,31 @@ extension ShowDetailView {
       return []
     }
   }
+
+  static func addShowRating(_ simkl_id: Int, _ accessToken: String, _ rating: Double) async {
+    do {
+      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/ratings")!
+      var request = URLRequest(url: urlComponents.url!)
+      request.httpMethod = "POST"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      let body: [String: Any] = [
+        "shows": [
+          [
+            "rating": rating,
+            "ids": [
+              "simkl": simkl_id
+            ],
+          ]
+        ]
+      ]
+      request.httpBody = try JSONSerialization.data(withJSONObject: body)
+      _ = try await URLSession.shared.data(for: request)
+    } catch {
+      SentrySDK.capture(error: error)
+    }
+  }
 }
 
 extension ShowWatchlistButton {
