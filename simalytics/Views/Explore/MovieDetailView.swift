@@ -19,6 +19,7 @@ struct MovieDetailView: View {
   @State private var watchlistStatus: String?
   @State private var localRating: Double = 0
   @State private var originalRating: Double = 0
+  @State private var showingMemoSheet = false
   var simkl_id: Int
 
   var body: some View {
@@ -161,6 +162,14 @@ struct MovieDetailView: View {
         .padding([.leading, .trailing])
         .padding(.top, 8)
 
+        Button(action: {
+          showingMemoSheet.toggle()
+        }) {
+          Label("Add Memo", systemImage: "square.and.pencil")
+            .padding([.leading, .trailing])
+            .padding(.top, 8)
+        }
+
         if let overview = movieDetails?.overview {
           Text(overview)
             .font(.footnote)
@@ -178,6 +187,10 @@ struct MovieDetailView: View {
           await MovieDetailView.addMovieRating(simkl_id, auth.simklAccessToken, localRating)
           await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
         }
+      }
+      .sheet(isPresented: $showingMemoSheet) {
+        MemoView()
+          .presentationDetents([.medium, .large])
       }
     }
   }
