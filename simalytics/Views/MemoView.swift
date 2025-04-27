@@ -8,6 +8,7 @@ struct RoundedTextEditor: UIViewRepresentable {
   var backgroundColor: UIColor = .secondarySystemBackground
   var placeholderText: String = ""
   var placeholderColor: UIColor = .gray
+  var characterLimit: Int = 180
 
   // Create the UITextView
   func makeUIView(context: Context) -> UITextView {
@@ -71,6 +72,16 @@ struct RoundedTextEditor: UIViewRepresentable {
       // Update the binding
       parent.text = textView.text
     }
+
+    // Implement strict character limit - this will prevent more than the limit from being entered
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+      // Get the current text and create the updated text
+      let currentText = textView.text ?? ""
+      let updatedText = (currentText as NSString).replacingCharacters(in: range, with: text)
+
+      // Only allow the change if it doesn't exceed the character limit
+      return updatedText.count <= parent.characterLimit
+    }
   }
 }
 
@@ -130,19 +141,14 @@ struct MemoView: View {
             cornerRadius: 8,
             backgroundColor: .secondarySystemBackground,
             placeholderText: placeholderText,
-            placeholderColor: UIColor.gray.withAlphaComponent(0.7)
+            placeholderColor: UIColor.gray.withAlphaComponent(0.7),
+            characterLimit: characterLimit
           )
           .frame(minHeight: 100, maxHeight: .infinity)
           .overlay(  // Add a border
             RoundedRectangle(cornerRadius: 8)
               .stroke(Color.gray.opacity(0.3), lineWidth: 1)
           )
-          .onChange(of: memoText) { newValue, _ in  // Monitor text changes to enforce limit
-            if newValue.count > characterLimit {
-              // Automatically truncate text if it exceeds the limit
-              memoText = String(newValue.prefix(characterLimit))
-            }
-          }
           .accessibilityLabel("Memo input area")  // Accessibility improvement
 
           // --- Character Counter ---
