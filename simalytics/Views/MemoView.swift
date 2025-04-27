@@ -1,4 +1,78 @@
 import SwiftUI
+import UIKit
+
+// Custom UIViewRepresentable TextEditor with rounded corners
+struct RoundedTextEditor: UIViewRepresentable {
+  @Binding var text: String
+  var cornerRadius: CGFloat = 8
+  var backgroundColor: UIColor = .secondarySystemBackground
+  var placeholderText: String = ""
+  var placeholderColor: UIColor = .gray
+
+  // Create the UITextView
+  func makeUIView(context: Context) -> UITextView {
+    let textView = UITextView()
+    textView.delegate = context.coordinator
+    textView.font = UIFont.preferredFont(forTextStyle: .body)
+    textView.backgroundColor = backgroundColor
+    textView.layer.cornerRadius = cornerRadius
+    textView.clipsToBounds = true
+    textView.text = text.isEmpty ? placeholderText : text
+    textView.textColor = text.isEmpty ? placeholderColor : .label
+    textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
+    return textView
+  }
+
+  // Update the UITextView when SwiftUI state changes
+  func updateUIView(_ uiView: UITextView, context: Context) {
+    // Only update if the text changed externally
+    if text != uiView.text && !(text.isEmpty && uiView.text == placeholderText) {
+      uiView.text = text
+      uiView.textColor = .label
+    }
+
+    // Update placeholders as needed
+    if text.isEmpty && uiView.text.isEmpty {
+      uiView.text = placeholderText
+      uiView.textColor = placeholderColor
+    }
+  }
+
+  // Create a coordinator to manage the UITextView delegate
+  func makeCoordinator() -> Coordinator {
+    Coordinator(self)
+  }
+
+  // Coordinator class to handle UITextView delegate methods
+  class Coordinator: NSObject, UITextViewDelegate {
+    var parent: RoundedTextEditor
+
+    init(_ parent: RoundedTextEditor) {
+      self.parent = parent
+    }
+
+    func textViewDidBeginEditing(_ textView: UITextView) {
+      // Clear placeholder when editing begins
+      if textView.text == parent.placeholderText {
+        textView.text = ""
+        textView.textColor = .label
+      }
+    }
+
+    func textViewDidEndEditing(_ textView: UITextView) {
+      // Restore placeholder if needed
+      if textView.text.isEmpty {
+        textView.text = parent.placeholderText
+        textView.textColor = parent.placeholderColor
+      }
+    }
+
+    func textViewDidChange(_ textView: UITextView) {
+      // Update the binding
+      parent.text = textView.text
+    }
+  }
+}
 
 struct MemoView: View {
   // MARK: - State Variables
@@ -50,40 +124,26 @@ struct MemoView: View {
           Text("Memo")  // Label for the text editor
             .font(.headline)
 
-          // ZStack allows layering the TextEditor and the Placeholder
-          ZStack(alignment: .topLeading) {
-            // The TextEditor for memo input
-            TextEditor(text: $memoText)
-              .frame(minHeight: 100, maxHeight: .infinity)  // Define flexible height
-              .focused($isTextEditorFocused)  // Link focus state to the editor
-              .padding(.horizontal, 4)  // Inner horizontal padding
-              .padding(.vertical, 4)  // Inner vertical padding
-              .background(  // Apply a subtle background
-                RoundedRectangle(cornerRadius: 8)
-                  .fill(Color(uiColor: .secondarySystemBackground))
-              )
-              .overlay(  // Add a border
-                RoundedRectangle(cornerRadius: 8)
-                  .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-              )
-              .onChange(of: memoText) { newValue, _ in  // Monitor text changes to enforce limit
-                if newValue.count > characterLimit {
-                  // Automatically truncate text if it exceeds the limit
-                  // Use prefix(characterLimit) to keep only the allowed number of characters
-                  memoText = String(newValue.prefix(characterLimit))
-                }
-              }
-              .accessibilityLabel("Memo input area")  // Accessibility improvement
-
-            // Placeholder Text: Only shown when memoText is empty
-            if memoText.isEmpty {
-              Text(placeholderText)
-                .foregroundColor(.gray.opacity(0.7))  // Style placeholder text
-                .padding(.horizontal, 8)  // Match TextEditor horizontal padding
-                .padding(.vertical, 12)  // Match TextEditor vertical padding
-                .allowsHitTesting(false)  // Prevent placeholder from intercepting taps
+          // Custom TextEditor with built-in rounded corners
+          RoundedTextEditor(
+            text: $memoText,
+            cornerRadius: 8,
+            backgroundColor: .secondarySystemBackground,
+            placeholderText: placeholderText,
+            placeholderColor: UIColor.gray.withAlphaComponent(0.7)
+          )
+          .frame(minHeight: 100, maxHeight: .infinity)
+          .overlay(  // Add a border
+            RoundedRectangle(cornerRadius: 8)
+              .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+          )
+          .onChange(of: memoText) { newValue, _ in  // Monitor text changes to enforce limit
+            if newValue.count > characterLimit {
+              // Automatically truncate text if it exceeds the limit
+              memoText = String(newValue.prefix(characterLimit))
             }
           }
+          .accessibilityLabel("Memo input area")  // Accessibility improvement
 
           // --- Character Counter ---
           HStack {
@@ -127,7 +187,8 @@ struct MemoView: View {
       }
       // Add a tap gesture to the background to dismiss the keyboard
       .onTapGesture {
-        isTextEditorFocused = false
+        // In our case, tap anywhere will dismiss keyboard
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
       }
     }
   }
