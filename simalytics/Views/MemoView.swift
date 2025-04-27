@@ -6,8 +6,6 @@ struct RoundedTextEditor: UIViewRepresentable {
   @Binding var text: String
   var cornerRadius: CGFloat = 8
   var backgroundColor: UIColor = .secondarySystemBackground
-  var placeholderText: String = ""
-  var placeholderColor: UIColor = .gray
   var characterLimit: Int = 180
 
   // Create the UITextView
@@ -18,8 +16,8 @@ struct RoundedTextEditor: UIViewRepresentable {
     textView.backgroundColor = backgroundColor
     textView.layer.cornerRadius = cornerRadius
     textView.clipsToBounds = true
-    textView.text = text.isEmpty ? placeholderText : text
-    textView.textColor = text.isEmpty ? placeholderColor : .label
+    textView.text = text
+    textView.textColor = .label
     textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
     return textView
   }
@@ -27,15 +25,9 @@ struct RoundedTextEditor: UIViewRepresentable {
   // Update the UITextView when SwiftUI state changes
   func updateUIView(_ uiView: UITextView, context: Context) {
     // Only update if the text changed externally
-    if text != uiView.text && !(text.isEmpty && uiView.text == placeholderText) {
+    if text != uiView.text {
       uiView.text = text
       uiView.textColor = .label
-    }
-
-    // Update placeholders as needed
-    if text.isEmpty && uiView.text.isEmpty {
-      uiView.text = placeholderText
-      uiView.textColor = placeholderColor
     }
   }
 
@@ -50,22 +42,6 @@ struct RoundedTextEditor: UIViewRepresentable {
 
     init(_ parent: RoundedTextEditor) {
       self.parent = parent
-    }
-
-    func textViewDidBeginEditing(_ textView: UITextView) {
-      // Clear placeholder when editing begins
-      if textView.text == parent.placeholderText {
-        textView.text = ""
-        textView.textColor = .label
-      }
-    }
-
-    func textViewDidEndEditing(_ textView: UITextView) {
-      // Restore placeholder if needed
-      if textView.text.isEmpty {
-        textView.text = parent.placeholderText
-        textView.textColor = parent.placeholderColor
-      }
     }
 
     func textViewDidChange(_ textView: UITextView) {
@@ -94,7 +70,6 @@ struct MemoView: View {
   // MARK: - Constants
   let characterLimit = 180  // Maximum allowed characters for the memo
   let privacyOptions = ["Public", "Private"]  // Options for the visibility picker
-  let placeholderText = "Write your memo here..."  // Placeholder text for the TextEditor
 
   // MARK: - Environment
   @Environment(\.dismiss) var dismiss  // Action to close the current view (e.g., a sheet)
@@ -140,8 +115,6 @@ struct MemoView: View {
             text: $memoText,
             cornerRadius: 8,
             backgroundColor: .secondarySystemBackground,
-            placeholderText: placeholderText,
-            placeholderColor: UIColor.gray.withAlphaComponent(0.7),
             characterLimit: characterLimit
           )
           .frame(minHeight: 100, maxHeight: .infinity)
