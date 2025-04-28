@@ -67,12 +67,16 @@ struct MemoView: View {
   @State private var memoText = ""  // Holds the text entered by the user
   @FocusState private var isTextEditorFocused: Bool  // Manages keyboard focus for the TextEditor
 
+  var simkl_id: Int
+  var item_status: String
+
   // MARK: - Constants
   let characterLimit = 180  // Maximum allowed characters for the memo
   let privacyOptions = ["Public", "Private"]  // Options for the visibility picker
 
   // MARK: - Environment
   @Environment(\.dismiss) var dismiss  // Action to close the current view (e.g., a sheet)
+  @EnvironmentObject private var auth: Auth
 
   // MARK: - Computed Properties
   // Determines the color of the character count text based on whether the limit is exceeded
@@ -147,39 +151,23 @@ struct MemoView: View {
             dismiss()  // Close the sheet without saving/processing
           }
         }
-        // Done Button (trailing side)
         ToolbarItem(placement: .navigationBarTrailing) {
           Button("Done") {
-            // --- ACTION: Implement what happens when Done is tapped ---
-            print("Memo Saved:")
-            print("Text: \(memoText)")
-            print("Visibility: \(privacySelection)")
-            // Example: Call a function to save the memo data
-            // saveMemo(text: memoText, visibility: privacySelection)
-            // --- End Action ---
+            Task {
+              await addMemoToMovie(
+                accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText, isPrivate: privacySelection == "Private",
+                status: item_status)
+            }
 
-            dismiss()  // Close the sheet after the action
+            dismiss()
           }
-          // Disable the Done button if the memo text is empty (ignoring whitespace)
           .disabled(memoText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
       }
-      // Add a tap gesture to the background to dismiss the keyboard
       .onTapGesture {
-        // In our case, tap anywhere will dismiss keyboard
+        // Tap anywhere will dismiss keyboard
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
       }
     }
-  }
-}
-
-// MARK: - Preview
-struct MemoView_Previews: PreviewProvider {
-  static var previews: some View {
-    // Simulate presenting MemoView within a sheet for previewing
-    Text("Tap to show Memo Sheet")
-      .sheet(isPresented: .constant(true)) {  // Use .constant(true) to always show in preview
-        MemoView()
-      }
   }
 }

@@ -162,12 +162,14 @@ struct MovieDetailView: View {
         .padding([.leading, .trailing])
         .padding(.top, 8)
 
-        Button(action: {
-          showingMemoSheet.toggle()
-        }) {
-          Label("Add Memo", systemImage: "square.and.pencil")
-            .padding([.leading, .trailing])
-            .padding(.top, 8)
+        if watchlistStatus != nil {
+          Button(action: {
+            showingMemoSheet.toggle()
+          }) {
+            Label("Add Memo", systemImage: "square.and.pencil")
+              .padding([.leading, .trailing])
+              .padding(.top, 8)
+          }
         }
 
         if let overview = movieDetails?.overview {
@@ -189,7 +191,7 @@ struct MovieDetailView: View {
         }
       }
       .sheet(isPresented: $showingMemoSheet) {
-        MemoView()
+        MemoView(simkl_id: simkl_id, item_status: watchlistStatus ?? "")
           .presentationDetents([.medium, .large])
       }
     }
