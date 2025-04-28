@@ -1,14 +1,13 @@
+import SwiftData
 import SwiftUI
 import UIKit
 
-// Custom UIViewRepresentable TextEditor with rounded corners
 struct RoundedTextEditor: UIViewRepresentable {
   @Binding var text: String
   var cornerRadius: CGFloat = 8
   var backgroundColor: UIColor = .secondarySystemBackground
   var characterLimit: Int = 180
 
-  // Create the UITextView
   func makeUIView(context: Context) -> UITextView {
     let textView = UITextView()
     textView.delegate = context.coordinator
@@ -22,21 +21,17 @@ struct RoundedTextEditor: UIViewRepresentable {
     return textView
   }
 
-  // Update the UITextView when SwiftUI state changes
   func updateUIView(_ uiView: UITextView, context: Context) {
-    // Only update if the text changed externally
     if text != uiView.text {
       uiView.text = text
       uiView.textColor = .label
     }
   }
 
-  // Create a coordinator to manage the UITextView delegate
   func makeCoordinator() -> Coordinator {
     Coordinator(self)
   }
 
-  // Coordinator class to handle UITextView delegate methods
   class Coordinator: NSObject, UITextViewDelegate {
     var parent: RoundedTextEditor
 
@@ -45,44 +40,31 @@ struct RoundedTextEditor: UIViewRepresentable {
     }
 
     func textViewDidChange(_ textView: UITextView) {
-      // Update the binding
       parent.text = textView.text
     }
 
-    // Implement strict character limit - this will prevent more than the limit from being entered
     func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-      // Get the current text and create the updated text
       let currentText = textView.text ?? ""
       let updatedText = (currentText as NSString).replacingCharacters(in: range, with: text)
-
-      // Only allow the change if it doesn't exceed the character limit
       return updatedText.count <= parent.characterLimit
     }
   }
 }
 
 struct MemoView: View {
-  // MARK: - State Variables
-  @State private var privacySelection = "Public"  // Tracks the selected privacy option
-  @State private var memoText = ""  // Holds the text entered by the user
-  @FocusState private var isTextEditorFocused: Bool  // Manages keyboard focus for the TextEditor
+  @State private var privacySelection = "Public"
+  @State private var memoText = ""
+  @FocusState private var isTextEditorFocused: Bool
 
   var simkl_id: Int
   var item_status: String
 
-  // MARK: - Constants
-  let characterLimit = 180  // Maximum allowed characters for the memo
-  let privacyOptions = ["Public", "Private"]  // Options for the visibility picker
+  let characterLimit = 180
+  let privacyOptions = ["Public", "Private"]
 
-  // MARK: - Environment
-  @Environment(\.dismiss) var dismiss  // Action to close the current view (e.g., a sheet)
+  @Environment(\.dismiss) var dismiss
   @EnvironmentObject private var auth: Auth
-
-  // MARK: - Computed Properties
-  // Determines the color of the character count text based on whether the limit is exceeded
-  var characterCountColor: Color {
-    memoText.count > characterLimit ? .red : .secondary
-  }
+  @Environment(\.modelContext) private var modelContext
 
   // Formats the character count string
   var characterCountText: String {
@@ -128,12 +110,11 @@ struct MemoView: View {
           )
           .accessibilityLabel("Memo input area")  // Accessibility improvement
 
-          // --- Character Counter ---
           HStack {
             Spacer()  // Pushes the counter to the right
             Text(characterCountText)  // Display the character count (e.g., "25 / 180")
               .font(.caption)  // Use smaller font size
-              .foregroundColor(characterCountColor)  // Apply dynamic color (red if over limit)
+              .foregroundColor(.secondary)  // Apply dynamic color (red if over limit)
               .padding(.top, 4)  // Add some space above the counter
           }
           .accessibilityLabel("Character count: \(characterCountText)")  // Accessibility
@@ -155,8 +136,9 @@ struct MemoView: View {
           Button("Done") {
             Task {
               await addMemoToMovie(
-                accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText, isPrivate: privacySelection == "Private",
-                status: item_status)
+                accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText,
+                isPrivate: privacySelection == "Private",
+                status: item_status, modelContainer: modelContext.container)
             }
 
             dismiss()
@@ -166,7 +148,21 @@ struct MemoView: View {
       }
       .onTapGesture {
         // Tap anywhere will dismiss keyboard
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        UIApplication.shared.sendAction(
+          #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+      }
+      .onAppear {
+        Task { @MainActor [modelContext, simkl_id] in
+          do {
+            let movies = try modelContext.fetch(
+              FetchDescriptor<V1.SDMovies>(predicate: #Predicate { $0.simkl == simkl_id })
+            )
+            if let movie = movies.first {
+              self.memoText = movie.memo_text ?? ""
+              self.privacySelection = movie.memo_is_private ?? false ? "Private" : "Public"
+            }
+          } catch {}
+        }
       }
     }
   }
