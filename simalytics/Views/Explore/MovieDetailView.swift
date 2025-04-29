@@ -152,15 +152,17 @@ struct MovieDetailView: View {
             .fontDesign(.monospaced)
         }
 
-        RatingView(
-          maxRating: 10,
-          rating: $localRating,
-          starColor: .blue,
-          starRounding: .roundToFullStar,
-          size: 20
-        )
-        .padding([.leading, .trailing])
-        .padding(.top, 8)
+        if watchlistStatus != nil {
+          RatingView(
+            maxRating: 10,
+            rating: $localRating,
+            starColor: .blue,
+            starRounding: .roundToFullStar,
+            size: 20
+          )
+          .padding([.leading, .trailing])
+          .padding(.top, 8)
+        }
 
         if watchlistStatus != nil {
           Button(action: {
