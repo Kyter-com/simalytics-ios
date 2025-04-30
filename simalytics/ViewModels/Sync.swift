@@ -1543,7 +1543,6 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
     let now = Date()
     let twentyFourHoursInSeconds: TimeInterval = 24 * 60 * 60
     let twentyFourHoursAgo = now.addingTimeInterval(-twentyFourHoursInSeconds)
-
     var needsSync = false
     if let lastSyncDate = syncRecord!.trending_data {
       if lastSyncDate < twentyFourHoursAgo.ISO8601Format() {
@@ -1555,8 +1554,8 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
     if !needsSync { return }
 
     let movies = await getTrendingMovies()
-    let shows = await getTrendingShows()
-    let animes = await getTrendingAnimes()
+    //    let shows = await getTrendingShows()
+    //    let animes = await getTrendingAnimes()
 
     let oldMovies = try? context.fetch(FetchDescriptor<V1.TrendingMovies>())
     oldMovies?.forEach { context.delete($0) }
@@ -1572,7 +1571,6 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
 
     syncRecord!.trending_data = now.ISO8601Format()
     try context.save()
-
   } catch {
     SentrySDK.capture(error: error)
   }
