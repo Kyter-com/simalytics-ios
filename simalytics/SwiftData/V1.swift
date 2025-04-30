@@ -372,8 +372,8 @@ enum V1: VersionedSchema {
 
     init(
       simkl: Int,
-      title: String?,
-      poster: String?
+      title: String? = nil,
+      poster: String? = nil
     ) {
       self.simkl = simkl
       self.title = title
