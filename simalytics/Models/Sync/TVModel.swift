@@ -23,6 +23,7 @@ struct TVModel_show: Codable {
   let total_episodes_count: Int?
   let not_aired_episodes_count: Int?
   let show: TVModel_show_item?
+  let memo: TVModel_show_item_memo?
 }
 
 struct TVModel_show_item: Codable {
@@ -30,7 +31,6 @@ struct TVModel_show_item: Codable {
   let poster: String?
   let year: Int?
   let ids: TVModel_show_item_ids?
-  let memo: TVModel_show_item_memo?
 }
 
 struct TVModel_show_item_ids: Codable {

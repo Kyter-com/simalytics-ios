@@ -18,6 +18,7 @@ struct MoviesModel_movie: Codable {
   let status: String?
   let user_rating: Int?
   let movie: MoviesModel_movie_item?
+  let memo: MoviesModel_movie_item_memo?
 }
 
 struct MoviesModel_movie_item: Codable {
@@ -25,7 +26,6 @@ struct MoviesModel_movie_item: Codable {
   let poster: String?
   let year: Int?
   let ids: MoviesModel_movie_item_ids?
-  let memo: MoviesModel_movie_item_memo?
 }
 
 struct MoviesModel_movie_item_ids: Codable {

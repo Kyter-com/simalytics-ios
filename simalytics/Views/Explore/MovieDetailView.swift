@@ -20,6 +20,8 @@ struct MovieDetailView: View {
   @State private var localRating: Double = 0
   @State private var originalRating: Double = 0
   @State private var showingMemoSheet = false
+  @State private var memoText: String = ""
+  @State private var privacySelection: String = "Public"
   var simkl_id: Int
 
   var body: some View {
@@ -47,6 +49,8 @@ struct MovieDetailView: View {
                 if let movie = movies.first {
                   self.localRating = Double(movie.user_rating ?? 0)
                   self.originalRating = Double(movie.user_rating ?? 0)
+                  self.memoText = movie.memo_text ?? ""
+                  self.privacySelection = movie.memo_is_private ?? true ? "Private" : "Public"
                 }
               } catch {}
             }
@@ -193,7 +197,7 @@ struct MovieDetailView: View {
         }
       }
       .sheet(isPresented: $showingMemoSheet) {
-        MemoView(simkl_id: simkl_id, item_status: watchlistStatus ?? "")
+        MemoView(memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id, item_status: watchlistStatus ?? "")
           .presentationDetents([.medium, .large])
       }
     }

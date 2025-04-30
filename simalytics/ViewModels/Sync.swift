@@ -108,8 +108,8 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
           id_letterslug: movieItem.movie?.ids?.letterslug,
           id_jwslug: movieItem.movie?.ids?.jwslug,
           id_tmdb: movieItem.movie?.ids?.tmdb,
-          memo_text: movieItem.movie?.memo?.text,
-          memo_is_private: movieItem.movie?.memo?.is_private
+          memo_text: movieItem.memo?.text,
+          memo_is_private: movieItem.memo?.is_private
         )
       )
     }
@@ -184,8 +184,8 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
           id_letterslug: movieItem.movie?.ids?.letterslug,
           id_jwslug: movieItem.movie?.ids?.jwslug,
           id_tmdb: movieItem.movie?.ids?.tmdb,
-          memo_text: movieItem.movie?.memo?.text,
-          memo_is_private: movieItem.movie?.memo?.is_private
+          memo_text: movieItem.memo?.text,
+          memo_is_private: movieItem.memo?.is_private
         )
       )
     }
@@ -260,8 +260,8 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
           id_letterslug: movieItem.movie?.ids?.letterslug,
           id_jwslug: movieItem.movie?.ids?.jwslug,
           id_tmdb: movieItem.movie?.ids?.tmdb,
-          memo_text: movieItem.movie?.memo?.text,
-          memo_is_private: movieItem.movie?.memo?.is_private
+          memo_text: movieItem.memo?.text,
+          memo_is_private: movieItem.memo?.is_private
         )
       )
     }
@@ -386,8 +386,8 @@ func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, 
           id_letterslug: movieItem.movie?.ids?.letterslug,
           id_jwslug: movieItem.movie?.ids?.jwslug,
           id_tmdb: movieItem.movie?.ids?.tmdb,
-          memo_text: movieItem.movie?.memo?.text,
-          memo_is_private: movieItem.movie?.memo?.is_private
+          memo_text: movieItem.memo?.text,
+          memo_is_private: movieItem.memo?.is_private
         )
       )
     }
@@ -458,8 +458,8 @@ func fetchAndStoreTVPlanToWatch(_ accessToken: String, _ lastActivity: String?, 
           title: showItem.show?.title,
           poster: showItem.show?.poster,
           year: showItem.show?.year,
-          memo_text: showItem.show?.memo?.text,
-          memo_is_private: showItem.show?.memo?.is_private,
+          memo_text: showItem.memo?.text,
+          memo_is_private: showItem.memo?.is_private,
           id_slug: showItem.show?.ids?.slug,
           id_offen: showItem.show?.ids?.offen,
           id_tvdbslug: showItem.show?.ids?.tvdbslug,
@@ -540,8 +540,8 @@ func fetchAndStoreTVCompleted(_ accessToken: String, _ lastActivity: String?, _ 
           title: showItem.show?.title,
           poster: showItem.show?.poster,
           year: showItem.show?.year,
-          memo_text: showItem.show?.memo?.text,
-          memo_is_private: showItem.show?.memo?.is_private,
+          memo_text: showItem.memo?.text,
+          memo_is_private: showItem.memo?.is_private,
           id_slug: showItem.show?.ids?.slug,
           id_offen: showItem.show?.ids?.offen,
           id_tvdbslug: showItem.show?.ids?.tvdbslug,
@@ -622,8 +622,8 @@ func fetchAndStoreTVHold(_ accessToken: String, _ lastActivity: String?, _ conte
           title: showItem.show?.title,
           poster: showItem.show?.poster,
           year: showItem.show?.year,
-          memo_text: showItem.show?.memo?.text,
-          memo_is_private: showItem.show?.memo?.is_private,
+          memo_text: showItem.memo?.text,
+          memo_is_private: showItem.memo?.is_private,
           id_slug: showItem.show?.ids?.slug,
           id_offen: showItem.show?.ids?.offen,
           id_tvdbslug: showItem.show?.ids?.tvdbslug,
@@ -704,8 +704,8 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
           title: showItem.show?.title,
           poster: showItem.show?.poster,
           year: showItem.show?.year,
-          memo_text: showItem.show?.memo?.text,
-          memo_is_private: showItem.show?.memo?.is_private,
+          memo_text: showItem.memo?.text,
+          memo_is_private: showItem.memo?.is_private,
           id_slug: showItem.show?.ids?.slug,
           id_offen: showItem.show?.ids?.offen,
           id_tvdbslug: showItem.show?.ids?.tvdbslug,
@@ -786,8 +786,8 @@ func fetchAndStoreTVWatching(_ accessToken: String, _ lastActivity: String?, _ c
           title: showItem.show?.title,
           poster: showItem.show?.poster,
           year: showItem.show?.year,
-          memo_text: showItem.show?.memo?.text,
-          memo_is_private: showItem.show?.memo?.is_private,
+          memo_text: showItem.memo?.text,
+          memo_is_private: showItem.memo?.is_private,
           id_slug: showItem.show?.ids?.slug,
           id_offen: showItem.show?.ids?.offen,
           id_tvdbslug: showItem.show?.ids?.tvdbslug,
@@ -918,8 +918,8 @@ func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ co
           title: showItem.show?.title,
           poster: showItem.show?.poster,
           year: showItem.show?.year,
-          memo_text: showItem.show?.memo?.text,
-          memo_is_private: showItem.show?.memo?.is_private,
+          memo_text: showItem.memo?.text,
+          memo_is_private: showItem.memo?.is_private,
           id_slug: showItem.show?.ids?.slug,
           id_offen: showItem.show?.ids?.offen,
           id_tvdbslug: showItem.show?.ids?.tvdbslug,

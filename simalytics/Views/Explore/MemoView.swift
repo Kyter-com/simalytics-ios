@@ -2,8 +2,8 @@ import SwiftData
 import SwiftUI
 
 struct MemoView: View {
-  @State private var privacySelection = "Public"
-  @State private var memoText = ""
+  @Binding var memoText: String
+  @Binding var privacySelection: String
   @FocusState private var isTextEditorFocused: Bool
   @Environment(\.dismiss) var dismiss
   @EnvironmentObject private var auth: Auth
@@ -82,19 +82,6 @@ struct MemoView: View {
       .onTapGesture {
         // Tap anywhere will dismiss keyboard
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-      }
-      .onAppear {
-        Task { @MainActor [modelContext, simkl_id] in
-          do {
-            let movies = try modelContext.fetch(
-              FetchDescriptor<V1.SDMovies>(predicate: #Predicate { $0.simkl == simkl_id })
-            )
-            if let movie = movies.first {
-              self.memoText = movie.memo_text ?? ""
-              self.privacySelection = movie.memo_is_private ?? false ? "Private" : "Public"
-            }
-          } catch {}
-        }
       }
     }
   }
