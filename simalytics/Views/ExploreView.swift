@@ -6,16 +6,18 @@
 //
 
 import Kingfisher
+import SwiftData
 import SwiftUI
 
 struct ExploreView: View {
   @EnvironmentObject private var auth: Auth
+  @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
+  @Environment(\.modelContext) private var modelContext
   @State private var trendingShows: [TrendingShowModel] = []
   @State private var trendingMovies: [TrendingMovieModel] = []
   @State private var trendingAnimes: [TrendingAnimeModel] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
-  @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
 
   var body: some View {
     NavigationView {
