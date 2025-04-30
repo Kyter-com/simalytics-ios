@@ -11,6 +11,7 @@ struct MemoView: View {
 
   var simkl_id: Int
   var item_status: String
+  var simkl_type: String
 
   var characterCountText: String { "\(memoText.count) / \(180)" }
 
@@ -68,10 +69,12 @@ struct MemoView: View {
         ToolbarItem(placement: .navigationBarTrailing) {
           Button("Done") {
             Task {
-              await addMemoToMovie(
-                accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText,
-                isPrivate: privacySelection == "Private",
-                status: item_status, modelContainer: modelContext.container)
+              if simkl_type == "movie" {
+                await addMemoToMovie(
+                  accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText,
+                  isPrivate: privacySelection == "Private",
+                  status: item_status, modelContainer: modelContext.container)
+              }
             }
 
             dismiss()

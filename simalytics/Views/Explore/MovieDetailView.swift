@@ -197,8 +197,10 @@ struct MovieDetailView: View {
         }
       }
       .sheet(isPresented: $showingMemoSheet) {
-        MemoView(memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id, item_status: watchlistStatus ?? "")
-          .presentationDetents([.medium, .large])
+        MemoView(
+          memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id, item_status: watchlistStatus ?? "", simkl_type: "movie"
+        )
+        .presentationDetents([.medium, .large])
       }
     }
   }
