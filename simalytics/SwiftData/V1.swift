@@ -14,7 +14,7 @@ enum V1: VersionedSchema {
   }
 
   static var models: [any PersistentModel.Type] {
-    [SDLastSync.self, SDMovies.self, SDShows.self, SDAnimes.self]
+    [SDLastSync.self, SDMovies.self, SDShows.self, SDAnimes.self, TrendingMovies.self]
   }
 
   @Model
@@ -41,6 +41,8 @@ enum V1: VersionedSchema {
     var anime_watching: String?
     var anime_removed_from_list: String?
     var anime_rated_at: String?
+
+    var trending_data: String?
     init(
       id: Int = 1,
       movies_plantowatch: String? = nil,
@@ -63,7 +65,9 @@ enum V1: VersionedSchema {
       anime_hold: String? = nil,
       anime_watching: String? = nil,
       anime_removed_from_list: String? = nil,
-      anime_rated_at: String? = nil
+      anime_rated_at: String? = nil,
+
+      trending_data: String? = nil
     ) {
       self.id = id
       self.movies_plantowatch = movies_plantowatch
@@ -87,6 +91,8 @@ enum V1: VersionedSchema {
       self.anime_watching = anime_watching
       self.anime_removed_from_list = anime_removed_from_list
       self.anime_rated_at = anime_rated_at
+
+      self.trending_data = trending_data
     }
   }
 
@@ -355,6 +361,23 @@ enum V1: VersionedSchema {
       self.id_letterslug = id_letterslug
       self.id_jwslug = id_jwslug
       self.id_anidb = id_anidb
+    }
+  }
+
+  @Model
+  class TrendingMovies {
+    @Attribute(.unique) var simkl: Int
+    var title: String?
+    var poster: String?
+
+    init(
+      simkl: Int,
+      title: String?,
+      poster: String?
+    ) {
+      self.simkl = simkl
+      self.title = title
+      self.poster = poster
     }
   }
 }

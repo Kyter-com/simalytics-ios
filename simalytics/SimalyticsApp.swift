@@ -31,7 +31,7 @@ struct SimalyticsApp: App {
 
   let modelContainer: ModelContainer = {
     do {
-      let schema = Schema([V1.SDLastSync.self, V1.SDMovies.self, V1.SDShows.self, V1.SDAnimes.self])
+      let schema = Schema([V1.SDLastSync.self, V1.SDMovies.self, V1.SDShows.self, V1.SDAnimes.self, V1.TrendingMovies.self])
       let configuration = ModelConfiguration(schema: schema)
       return try ModelContainer(for: schema, configurations: configuration)
     } catch {
@@ -57,6 +57,7 @@ struct SimalyticsApp: App {
           if !auth.simklAccessToken.isEmpty {
             globalLoadingIndicator.startSync()
             await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContainer)
+            await syncLatestTrending(auth.simklAccessToken, modelContainer: modelContainer)
             globalLoadingIndicator.stopSync()
           }
         }

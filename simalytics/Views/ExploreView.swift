@@ -119,9 +119,9 @@ struct ExploreView: View {
     }
     .onAppear {
       Task {
-        trendingShows = await ExploreView.getTrendingShows()
-        trendingMovies = await ExploreView.getTrendingMovies()
-        trendingAnimes = await ExploreView.getTrendingAnimes()
+        trendingShows = await getTrendingShows()
+        trendingMovies = await getTrendingMovies()
+        trendingAnimes = await getTrendingAnimes()
       }
     }
     .searchable(text: $searchText, placement: .automatic)

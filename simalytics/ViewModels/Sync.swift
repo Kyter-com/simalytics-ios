@@ -1530,3 +1530,37 @@ func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _
     SentrySDK.capture(error: error)
   }
 }
+
+func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) async {
+  do {
+    let context = ModelContext(modelContainer)
+    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
+
+    let now = Date()
+    let twentyFourHoursInSeconds: TimeInterval = 24 * 60 * 60
+    let twentyFourHoursAgo = now.addingTimeInterval(-twentyFourHoursInSeconds)
+
+    var needsSync = false
+
+    if let lastSyncDate = syncRecord!.trending_data {
+      if lastSyncDate < twentyFourHoursAgo.ISO8601Format() {
+        needsSync = true
+        print("Sync needed: Data is older than 24 hours (Last sync: \(lastSyncDate)).")
+      } else {
+        print("Sync not needed: Data is recent (Last sync: \(lastSyncDate)).")
+      }
+    } else {
+      needsSync = true
+      print("Sync needed: No previous sync date recorded.")
+    }
+
+    if !needsSync { return }
+
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
