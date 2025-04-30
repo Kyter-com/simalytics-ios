@@ -1545,20 +1545,31 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
     let twentyFourHoursAgo = now.addingTimeInterval(-twentyFourHoursInSeconds)
 
     var needsSync = false
-
     if let lastSyncDate = syncRecord!.trending_data {
       if lastSyncDate < twentyFourHoursAgo.ISO8601Format() {
         needsSync = true
-        print("Sync needed: Data is older than 24 hours (Last sync: \(lastSyncDate)).")
-      } else {
-        print("Sync not needed: Data is recent (Last sync: \(lastSyncDate)).")
       }
     } else {
       needsSync = true
-      print("Sync needed: No previous sync date recorded.")
     }
-
     if !needsSync { return }
+
+    let movies = await getTrendingMovies()
+    let shows = await getTrendingShows()
+    let animes = await getTrendingAnimes()
+
+    let oldMovies = try? context.fetch(FetchDescriptor<V1.TrendingMovies>())
+    oldMovies?.forEach { context.delete($0) }
+
+    for movie in movies {
+      context.insert(
+        V1.TrendingMovies(
+          simkl: movie.ids.simkl_id,
+          title: movie.title,
+          poster: movie.poster
+        )
+      )
+    }
 
   } catch {
     SentrySDK.capture(error: error)

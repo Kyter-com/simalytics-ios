@@ -15,6 +15,7 @@ func getTrendingMovies() async -> [TrendingMovieModel] {
       URLQueryItem(name: "extended", value: "overview,theater,metadata,tmdb,genres"),
       URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
     ]
+    print(urlComponents.url!)
 
     var request = URLRequest(url: urlComponents.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -35,9 +36,10 @@ func getTrendingAnimes() async -> [TrendingAnimeModel] {
   do {
     var urlComponents = URLComponents(string: "https://api.simkl.com/anime/trending")!
     urlComponents.queryItems = [
-      URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres,trailer"),
+      URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres"),
       URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
     ]
+    print(urlComponents.url!)
 
     var request = URLRequest(url: urlComponents.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -58,9 +60,10 @@ func getTrendingShows() async -> [TrendingShowModel] {
   do {
     var urlComponents = URLComponents(string: "https://api.simkl.com/tv/trending")!
     urlComponents.queryItems = [
-      URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres,trailer"),
+      URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres"),
       URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
     ]
+    print(urlComponents.url!)
 
     var request = URLRequest(url: urlComponents.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
