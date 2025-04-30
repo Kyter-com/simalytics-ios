@@ -18,6 +18,7 @@ struct ExploreView: View {
   @State private var trendingAnimes: [TrendingAnimeModel] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
+  @Query var sdTrendingMovies: [V1.TrendingMovies] = []
 
   var body: some View {
     NavigationView {
