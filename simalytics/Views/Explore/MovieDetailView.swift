@@ -30,8 +30,7 @@ struct MovieDetailView: View {
         .onAppear {
           Task {
             movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
-            movieWatchlist = await MovieDetailView.getMovieWatchlist(
-              simkl_id, auth.simklAccessToken)
+            movieWatchlist = await MovieDetailView.getMovieWatchlist(simkl_id, auth.simklAccessToken)
             watchlistStatus = movieWatchlist?.list
 
             if let fanart = movieDetails?.fanart {

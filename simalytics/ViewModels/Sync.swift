@@ -1560,7 +1560,6 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
 
     let oldMovies = try? context.fetch(FetchDescriptor<V1.TrendingMovies>())
     oldMovies?.forEach { context.delete($0) }
-
     for movie in movies {
       context.insert(
         V1.TrendingMovies(
@@ -1570,6 +1569,9 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
         )
       )
     }
+
+    syncRecord!.trending_data = now.ISO8601Format()
+    try context.save()
 
   } catch {
     SentrySDK.capture(error: error)
