@@ -22,6 +22,9 @@ struct AnimeDetailView: View {
   @State private var selectedSeason: String?
   @State private var localRating: Double = 0
   @State private var originalRating: Double = 0
+  @State private var showingMemoSheet = false
+  @State private var memoText: String = ""
+  @State private var privacySelection: String = "Public"
   @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
   var simkl_id: Int
 
@@ -70,6 +73,8 @@ struct AnimeDetailView: View {
                 if let anime = animes.first {
                   self.localRating = Double(anime.user_rating ?? 0)
                   self.originalRating = Double(anime.user_rating ?? 0)
+                  self.memoText = anime.memo_text ?? ""
+                  self.privacySelection = anime.memo_is_private ?? true ? "Private" : "Public"
                 }
               } catch {}
             }
@@ -135,6 +140,16 @@ struct AnimeDetailView: View {
         )
         .padding([.leading, .trailing])
         .padding(.top, 8)
+
+        if watchlistStatus != nil {
+          Button(action: {
+            showingMemoSheet.toggle()
+          }) {
+            Label("Add Memo", systemImage: "square.and.pencil")
+              .padding([.leading, .trailing])
+              .padding(.top, 8)
+          }
+        }
 
         if let overview = animeDetails?.overview {
           Text(overview.stripHTML)
@@ -230,6 +245,12 @@ struct AnimeDetailView: View {
           await AnimeDetailView.addAnimeRating(simkl_id, auth.simklAccessToken, localRating)
           await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
         }
+      }
+      .sheet(isPresented: $showingMemoSheet) {
+        MemoView(
+          memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id, item_status: watchlistStatus ?? "", simkl_type: "anime"
+        )
+        .presentationDetents([.medium, .large])
       }
     }
   }
