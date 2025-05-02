@@ -14,7 +14,7 @@ enum V1: VersionedSchema {
   }
 
   static var models: [any PersistentModel.Type] {
-    [SDLastSync.self, SDMovies.self, SDShows.self, SDAnimes.self, TrendingMovies.self]
+    [SDLastSync.self, SDMovies.self, SDShows.self, SDAnimes.self, TrendingMovies.self, TrendingShows.self, TrendingAnimes.self]
   }
 
   @Model
@@ -366,6 +366,40 @@ enum V1: VersionedSchema {
 
   @Model
   class TrendingMovies {
+    @Attribute(.unique) var simkl: Int
+    var title: String?
+    var poster: String?
+
+    init(
+      simkl: Int,
+      title: String? = nil,
+      poster: String? = nil
+    ) {
+      self.simkl = simkl
+      self.title = title
+      self.poster = poster
+    }
+  }
+
+  @Model
+  class TrendingShows {
+    @Attribute(.unique) var simkl: Int
+    var title: String?
+    var poster: String?
+
+    init(
+      simkl: Int,
+      title: String? = nil,
+      poster: String? = nil
+    ) {
+      self.simkl = simkl
+      self.title = title
+      self.poster = poster
+    }
+  }
+
+  @Model
+  class TrendingAnimes {
     @Attribute(.unique) var simkl: Int
     var title: String?
     var poster: String?

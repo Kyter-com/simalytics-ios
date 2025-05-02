@@ -31,7 +31,11 @@ struct SimalyticsApp: App {
 
   let modelContainer: ModelContainer = {
     do {
-      let schema = Schema([V1.SDLastSync.self, V1.SDMovies.self, V1.SDShows.self, V1.SDAnimes.self, V1.TrendingMovies.self])
+      let schema = Schema([
+        V1.SDLastSync.self, V1.SDMovies.self, V1.SDShows.self, V1.SDAnimes.self,
+        V1.TrendingMovies.self, V1.TrendingShows.self,
+        V1.TrendingAnimes.self,
+      ])
       let configuration = ModelConfiguration(schema: schema)
       return try ModelContainer(for: schema, configurations: configuration)
     } catch {

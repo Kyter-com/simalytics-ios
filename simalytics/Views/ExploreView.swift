@@ -12,13 +12,24 @@ import SwiftUI
 struct ExploreView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
-  @Environment(\.modelContext) private var modelContext
-  @State private var trendingShows: [TrendingShowModel] = []
-  @State private var trendingMovies: [TrendingMovieModel] = []
-  @State private var trendingAnimes: [TrendingAnimeModel] = []
+  @Environment(\.modelContext) private var context
+  @State private var sdTrendingShows: [V1.TrendingShows] = []
+  @State private var sdTrendingMovies: [V1.TrendingMovies] = []
+  @State private var sdTrendingAnimes: [V1.TrendingAnimes] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
-  @Query var sdTrendingMovies: [V1.TrendingMovies] = []
+
+  private func fetchData() {
+    do {
+      sdTrendingMovies = try context.fetch(FetchDescriptor<V1.TrendingMovies>())
+      sdTrendingShows = try context.fetch(FetchDescriptor<V1.TrendingShows>())
+      sdTrendingAnimes = try context.fetch(FetchDescriptor<V1.TrendingAnimes>())
+    } catch {
+      sdTrendingMovies = []
+      sdTrendingShows = []
+      sdTrendingAnimes = []
+    }
+  }
 
   var body: some View {
     NavigationView {
@@ -32,19 +43,20 @@ struct ExploreView: View {
                 ExploreGroupTitle(title: "Trending Shows")
                 ScrollView(.horizontal, showsIndicators: true) {
                   HStack(spacing: 16) {
-                    ForEach(trendingShows, id: \.ids.simkl_id) { showItem in
+                    ForEach(sdTrendingShows, id: \.simkl) { showItem in
                       NavigationLink(
-                        destination: ShowDetailView(simkl_id: showItem.ids.simkl_id)
+                        destination: ShowDetailView(simkl_id: showItem.simkl)
                       ) {
                         VStack {
                           CustomKFImage(
-                            imageUrlString:
-                              "\(SIMKL_CDN_URL)/posters/\(showItem.poster)_m.jpg",
+                            imageUrlString: showItem.poster != nil
+                              ? "\(SIMKL_CDN_URL)/posters/\(showItem.poster!)_m.jpg"
+                              : NO_IMAGE_URL,
                             memoryCacheOnly: true,
                             height: 147,
                             width: 100
                           )
-                          ExploreTitle(title: showItem.title)
+                          ExploreTitle(title: showItem.title ?? "")
                         }
                       }
                       .buttonStyle(.plain)
@@ -58,9 +70,9 @@ struct ExploreView: View {
                 ExploreGroupTitle(title: "Trending Movies")
                 ScrollView(.horizontal, showsIndicators: true) {
                   HStack(spacing: 16) {
-                    ForEach(trendingMovies, id: \.ids.simkl_id) { movieItem in
+                    ForEach(sdTrendingMovies, id: \.simkl) { movieItem in
                       NavigationLink(
-                        destination: MovieDetailView(simkl_id: movieItem.ids.simkl_id)
+                        destination: MovieDetailView(simkl_id: movieItem.simkl)
                       ) {
                         VStack {
                           CustomKFImage(
@@ -71,7 +83,7 @@ struct ExploreView: View {
                             height: 150,
                             width: 100
                           )
-                          ExploreTitle(title: movieItem.title)
+                          ExploreTitle(title: movieItem.title ?? "")
                         }
                       }
                       .buttonStyle(.plain)
@@ -85,19 +97,20 @@ struct ExploreView: View {
                 ExploreGroupTitle(title: "Trending Animes")
                 ScrollView(.horizontal, showsIndicators: true) {
                   HStack(spacing: 16) {
-                    ForEach(trendingAnimes, id: \.ids.simkl_id) { animeItem in
+                    ForEach(sdTrendingAnimes, id: \.simkl) { animeItem in
                       NavigationLink(
-                        destination: AnimeDetailView(simkl_id: animeItem.ids.simkl_id)
+                        destination: AnimeDetailView(simkl_id: animeItem.simkl)
                       ) {
                         VStack {
                           CustomKFImage(
-                            imageUrlString:
-                              "\(SIMKL_CDN_URL)/posters/\(animeItem.poster)_m.jpg",
+                            imageUrlString: animeItem.poster != nil
+                              ? "\(SIMKL_CDN_URL)/posters/\(animeItem.poster!)_m.jpg"
+                              : NO_IMAGE_URL,
                             memoryCacheOnly: true,
                             height: 150,
                             width: 100
                           )
-                          ExploreTitle(title: animeItem.title)
+                          ExploreTitle(title: animeItem.title ?? "")
                         }
                       }
                       .buttonStyle(.plain)
@@ -121,11 +134,7 @@ struct ExploreView: View {
       }
     }
     .onAppear {
-      Task {
-        trendingShows = await getTrendingShows()
-        trendingMovies = await getTrendingMovies()
-        trendingAnimes = await getTrendingAnimes()
-      }
+      fetchData()
     }
     .searchable(text: $searchText, placement: .automatic)
     .searchScopes($searchCategory) {

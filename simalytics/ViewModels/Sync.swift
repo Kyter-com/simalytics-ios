@@ -1554,8 +1554,8 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
     if !needsSync { return }
 
     let movies = await getTrendingMovies()
-    //    let shows = await getTrendingShows()
-    //    let animes = await getTrendingAnimes()
+    let shows = await getTrendingShows()
+    let animes = await getTrendingAnimes()
 
     let oldMovies = try? context.fetch(FetchDescriptor<V1.TrendingMovies>())
     oldMovies?.forEach { context.delete($0) }
@@ -1565,6 +1565,30 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
           simkl: movie.ids.simkl_id,
           title: movie.title,
           poster: movie.poster
+        )
+      )
+    }
+
+    let oldShows = try? context.fetch(FetchDescriptor<V1.TrendingShows>())
+    oldShows?.forEach { context.delete($0) }
+    for show in shows {
+      context.insert(
+        V1.TrendingShows(
+          simkl: show.ids.simkl_id,
+          title: show.title,
+          poster: show.poster
+        )
+      )
+    }
+
+    let oldAnimes = try? context.fetch(FetchDescriptor<V1.TrendingAnimes>())
+    oldAnimes?.forEach { context.delete($0) }
+    for anime in animes {
+      context.insert(
+        V1.TrendingAnimes(
+          simkl: anime.ids.simkl_id,
+          title: anime.title,
+          poster: anime.poster
         )
       )
     }
