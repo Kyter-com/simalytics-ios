@@ -74,9 +74,13 @@ struct MemoView: View {
                   accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText,
                   isPrivate: privacySelection == "Private",
                   status: item_status, modelContainer: modelContext.container)
+              } else if simkl_type == "show" {
+                await addMemoToShow(
+                  accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText,
+                  isPrivate: privacySelection == "Private",
+                  status: item_status, modelContainer: modelContext.container)
               }
             }
-
             dismiss()
           }
           .disabled(memoText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

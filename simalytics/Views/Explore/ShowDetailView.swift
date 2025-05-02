@@ -22,6 +22,9 @@ struct ShowDetailView: View {
   @State private var selectedSeason: String?
   @State private var localRating: Double = 0
   @State private var originalRating: Double = 0
+  @State private var showingMemoSheet = false
+  @State private var memoText: String = ""
+  @State private var privacySelection: String = "Public"
   @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
   var simkl_id: Int
 
@@ -83,6 +86,8 @@ struct ShowDetailView: View {
                 if let show = shows.first {
                   self.localRating = Double(show.user_rating ?? 0)
                   self.originalRating = Double(show.user_rating ?? 0)
+                  self.memoText = show.memo_text ?? ""
+                  self.privacySelection = show.memo_is_private ?? true ? "Private" : "Public"
                 }
               } catch {}
             }
@@ -148,6 +153,16 @@ struct ShowDetailView: View {
         )
         .padding([.leading, .trailing])
         .padding(.top, 8)
+
+        if watchlistStatus != nil {
+          Button(action: {
+            showingMemoSheet.toggle()
+          }) {
+            Label("Add Memo", systemImage: "square.and.pencil")
+              .padding([.leading, .trailing])
+              .padding(.top, 8)
+          }
+        }
 
         if let overview = showDetails?.overview {
           Text(overview)
@@ -256,6 +271,12 @@ struct ShowDetailView: View {
           await ShowDetailView.addShowRating(simkl_id, auth.simklAccessToken, localRating)
           await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
         }
+      }
+      .sheet(isPresented: $showingMemoSheet) {
+        MemoView(
+          memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id, item_status: watchlistStatus ?? "", simkl_type: "show"
+        )
+        .presentationDetents([.medium, .large])
       }
     }
   }
