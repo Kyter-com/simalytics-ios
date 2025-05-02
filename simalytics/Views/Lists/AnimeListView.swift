@@ -54,33 +54,34 @@ struct AnimeListView: View {
 
   var body: some View {
     List(filteredAnimes, id: \.self) { anime in
-      HStack {
-        CustomKFImage(
-          imageUrlString: anime.poster != nil
-            ? "\(SIMKL_CDN_URL)/posters/\(anime.poster!)_m.jpg"
-            : NO_IMAGE_URL,
-          memoryCacheOnly: true,
-          height: 118,
-          width: 80
-        )
+      NavigationLink(destination: AnimeDetailView(simkl_id: anime.simkl)) {
+        HStack {
+          CustomKFImage(
+            imageUrlString: anime.poster != nil
+              ? "\(SIMKL_CDN_URL)/posters/\(anime.poster!)_m.jpg"
+              : NO_IMAGE_URL,
+            memoryCacheOnly: true,
+            height: 118,
+            width: 80
+          )
 
-        VStack(alignment: .leading) {
-          Text(anime.title ?? "")
-            .font(.headline)
+          VStack(alignment: .leading) {
+            Text(anime.title ?? "")
+              .font(.headline)
 
-          if let year = anime.year {
-            Text(String(year))
-              .font(.footnote)
-              .foregroundColor(.secondary)
+            if let year = anime.year {
+              Text(String(year))
+                .font(.footnote)
+                .foregroundColor(.secondary)
+            }
+            if let isoString = anime.added_to_watchlist_at,
+              let addedDate = Self.isoFormatter.date(from: isoString)
+            {
+              Text("Added: " + addedDate.timeAgoDisplay())
+                .font(.footnote)
+                .foregroundColor(.secondary)
+            }
           }
-          if let isoString = anime.added_to_watchlist_at,
-            let addedDate = Self.isoFormatter.date(from: isoString)
-          {
-            Text("Added: " + addedDate.timeAgoDisplay())
-              .font(.footnote)
-              .foregroundColor(.secondary)
-          }
-
         }
       }
     }

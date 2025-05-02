@@ -231,7 +231,7 @@ struct AnimeDetailView: View {
               }
             }
             .listStyle(.inset)
-            .frame(height: CGFloat(filteredEpisodes.count) * 93.5)
+            .frame(height: CGFloat(filteredEpisodes.count) * 93)
             .scrollDisabled(true)
           }
           .padding(.top)
