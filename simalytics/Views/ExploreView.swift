@@ -32,7 +32,7 @@ struct ExploreView: View {
   }
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       VStack {
         if !searchText.isEmpty {
           SearchResultsView(searchText: $searchText, searchCategory: $searchCategory)

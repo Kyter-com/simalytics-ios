@@ -54,7 +54,9 @@ struct AnimeListView: View {
 
   var body: some View {
     List(filteredAnimes, id: \.self) { anime in
-      NavigationLink(destination: AnimeDetailView(simkl_id: anime.simkl)) {
+      NavigationLink(
+        destination: AnimeDetailView(simkl_id: anime.simkl)
+      ) {
         HStack {
           CustomKFImage(
             imageUrlString: anime.poster != nil

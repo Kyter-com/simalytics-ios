@@ -28,7 +28,7 @@ struct ListView: View {
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       List {
         Section(header: Text("Movies")) {
 
