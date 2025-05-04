@@ -25,6 +25,8 @@ struct TVListView: View {
   private var resolvedSortDescriptor: SortDescriptor<V1.SDShows> {
     if sortField == "title" {
       return SortDescriptor(\V1.SDShows.title, order: sortAscending ? .forward : .reverse)
+    } else if sortField == "added_at" {
+      return SortDescriptor(\V1.SDShows.added_to_watchlist_at, order: sortAscending ? .forward : .reverse)
     } else {
       return SortDescriptor(\V1.SDShows.year, order: sortAscending ? .forward : .reverse)
     }
@@ -111,6 +113,7 @@ struct TVListView: View {
           Picker("Sort by", selection: $sortField) {
             Text("Title").tag("title")
             Text("Year").tag("year")
+            Text("Added to List").tag("added_at")
           }
 
           Picker("Order", selection: $sortAscending) {
