@@ -54,33 +54,34 @@ struct TVListView: View {
 
   var body: some View {
     List(filteredShows, id: \.self) { show in
-      HStack {
-        CustomKFImage(
-          imageUrlString: show.poster != nil
-            ? "\(SIMKL_CDN_URL)/posters/\(show.poster!)_m.jpg"
-            : NO_IMAGE_URL,
-          memoryCacheOnly: true,
-          height: 118,
-          width: 80
-        )
+      NavigationLink(destination: ShowDetailView(simkl_id: show.simkl)) {
+        HStack {
+          CustomKFImage(
+            imageUrlString: show.poster != nil
+              ? "\(SIMKL_CDN_URL)/posters/\(show.poster!)_m.jpg"
+              : NO_IMAGE_URL,
+            memoryCacheOnly: true,
+            height: 118,
+            width: 80
+          )
 
-        VStack(alignment: .leading) {
-          Text(show.title ?? "")
-            .font(.headline)
+          VStack(alignment: .leading) {
+            Text(show.title ?? "")
+              .font(.headline)
 
-          if let year = show.year {
-            Text(String(year))
-              .font(.footnote)
-              .foregroundColor(.secondary)
+            if let year = show.year {
+              Text(String(year))
+                .font(.footnote)
+                .foregroundColor(.secondary)
+            }
+            if let isoString = show.added_to_watchlist_at,
+              let addedDate = Self.isoFormatter.date(from: isoString)
+            {
+              Text("Added: " + addedDate.timeAgoDisplay())
+                .font(.footnote)
+                .foregroundColor(.secondary)
+            }
           }
-          if let isoString = show.added_to_watchlist_at,
-            let addedDate = Self.isoFormatter.date(from: isoString)
-          {
-            Text("Added: " + addedDate.timeAgoDisplay())
-              .font(.footnote)
-              .foregroundColor(.secondary)
-          }
-
         }
       }
     }

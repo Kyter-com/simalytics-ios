@@ -54,28 +54,6 @@ struct ListView: View {
             }
           }
 
-          NavigationLink(destination: MovieListView(status: "dropped")) {
-            HStack {
-              Image(systemName: "hand.thumbsdown")
-                .bold()
-                .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
-                .frame(width: 30, height: 30)
-                .background(
-                  RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.red.opacity(0.2))
-                )
-                .padding(.trailing, 5)
-
-              Text("Dropped")
-
-              Spacer()
-
-              Text("\(moviesDroppedCount)")
-                .foregroundColor(.gray)
-                .font(.subheadline)
-            }
-          }
-
           NavigationLink(destination: MovieListView(status: "completed")) {
             HStack {
               Image(systemName: "checkmark.circle")
@@ -93,6 +71,28 @@ struct ListView: View {
               Spacer()
 
               Text("\(moviesCompletedCount)")
+                .foregroundColor(.gray)
+                .font(.subheadline)
+            }
+          }
+
+          NavigationLink(destination: MovieListView(status: "dropped")) {
+            HStack {
+              Image(systemName: "hand.thumbsdown")
+                .bold()
+                .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
+                .frame(width: 30, height: 30)
+                .background(
+                  RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.red.opacity(0.2))
+                )
+                .padding(.trailing, 5)
+
+              Text("Dropped")
+
+              Spacer()
+
+              Text("\(moviesDroppedCount)")
                 .foregroundColor(.gray)
                 .font(.subheadline)
             }
@@ -236,28 +236,6 @@ struct ListView: View {
             }
           }
 
-          NavigationLink(destination: AnimeListView(status: "dropped")) {
-            HStack {
-              Image(systemName: "hand.thumbsdown")
-                .bold()
-                .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
-                .frame(width: 30, height: 30)
-                .background(
-                  RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.red.opacity(0.2))
-                )
-                .padding(.trailing, 5)
-
-              Text("Dropped")
-
-              Spacer()
-
-              Text("\(animeDroppedCount)")
-                .foregroundColor(.gray)
-                .font(.subheadline)
-            }
-          }
-
           NavigationLink(destination: AnimeListView(status: "completed")) {
             HStack {
               Image(systemName: "checkmark.circle")
@@ -297,6 +275,28 @@ struct ListView: View {
               Spacer()
 
               Text("\(animeHoldCount)")
+                .foregroundColor(.gray)
+                .font(.subheadline)
+            }
+          }
+
+          NavigationLink(destination: AnimeListView(status: "dropped")) {
+            HStack {
+              Image(systemName: "hand.thumbsdown")
+                .bold()
+                .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
+                .frame(width: 30, height: 30)
+                .background(
+                  RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.red.opacity(0.2))
+                )
+                .padding(.trailing, 5)
+
+              Text("Dropped")
+
+              Spacer()
+
+              Text("\(animeDroppedCount)")
                 .foregroundColor(.gray)
                 .font(.subheadline)
             }
