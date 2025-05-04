@@ -128,7 +128,9 @@ struct MovieDetailView: View {
               }
             }
             Spacer()
-            MovieWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
+            if !auth.simklAccessToken.isEmpty {
+              MovieWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
+            }
             Spacer()
               .frame(height: 2)
           }

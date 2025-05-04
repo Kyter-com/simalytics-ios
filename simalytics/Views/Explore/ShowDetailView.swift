@@ -115,9 +115,11 @@ struct ShowDetailView: View {
             Spacer()
               .frame(height: 8)
             Spacer()
-            ShowHeaderInfo(showDetails: $showDetails)
+            ShowHeaderInfo(showDetails: $showDetails, showWatchlist: $showWatchlist)
             Spacer()
-            ShowWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
+            if !auth.simklAccessToken.isEmpty {
+              ShowWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
+            }
             Spacer()
               .frame(height: 2)
           }

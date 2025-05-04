@@ -91,6 +91,10 @@ struct SettingsView: View {
                     let simpleKeychain = SimpleKeychain()
                     try simpleKeychain.set(accessToken, forKey: "simkl-access-token")
                     auth.simklAccessToken = accessToken
+                    globalLoadingIndicator.startSync()
+                    await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
+                    await syncLatestTrending(auth.simklAccessToken, modelContainer: modelContext.container)
+                    globalLoadingIndicator.stopSync()
                   } catch {
                     showErrorAlert = true
                   }
@@ -103,6 +107,28 @@ struct SettingsView: View {
                   let simpleKeychain = SimpleKeychain()
                   try simpleKeychain.deleteItem(forKey: "simkl-access-token")
                   auth.simklAccessToken = ""
+                  let first = try? modelContext.fetch(FetchDescriptor<V1.SDLastSync>())
+                  first?.forEach { modelContext.delete($0) }
+
+                  let second = try? modelContext.fetch(FetchDescriptor<V1.SDMovies>())
+                  second?.forEach { modelContext.delete($0) }
+
+                  let third = try? modelContext.fetch(FetchDescriptor<V1.SDShows>())
+                  third?.forEach { modelContext.delete($0) }
+
+                  let fourth = try? modelContext.fetch(FetchDescriptor<V1.SDAnimes>())
+                  fourth?.forEach { modelContext.delete($0) }
+
+                  let fifth = try? modelContext.fetch(FetchDescriptor<V1.TrendingShows>())
+                  fifth?.forEach { modelContext.delete($0) }
+
+                  let sixth = try? modelContext.fetch(FetchDescriptor<V1.TrendingMovies>())
+                  sixth?.forEach { modelContext.delete($0) }
+
+                  let seventh = try? modelContext.fetch(FetchDescriptor<V1.TrendingAnimes>())
+                  seventh?.forEach { modelContext.delete($0) }
+
+                  try? modelContext.save()
                 }
               }
               .foregroundColor(.red)
@@ -120,28 +146,6 @@ struct SettingsView: View {
             }
           } header: {
             Text("Show Settings")
-          }
-
-          Section {
-            Button(
-              "Clear SwiftData Records",
-              action: {
-                let first = try? modelContext.fetch(FetchDescriptor<V1.SDLastSync>())
-                first?.forEach { modelContext.delete($0) }
-
-                let second = try? modelContext.fetch(FetchDescriptor<V1.SDMovies>())
-                second?.forEach { modelContext.delete($0) }
-
-                let third = try? modelContext.fetch(FetchDescriptor<V1.SDShows>())
-                third?.forEach { modelContext.delete($0) }
-
-                let fourth = try? modelContext.fetch(FetchDescriptor<V1.SDAnimes>())
-                fourth?.forEach { modelContext.delete($0) }
-
-                try? modelContext.save()
-              })
-          } header: {
-            Text("Developer Settings")
           }
         }
         .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {

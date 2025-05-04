@@ -32,114 +32,122 @@ struct ExploreView: View {
   }
 
   var body: some View {
-    NavigationStack {
-      VStack {
-        if !searchText.isEmpty {
-          SearchResultsView(searchText: $searchText, searchCategory: $searchCategory)
-        } else {
-          ScrollView {
-            VStack(alignment: .leading) {
-              Group {
-                ExploreGroupTitle(title: "Trending Shows")
-                ScrollView(.horizontal, showsIndicators: true) {
-                  HStack(spacing: 16) {
-                    ForEach(sdTrendingShows, id: \.simkl) { showItem in
-                      NavigationLink(
-                        destination: ShowDetailView(simkl_id: showItem.simkl)
-                      ) {
-                        VStack {
-                          CustomKFImage(
-                            imageUrlString: showItem.poster != nil
-                              ? "\(SIMKL_CDN_URL)/posters/\(showItem.poster!)_m.jpg"
-                              : NO_IMAGE_URL,
-                            memoryCacheOnly: true,
-                            height: 147,
-                            width: 100
-                          )
-                          ExploreTitle(title: showItem.title ?? "")
+    if auth.simklAccessToken.isEmpty {
+      ContentUnavailableView {
+        Label("Sign in to Simkl", systemImage: "lock.shield")
+      } description: {
+        Text("Sign in to Simkl to start searching.")
+      }
+    } else {
+      NavigationStack {
+        VStack {
+          if !searchText.isEmpty {
+            SearchResultsView(searchText: $searchText, searchCategory: $searchCategory)
+          } else {
+            ScrollView {
+              VStack(alignment: .leading) {
+                Group {
+                  ExploreGroupTitle(title: "Trending Shows")
+                  ScrollView(.horizontal, showsIndicators: true) {
+                    HStack(spacing: 16) {
+                      ForEach(sdTrendingShows, id: \.simkl) { showItem in
+                        NavigationLink(
+                          destination: ShowDetailView(simkl_id: showItem.simkl)
+                        ) {
+                          VStack {
+                            CustomKFImage(
+                              imageUrlString: showItem.poster != nil
+                                ? "\(SIMKL_CDN_URL)/posters/\(showItem.poster!)_m.jpg"
+                                : NO_IMAGE_URL,
+                              memoryCacheOnly: true,
+                              height: 147,
+                              width: 100
+                            )
+                            ExploreTitle(title: showItem.title ?? "")
+                          }
                         }
+                        .buttonStyle(.plain)
                       }
-                      .buttonStyle(.plain)
                     }
+                    .padding([.leading, .trailing, .bottom])
                   }
-                  .padding([.leading, .trailing, .bottom])
                 }
-              }
 
-              Group {
-                ExploreGroupTitle(title: "Trending Movies")
-                ScrollView(.horizontal, showsIndicators: true) {
-                  HStack(spacing: 16) {
-                    ForEach(sdTrendingMovies, id: \.simkl) { movieItem in
-                      NavigationLink(
-                        destination: MovieDetailView(simkl_id: movieItem.simkl)
-                      ) {
-                        VStack {
-                          CustomKFImage(
-                            imageUrlString: movieItem.poster != nil
-                              ? "\(SIMKL_CDN_URL)/posters/\(movieItem.poster!)_m.jpg"
-                              : NO_IMAGE_URL,
-                            memoryCacheOnly: true,
-                            height: 150,
-                            width: 100
-                          )
-                          ExploreTitle(title: movieItem.title ?? "")
+                Group {
+                  ExploreGroupTitle(title: "Trending Movies")
+                  ScrollView(.horizontal, showsIndicators: true) {
+                    HStack(spacing: 16) {
+                      ForEach(sdTrendingMovies, id: \.simkl) { movieItem in
+                        NavigationLink(
+                          destination: MovieDetailView(simkl_id: movieItem.simkl)
+                        ) {
+                          VStack {
+                            CustomKFImage(
+                              imageUrlString: movieItem.poster != nil
+                                ? "\(SIMKL_CDN_URL)/posters/\(movieItem.poster!)_m.jpg"
+                                : NO_IMAGE_URL,
+                              memoryCacheOnly: true,
+                              height: 150,
+                              width: 100
+                            )
+                            ExploreTitle(title: movieItem.title ?? "")
+                          }
                         }
+                        .buttonStyle(.plain)
                       }
-                      .buttonStyle(.plain)
                     }
+                    .padding([.leading, .trailing, .bottom])
                   }
-                  .padding([.leading, .trailing, .bottom])
                 }
-              }
 
-              Group {
-                ExploreGroupTitle(title: "Trending Animes")
-                ScrollView(.horizontal, showsIndicators: true) {
-                  HStack(spacing: 16) {
-                    ForEach(sdTrendingAnimes, id: \.simkl) { animeItem in
-                      NavigationLink(
-                        destination: AnimeDetailView(simkl_id: animeItem.simkl)
-                      ) {
-                        VStack {
-                          CustomKFImage(
-                            imageUrlString: animeItem.poster != nil
-                              ? "\(SIMKL_CDN_URL)/posters/\(animeItem.poster!)_m.jpg"
-                              : NO_IMAGE_URL,
-                            memoryCacheOnly: true,
-                            height: 150,
-                            width: 100
-                          )
-                          ExploreTitle(title: animeItem.title ?? "")
+                Group {
+                  ExploreGroupTitle(title: "Trending Animes")
+                  ScrollView(.horizontal, showsIndicators: true) {
+                    HStack(spacing: 16) {
+                      ForEach(sdTrendingAnimes, id: \.simkl) { animeItem in
+                        NavigationLink(
+                          destination: AnimeDetailView(simkl_id: animeItem.simkl)
+                        ) {
+                          VStack {
+                            CustomKFImage(
+                              imageUrlString: animeItem.poster != nil
+                                ? "\(SIMKL_CDN_URL)/posters/\(animeItem.poster!)_m.jpg"
+                                : NO_IMAGE_URL,
+                              memoryCacheOnly: true,
+                              height: 150,
+                              width: 100
+                            )
+                            ExploreTitle(title: animeItem.title ?? "")
+                          }
                         }
+                        .buttonStyle(.plain)
                       }
-                      .buttonStyle(.plain)
                     }
+                    .padding([.leading, .trailing, .bottom])
                   }
-                  .padding([.leading, .trailing, .bottom])
                 }
+                Spacer()
               }
-              Spacer()
+            }
+          }
+        }
+        .navigationTitle("Explore")
+        .toolbar {
+          ToolbarItem(placement: .topBarTrailing) {
+            if globalLoadingIndicator.isSyncing {
+              ProgressView()
             }
           }
         }
       }
-      .navigationTitle("Explore")
-      .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          if globalLoadingIndicator.isSyncing {
-            ProgressView()
-          }
-        }
+      .onAppear {
+        fetchData()
       }
-    }
-    .onAppear {
-      fetchData()
-    }
-    .searchable(text: $searchText, placement: .automatic)
-    .searchScopes($searchCategory) {
-      ForEach(SearchCategory.allCases) { category in
-        Text(category.rawValue).tag(category)
+      .searchable(text: $searchText, placement: .automatic)
+      .searchScopes($searchCategory) {
+        ForEach(SearchCategory.allCases) { category in
+          Text(category.rawValue).tag(category)
+        }
       }
     }
   }

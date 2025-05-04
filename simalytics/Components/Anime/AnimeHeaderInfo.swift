@@ -9,6 +9,7 @@ import SwiftUI
 
 struct AnimeHeaderInfo: View {
   @Binding var animeDetails: AnimeDetailsModel?
+  @Binding var animeWatchlist: AnimeWatchlistModel?
 
   var body: some View {
     if let year = animeDetails?.year_start_end {
@@ -43,15 +44,16 @@ struct AnimeHeaderInfo: View {
         .foregroundColor(.secondary)
       }
     }
-    if let progress = animeDetails?.total_episodes {
-      LabeledContent {
-        Text("0%")
-          .fontDesign(.monospaced)
-          .foregroundColor(.secondary)
-      } label: {
-        Label("Watched", systemImage: "percent")
-          .foregroundColor(.secondary)
-      }
+    let watched = animeWatchlist?.episodes_watched ?? 0
+    let total = animeDetails?.total_episodes ?? 0
+    let percentage = total > 0 ? Int((Double(watched) / Double(total)) * 100) : 0
+    LabeledContent {
+      Text("\(percentage)%")
+        .fontDesign(.monospaced)
+        .foregroundColor(.secondary)
+    } label: {
+      Label("Watched", systemImage: "percent")
+        .foregroundColor(.secondary)
     }
     if let simklRating = animeDetails?.ratings?.simkl?.rating {
       LabeledContent {

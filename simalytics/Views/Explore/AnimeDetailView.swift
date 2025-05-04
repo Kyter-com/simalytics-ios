@@ -102,9 +102,11 @@ struct AnimeDetailView: View {
             Spacer()
               .frame(height: 8)
             Spacer()
-            AnimeHeaderInfo(animeDetails: $animeDetails)
+            AnimeHeaderInfo(animeDetails: $animeDetails, animeWatchlist: $animeWatchlist)
             Spacer()
-            AnimeWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
+            if !auth.simklAccessToken.isEmpty {
+              AnimeWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
+            }
             Spacer()
               .frame(height: 2)
           }
