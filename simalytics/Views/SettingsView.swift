@@ -147,6 +147,97 @@ struct SettingsView: View {
           } header: {
             Text("Show Settings")
           }
+
+          Section(header: Text("Ratings & Feedback")) {
+            Button(action: {
+              let email = "dev@kyter.com"
+              let subject = "Simalytics App Feedback"
+              let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+              let encodedBody = ""
+
+              if let url = URL(string: "mailto:\(email)?subject=\(encodedSubject)&body=\(encodedBody)") {
+                UIApplication.shared.open(url)
+              }
+            }) {
+              HStack {
+                Text("Send Feedback")
+                Spacer()
+                Image(systemName: "envelope")
+              }
+            }
+          }
+
+          Section(header: Text("Privacy & Legal")) {
+            Button(action: {
+              if let url = URL(
+                string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
+              {
+                UIApplication.shared.open(url)
+              }
+            }) {
+              HStack {
+                Text("End User License Agreement")
+                Spacer()
+                Image(systemName: "arrow.up.right")
+              }
+            }
+          }
+
+          if !auth.simklAccessToken.isEmpty {
+            Section(header: Text("Account Settings")) {
+              Button(action: {
+                Task {
+                  let simpleKeychain = SimpleKeychain()
+                  try simpleKeychain.deleteItem(forKey: "simkl-access-token")
+                  auth.simklAccessToken = ""
+                  let first = try? modelContext.fetch(FetchDescriptor<V1.SDLastSync>())
+                  first?.forEach { modelContext.delete($0) }
+
+                  let second = try? modelContext.fetch(FetchDescriptor<V1.SDMovies>())
+                  second?.forEach { modelContext.delete($0) }
+
+                  let third = try? modelContext.fetch(FetchDescriptor<V1.SDShows>())
+                  third?.forEach { modelContext.delete($0) }
+
+                  let fourth = try? modelContext.fetch(FetchDescriptor<V1.SDAnimes>())
+                  fourth?.forEach { modelContext.delete($0) }
+
+                  let fifth = try? modelContext.fetch(FetchDescriptor<V1.TrendingShows>())
+                  fifth?.forEach { modelContext.delete($0) }
+
+                  let sixth = try? modelContext.fetch(FetchDescriptor<V1.TrendingMovies>())
+                  sixth?.forEach { modelContext.delete($0) }
+
+                  let seventh = try? modelContext.fetch(FetchDescriptor<V1.TrendingAnimes>())
+                  seventh?.forEach { modelContext.delete($0) }
+
+                  try? modelContext.save()
+                }
+              }) {
+                HStack {
+                  Text("Clear Locally Stored Data")
+                  Spacer()
+                  Image(systemName: "arrow.up.trash")
+                }
+                .foregroundColor(.red)
+              }
+
+              Button(action: {
+                if let url = URL(
+                  string: "https://simkl.com/settings/login/clean-or-delete/")
+                {
+                  UIApplication.shared.open(url)
+                }
+              }) {
+                HStack {
+                  Text("Delete Account")
+                  Spacer()
+                  Image(systemName: "arrow.up.right")
+                }
+                .foregroundColor(.red)
+              }
+            }
+          }
         }
         .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {
           Button("OK", role: .cancel) {}
