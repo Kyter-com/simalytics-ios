@@ -45,8 +45,7 @@ struct SimalyticsApp: App {
 
   init() {
     SentrySDK.start { options in
-      options.dsn =
-        "https://2f19a4a9e212e5ee432f16fa2e22780d@o507828.ingest.us.sentry.io/4508956076605440"
+      options.dsn = "https://2f19a4a9e212e5ee432f16fa2e22780d@o507828.ingest.us.sentry.io/4508956076605440"
       options.enableMetricKit = true
     }
   }
