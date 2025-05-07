@@ -90,3 +90,4 @@ fastlane/test_output
 iOSInjectionProject/
 
 .sentryclirc
+.DS_Store
