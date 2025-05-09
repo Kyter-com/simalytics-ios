@@ -4,7 +4,7 @@
 //
 //  Created by Nick Reisenauer on 2/24/25.
 //
-// swift-format ./Documents/GitHub/simalytics-ios/ -i -r && swift-format lint ./Documents/GitHub/simalytics-ios/ -r
+// swift-format lint ./Documents/GitHub/simalytics-ios/ -r
 
 import Sentry
 import SimpleKeychain
