@@ -181,6 +181,34 @@ struct SettingsView: View {
                 Image(systemName: "arrow.up.right")
               }
             }
+
+            Button(action: {
+              if let url = URL(
+                string: "https://kyter.com/simalytics/privacy/")
+              {
+                UIApplication.shared.open(url)
+              }
+            }) {
+              HStack {
+                Text("Privacy Policy")
+                Spacer()
+                Image(systemName: "arrow.up.right")
+              }
+            }
+
+            Button(action: {
+              if let url = URL(
+                string: "https://kyter.com/simalytics/terms/")
+              {
+                UIApplication.shared.open(url)
+              }
+            }) {
+              HStack {
+                Text("Terms & Conditions")
+                Spacer()
+                Image(systemName: "arrow.up.right")
+              }
+            }
           }
 
           if !auth.simklAccessToken.isEmpty {
