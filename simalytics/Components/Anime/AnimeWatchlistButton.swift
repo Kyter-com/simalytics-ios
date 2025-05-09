@@ -10,6 +10,7 @@ import SwiftUI
 struct AnimeWatchlistButton: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
+  @Environment(\.modelContext) private var modelContext
   @Binding var status: String?
   var simkl_id: Int
   let statusOptions = ["watching", "plantowatch", "completed", "hold", "dropped"]
@@ -51,8 +52,8 @@ struct AnimeWatchlistButton: View {
     }
     .onChange(of: status ?? "nil") { _, newValue in
       Task {
-        await AnimeWatchlistButton.updateAnimeList(
-          simkl_id, auth.simklAccessToken, newValue)
+        await AnimeWatchlistButton.updateAnimeList(simkl_id, auth.simklAccessToken, newValue)
+        await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
       }
     }
   }
