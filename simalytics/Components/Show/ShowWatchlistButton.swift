@@ -10,6 +10,7 @@ import SwiftUI
 struct ShowWatchlistButton: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
+  @Environment(\.modelContext) private var modelContext
   @Binding var status: String?
   var simkl_id: Int
   let statusOptions = ["watching", "plantowatch", "completed", "hold", "dropped"]
@@ -51,8 +52,8 @@ struct ShowWatchlistButton: View {
     }
     .onChange(of: status ?? "nil") { _, newValue in
       Task {
-        await ShowWatchlistButton.updateShowList(
-          simkl_id, auth.simklAccessToken, newValue)
+        await ShowWatchlistButton.updateShowList(simkl_id, auth.simklAccessToken, newValue)
+        await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
       }
     }
   }
