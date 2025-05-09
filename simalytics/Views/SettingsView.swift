@@ -19,6 +19,26 @@ struct SettingsView: View {
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var modelContext
 
+  func clearLocalSwiftData() {
+    func clearAll<T: PersistentModel>(_ type: T.Type) {
+      if let results = try? modelContext.fetch(FetchDescriptor<T>()) {
+        for item in results {
+          modelContext.delete(item)
+        }
+      }
+    }
+
+    clearAll(V1.SDLastSync.self)
+    clearAll(V1.SDMovies.self)
+    clearAll(V1.SDShows.self)
+    clearAll(V1.SDAnimes.self)
+    clearAll(V1.TrendingShows.self)
+    clearAll(V1.TrendingMovies.self)
+    clearAll(V1.TrendingAnimes.self)
+
+    try? modelContext.save()
+  }
+
   var body: some View {
     NavigationView {
       VStack {
@@ -107,28 +127,7 @@ struct SettingsView: View {
                   let simpleKeychain = SimpleKeychain()
                   try simpleKeychain.deleteItem(forKey: "simkl-access-token")
                   auth.simklAccessToken = ""
-                  let first = try? modelContext.fetch(FetchDescriptor<V1.SDLastSync>())
-                  first?.forEach { modelContext.delete($0) }
-
-                  let second = try? modelContext.fetch(FetchDescriptor<V1.SDMovies>())
-                  second?.forEach { modelContext.delete($0) }
-
-                  let third = try? modelContext.fetch(FetchDescriptor<V1.SDShows>())
-                  third?.forEach { modelContext.delete($0) }
-
-                  let fourth = try? modelContext.fetch(FetchDescriptor<V1.SDAnimes>())
-                  fourth?.forEach { modelContext.delete($0) }
-
-                  let fifth = try? modelContext.fetch(FetchDescriptor<V1.TrendingShows>())
-                  fifth?.forEach { modelContext.delete($0) }
-
-                  let sixth = try? modelContext.fetch(FetchDescriptor<V1.TrendingMovies>())
-                  sixth?.forEach { modelContext.delete($0) }
-
-                  let seventh = try? modelContext.fetch(FetchDescriptor<V1.TrendingAnimes>())
-                  seventh?.forEach { modelContext.delete($0) }
-
-                  try? modelContext.save()
+                  clearLocalSwiftData()
                 }
               }
               .foregroundColor(.red)
@@ -218,28 +217,7 @@ struct SettingsView: View {
                   let simpleKeychain = SimpleKeychain()
                   try simpleKeychain.deleteItem(forKey: "simkl-access-token")
                   auth.simklAccessToken = ""
-                  let first = try? modelContext.fetch(FetchDescriptor<V1.SDLastSync>())
-                  first?.forEach { modelContext.delete($0) }
-
-                  let second = try? modelContext.fetch(FetchDescriptor<V1.SDMovies>())
-                  second?.forEach { modelContext.delete($0) }
-
-                  let third = try? modelContext.fetch(FetchDescriptor<V1.SDShows>())
-                  third?.forEach { modelContext.delete($0) }
-
-                  let fourth = try? modelContext.fetch(FetchDescriptor<V1.SDAnimes>())
-                  fourth?.forEach { modelContext.delete($0) }
-
-                  let fifth = try? modelContext.fetch(FetchDescriptor<V1.TrendingShows>())
-                  fifth?.forEach { modelContext.delete($0) }
-
-                  let sixth = try? modelContext.fetch(FetchDescriptor<V1.TrendingMovies>())
-                  sixth?.forEach { modelContext.delete($0) }
-
-                  let seventh = try? modelContext.fetch(FetchDescriptor<V1.TrendingAnimes>())
-                  seventh?.forEach { modelContext.delete($0) }
-
-                  try? modelContext.save()
+                  clearLocalSwiftData()
                 }
               }) {
                 HStack {
