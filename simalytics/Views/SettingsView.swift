@@ -166,6 +166,48 @@ struct SettingsView: View {
             }
           }
 
+          Section(header: Text("Data Providers")) {
+            Button(action: {
+              if let url = URL(
+                string: "https://simkl.com/about/policies/privacy/")
+              {
+                UIApplication.shared.open(url)
+              }
+            }) {
+              HStack {
+                Text("Simkl Privacy Policy")
+                Spacer()
+                Image(systemName: "arrow.up.right")
+              }
+            }
+            Button(action: {
+              if let url = URL(
+                string: "https://simkl.com/about/policies/terms/")
+              {
+                UIApplication.shared.open(url)
+              }
+            }) {
+              HStack {
+                Text("Simkl Terms of Service")
+                Spacer()
+                Image(systemName: "arrow.up.right")
+              }
+            }
+            Button(action: {
+              if let url = URL(
+                string: "https://www.themoviedb.org/terms-of-use?language=en-US")
+              {
+                UIApplication.shared.open(url)
+              }
+            }) {
+              HStack {
+                Text("TMDB Terms of Use")
+                Spacer()
+                Image(systemName: "arrow.up.right")
+              }
+            }
+          }
+
           Section(header: Text("Privacy & Legal")) {
             Button(action: {
               if let url = URL(
