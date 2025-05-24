@@ -261,7 +261,11 @@ struct ShowDetailView: View {
                 Button {
                   Task {
                     await ShowDetailView.markEpisodeWatched(
-                      auth.simklAccessToken, showDetails?.title ?? "", simkl_id, episode.season ?? 0, episode.episode ?? 0
+                      auth.simklAccessToken,
+                      showDetails?.title ?? "",
+                      simkl_id,
+                      episode.season ?? 0,
+                      episode.episode ?? 0
                     )
                     showWatchlist = await ShowDetailView.getShowWatchlist(simkl_id, auth.simklAccessToken)
                   }
