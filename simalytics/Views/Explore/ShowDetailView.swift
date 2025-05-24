@@ -242,7 +242,7 @@ struct ShowDetailView: View {
                       .offset(x: -2, y: -2)
                   }
                 }
-
+                // TODO: Episode Number in bottom left corner?
                 VStack {
                   Text(episode.title)
                     .font(.headline)
@@ -256,6 +256,19 @@ struct ShowDetailView: View {
                       .frame(maxWidth: .infinity, alignment: .leading)
                   }
                 }
+              }
+              .swipeActions(edge: .trailing) {
+                Button {
+                  Task {
+                    await ShowDetailView.markEpisodeWatched(
+                      auth.simklAccessToken, showDetails?.title ?? "", simkl_id, episode.season ?? 0, episode.episode ?? 0
+                    )
+                    showWatchlist = await ShowDetailView.getShowWatchlist(simkl_id, auth.simklAccessToken)
+                  }
+                } label: {
+                  Label("Watched", systemImage: "checkmark.circle")
+                }
+                .tint(.green)
               }
             }
             .listStyle(.inset)

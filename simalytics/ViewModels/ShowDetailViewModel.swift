@@ -53,6 +53,45 @@ extension ShowDetailView {
     }
   }
 
+  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async {
+    do {
+      let url = URL(string: "https://api.simkl.com/sync/history")!
+      var request = URLRequest(url: url)
+      request.httpMethod = "POST"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+      let formatter = ISO8601DateFormatter()
+      let dateString = formatter.string(from: Date())
+      let body: [String: Any] = [
+        "shows": [
+          [
+            "title": title,
+            "ids": [
+              "simkl": simklId
+            ],
+            "seasons": [
+              [
+                "number": season,
+                "episodes": [
+                  [
+                    "number": episode,
+                    "watched_at": dateString,
+                  ]
+                ],
+              ]
+            ],
+          ]
+        ]
+      ]
+      request.httpBody = try JSONSerialization.data(withJSONObject: body)
+      _ = try await URLSession.shared.data(for: request)
+    } catch {
+      SentrySDK.capture(error: error)
+    }
+  }
+
   static func getShowEpisodes(_ simkl_id: Int) async -> [ShowEpisodeModel] {
     do {
       var urlComponents = URLComponents(string: "https://api.simkl.com/tv/episodes/\(simkl_id)")!
