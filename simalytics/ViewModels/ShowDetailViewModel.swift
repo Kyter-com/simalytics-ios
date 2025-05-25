@@ -98,9 +98,14 @@ extension ShowDetailView {
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.setValue("tv", forHTTPHeaderField: "x-type")
+      request.setValue(tmdbId!, forHTTPHeaderField: "x-id")
       let (data, response) = try await URLSession.shared.data(for: request)
+      guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
-      return nil
+      let res = try JSONDecoder().decode(JustWatchModel.self, from: data)
+
+      return res.results?.US
     } catch {
       SentrySDK.capture(error: error)
       return nil

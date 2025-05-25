@@ -9,25 +9,18 @@ import Foundation
 
 struct JustWatchModel: Codable {
   let id: Int
-  let results: JustWatchResults
+  let results: JustWatchResults?
 }
 
 struct JustWatchResults: Codable {
-  let US: JustWatchListings
+  let US: JustWatchListings?
 }
 
 struct JustWatchFlatrate: Codable {
-  let logoPath: String
-  let providerID: Int
-  let providerName: String
-  let displayPriority: Int
-
-  enum CodingKeys: String, CodingKey {
-    case logoPath
-    case providerID
-    case providerName
-    case displayPriority
-  }
+  let logoPath: String?
+  let providerID: Int?
+  let providerName: String?
+  let displayPriority: Int?
 }
 
 struct JustWatchListings: Codable {
@@ -35,4 +28,5 @@ struct JustWatchListings: Codable {
   let buy: [JustWatchFlatrate]?
   let flatrate: [JustWatchFlatrate]?
   let rent: [JustWatchFlatrate]?
+  let free: [JustWatchFlatrate]?
 }
