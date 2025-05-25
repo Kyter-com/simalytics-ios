@@ -32,9 +32,7 @@ extension ShowDetailView {
 
   static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async -> ShowWatchlistModel? {
     do {
-      let urlComponents = URLComponents(
-        string: "https://api.simkl.com/sync/watched?extended=specials")!
-
+      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=specials")!
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -89,6 +87,23 @@ extension ShowDetailView {
       _ = try await URLSession.shared.data(for: request)
     } catch {
       SentrySDK.capture(error: error)
+    }
+  }
+
+  static func getJustWatchListings(_ accessToken: String, _ tmdbId: String?) async -> JustWatchListings? {
+    if tmdbId == nil { return nil }
+    do {
+      let url = URL(string: "https://api.simalytics.kyter.com/tmdb-proxy")!
+      var request = URLRequest(url: url)
+      request.httpMethod = "POST"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      let (data, response) = try await URLSession.shared.data(for: request)
+
+      return nil
+    } catch {
+      SentrySDK.capture(error: error)
+      return nil
     }
   }
 

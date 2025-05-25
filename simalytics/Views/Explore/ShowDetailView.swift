@@ -28,6 +28,9 @@ struct ShowDetailView: View {
   @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
   var simkl_id: Int
 
+  // MARK: - JustWatch Integration
+  @State private var justWatchListings: JustWatchListings?
+
   var seasons: [Int] {
     showEpisodes.compactMap { $0.season }.unique().sorted()
   }
@@ -91,6 +94,8 @@ struct ShowDetailView: View {
                 }
               } catch {}
             }
+
+            await ShowDetailView.getJustWatchListings(auth.simklAccessToken, showDetails?.ids?.tmdb)
           }
         }
     } else {
@@ -293,7 +298,11 @@ struct ShowDetailView: View {
       }
       .sheet(isPresented: $showingMemoSheet) {
         MemoView(
-          memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id, item_status: watchlistStatus ?? "", simkl_type: "show"
+          memoText: $memoText,
+          privacySelection: $privacySelection,
+          simkl_id: simkl_id,
+          item_status: watchlistStatus ?? "",
+          simkl_type: "show"
         )
         .presentationDetents([.medium, .large])
       }

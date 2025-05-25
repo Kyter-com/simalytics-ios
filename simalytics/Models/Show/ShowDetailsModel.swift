@@ -19,6 +19,11 @@ struct ShowDetailsModel: Codable {
   let overview: String?
   let genres: [String]?
   let users_recommendations: [RecommendationModel]?
+  let ids: ShowDetailsModelIds?
+}
+
+struct ShowDetailsModelIds: Codable {
+  let tmdb: String?
 }
 
 struct ShowDetailsModelRatings: Codable {
