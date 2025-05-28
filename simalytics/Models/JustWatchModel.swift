@@ -29,4 +29,5 @@ struct JustWatchListings: Codable {
   let flatrate: [JustWatchOption]?
   let rent: [JustWatchOption]?
   let free: [JustWatchOption]?
+  let ads: [JustWatchOption]?
 }

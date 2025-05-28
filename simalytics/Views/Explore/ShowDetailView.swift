@@ -326,5 +326,3 @@ struct ShowDetailView: View {
     }
   }
 }
-
-// TODO: GitHub Link

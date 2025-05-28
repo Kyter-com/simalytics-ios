@@ -58,6 +58,33 @@ struct JustWatchView: View {
             }
           }
 
+          if let ads = justWatchListings?.ads, !ads.isEmpty {
+            Text("Watch with Ads")
+              .font(.headline)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding(.leading)
+            ScrollView(.horizontal, showsIndicators: false) {
+              HStack(spacing: 16) {
+                ForEach(ads, id: \.provider_id) { option in
+                  Button(action: {
+                    UIApplication.shared.open(URL(string: justWatchListings?.link ?? "")!)
+                  }) {
+                    VStack {
+                      CustomKFImage(
+                        imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
+                        memoryCacheOnly: true,
+                        height: 50,
+                        width: 50
+                      )
+                    }
+                  }
+                  .buttonStyle(PlainButtonStyle())
+                }
+              }
+              .padding([.leading, .trailing, .bottom])
+            }
+          }
+
           if let flatrate = justWatchListings?.flatrate, !flatrate.isEmpty {
             Text("Stream")
               .font(.headline)

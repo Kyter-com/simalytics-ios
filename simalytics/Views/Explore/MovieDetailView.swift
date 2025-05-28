@@ -225,5 +225,4 @@ struct MovieDetailView: View {
     }
   }
 }
-// TODO: Ads view
 // TODO: Anime JustWatch view
