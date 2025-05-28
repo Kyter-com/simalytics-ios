@@ -16,17 +16,17 @@ struct JustWatchResults: Codable {
   let US: JustWatchListings?
 }
 
-struct JustWatchFlatrate: Codable {
-  let logoPath: String?
-  let providerID: Int?
-  let providerName: String?
-  let displayPriority: Int?
+struct JustWatchOption: Codable {
+  let logo_path: String?
+  let provider_id: Int?
+  let provider_name: String?
+  let display_priority: Int?
 }
 
 struct JustWatchListings: Codable {
-  let link: String
-  let buy: [JustWatchFlatrate]?
-  let flatrate: [JustWatchFlatrate]?
-  let rent: [JustWatchFlatrate]?
-  let free: [JustWatchFlatrate]?
+  let link: String?
+  let buy: [JustWatchOption]?
+  let flatrate: [JustWatchOption]?
+  let rent: [JustWatchOption]?
+  let free: [JustWatchOption]?
 }

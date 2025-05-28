@@ -88,6 +88,7 @@ struct MemoView: View {
             }
             dismiss()
           }
+          .bold()
           .disabled(memoText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
       }

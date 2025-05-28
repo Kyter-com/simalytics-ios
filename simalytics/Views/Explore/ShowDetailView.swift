@@ -30,6 +30,7 @@ struct ShowDetailView: View {
 
   // MARK: - JustWatch Integration
   @State private var justWatchListings: JustWatchListings?
+  @State private var showingJustWatchSheet = false
 
   var seasons: [Int] {
     showEpisodes.compactMap { $0.season }.unique().sorted()
@@ -95,7 +96,7 @@ struct ShowDetailView: View {
               } catch {}
             }
 
-            await ShowDetailView.getJustWatchListings(auth.simklAccessToken, showDetails?.ids?.tmdb)
+            justWatchListings = await ShowDetailView.getJustWatchListings(auth.simklAccessToken, showDetails?.ids?.tmdb)
           }
         }
     } else {
@@ -151,6 +152,13 @@ struct ShowDetailView: View {
             .fontDesign(.monospaced)
         }
 
+        if let overview = showDetails?.overview {
+          Text(overview)
+            .font(.footnote)
+            .padding([.leading, .trailing])
+            .padding(.top, 8)
+        }
+
         RatingView(
           maxRating: 10,
           rating: $localRating,
@@ -161,21 +169,24 @@ struct ShowDetailView: View {
         .padding([.leading, .trailing])
         .padding(.top, 8)
 
-        if watchlistStatus != nil {
+        HStack {
+          if watchlistStatus != nil {
+            Button(action: {
+              showingMemoSheet.toggle()
+            }) {
+              Label("Add Memo", systemImage: "square.and.pencil")
+                .padding([.leading, .trailing])
+                .padding(.top, 8)
+            }
+          }
+
           Button(action: {
-            showingMemoSheet.toggle()
+            showingJustWatchSheet.toggle()
           }) {
-            Label("Add Memo", systemImage: "square.and.pencil")
+            Label("Where to Watch", systemImage: "sparkles.tv")
               .padding([.leading, .trailing])
               .padding(.top, 8)
           }
-        }
-
-        if let overview = showDetails?.overview {
-          Text(overview)
-            .font(.footnote)
-            .padding([.leading, .trailing])
-            .padding(.top, 8)
         }
 
         Spacer()
@@ -306,6 +317,15 @@ struct ShowDetailView: View {
         )
         .presentationDetents([.medium, .large])
       }
+      .sheet(isPresented: $showingJustWatchSheet) {
+        JustWatchView(
+          justWatchListings: $justWatchListings
+        )
+        .presentationDetents([.medium, .large])
+      }
     }
   }
 }
+
+// TODO: GitHub Link
+// TODO: JustWatch Attribution
