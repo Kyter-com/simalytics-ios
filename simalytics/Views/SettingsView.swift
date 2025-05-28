@@ -149,6 +149,16 @@ struct SettingsView: View {
 
           Section(header: Text("Ratings & Feedback")) {
             Button(action: {
+              UIApplication.shared.open(URL(string: "https://github.com/Kyter-com/simalytics-ios/")!)
+            }) {
+              HStack {
+                Text("GitHub")
+                Spacer()
+                Image("github")
+                  .imageScale(.large)
+              }
+            }
+            Button(action: {
               let email = "dev@kyter.com"
               let subject = "Simalytics App Feedback"
               let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""

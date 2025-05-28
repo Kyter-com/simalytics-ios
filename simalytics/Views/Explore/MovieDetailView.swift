@@ -24,6 +24,9 @@ struct MovieDetailView: View {
   @State private var privacySelection: String = "Public"
   var simkl_id: Int
 
+  // MARK: - JustWatch Integration
+  @State private var showingJustWatchSheet = false
+
   var body: some View {
     if isLoading {
       ProgressView("Loading...")
@@ -157,6 +160,13 @@ struct MovieDetailView: View {
             .fontDesign(.monospaced)
         }
 
+        if let overview = movieDetails?.overview {
+          Text(overview)
+            .font(.footnote)
+            .padding([.leading, .trailing])
+            .padding(.top, 8)
+        }
+
         if watchlistStatus != nil {
           RatingView(
             maxRating: 10,
@@ -169,21 +179,23 @@ struct MovieDetailView: View {
           .padding(.top, 8)
         }
 
-        if watchlistStatus != nil {
+        HStack {
+          if watchlistStatus != nil {
+            Button(action: {
+              showingMemoSheet.toggle()
+            }) {
+              Label("Add Memo", systemImage: "square.and.pencil")
+                .padding([.leading, .trailing])
+                .padding(.top, 8)
+            }
+          }
           Button(action: {
-            showingMemoSheet.toggle()
+            showingJustWatchSheet.toggle()
           }) {
-            Label("Add Memo", systemImage: "square.and.pencil")
+            Label("Where to Watch", systemImage: "sparkles.tv")
               .padding([.leading, .trailing])
               .padding(.top, 8)
           }
-        }
-
-        if let overview = movieDetails?.overview {
-          Text(overview)
-            .font(.footnote)
-            .padding([.leading, .trailing])
-            .padding(.top, 8)
         }
 
         Spacer()
@@ -203,6 +215,15 @@ struct MovieDetailView: View {
         )
         .presentationDetents([.medium, .large])
       }
+      .sheet(isPresented: $showingJustWatchSheet) {
+        JustWatchView(
+          tmdbId: movieDetails?.ids?.tmdb,
+          mediaType: "movie"
+        )
+        .presentationDetents([.fraction(0.99)])
+      }
     }
   }
 }
+// TODO: Ads view
+// TODO: Anime JustWatch view

@@ -90,28 +90,6 @@ extension ShowDetailView {
     }
   }
 
-  static func getJustWatchListings(_ accessToken: String, _ tmdbId: String?) async -> JustWatchListings? {
-    if tmdbId == nil { return nil }
-    do {
-      let url = URL(string: "https://api.simalytics.kyter.com/tmdb-proxy")!
-      var request = URLRequest(url: url)
-      request.httpMethod = "POST"
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-      request.setValue("tv", forHTTPHeaderField: "x-type")
-      request.setValue(tmdbId!, forHTTPHeaderField: "x-id")
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
-
-      let res = try JSONDecoder().decode(JustWatchModel.self, from: data)
-
-      return res.results?.US
-    } catch {
-      SentrySDK.capture(error: error)
-      return nil
-    }
-  }
-
   static func getShowEpisodes(_ simkl_id: Int) async -> [ShowEpisodeModel] {
     do {
       var urlComponents = URLComponents(string: "https://api.simkl.com/tv/episodes/\(simkl_id)")!

@@ -21,6 +21,11 @@ struct MovieDetailsModel: Codable {
   let genres: [String]?
   let trailers: [MovieDetailsModelTrailer]?
   let users_recommendations: [RecommendationModel]?
+  let ids: MovieDetailsModelIds?
+}
+
+struct MovieDetailsModelIds: Codable {
+  let tmdb: String?
 }
 
 struct MovieDetailsModelRatings: Codable {
