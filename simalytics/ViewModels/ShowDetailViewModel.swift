@@ -51,7 +51,7 @@ extension ShowDetailView {
     }
   }
 
-  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async {
+  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int, _ episodeId: Int) async {
     do {
       let url = URL(string: "https://api.simkl.com/sync/history")!
       var request = URLRequest(url: url)
@@ -83,7 +83,17 @@ extension ShowDetailView {
           ]
         ]
       ]
-      request.httpBody = try JSONSerialization.data(withJSONObject: body)
+      let specialsBody: [String: Any] = [
+        "episodes": [
+          [
+            "watched_at": dateString,
+            "ids": [
+              "simkl": episodeId
+            ],
+          ]
+        ]
+      ]
+      request.httpBody = try JSONSerialization.data(withJSONObject: episode != 0 ? body : specialsBody)
       _ = try await URLSession.shared.data(for: request)
     } catch {
       SentrySDK.capture(error: error)
@@ -190,3 +200,6 @@ extension ShowWatchlistButton {
     }
   }
 }
+// TODO: Anime mark as watched
+// TODO: Anime specials mark as watched
+// TODO: Specials marked as watched

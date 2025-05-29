@@ -280,7 +280,8 @@ struct ShowDetailView: View {
                       showDetails?.title ?? "",
                       simkl_id,
                       episode.season ?? 0,
-                      episode.episode ?? 0
+                      episode.episode ?? 0,
+                      episode.ids.simkl_id
                     )
                     showWatchlist = await ShowDetailView.getShowWatchlist(simkl_id, auth.simklAccessToken)
                   }
@@ -326,3 +327,4 @@ struct ShowDetailView: View {
     }
   }
 }
+// TODO: Up next link to show
