@@ -28,6 +28,9 @@ struct AnimeDetailView: View {
   @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
   var simkl_id: Int
 
+  // MARK: - JustWatch Integration
+  @State private var showingJustWatchSheet = false
+
   var seasons: [Int] {
     animeEpisodes.compactMap { $0.season }.unique().filter { $0 > 0 }.sorted()
   }
@@ -133,26 +136,6 @@ struct AnimeDetailView: View {
             .fontDesign(.monospaced)
         }
 
-        RatingView(
-          maxRating: 10,
-          rating: $localRating,
-          starColor: .blue,
-          starRounding: .roundToFullStar,
-          size: 20
-        )
-        .padding([.leading, .trailing])
-        .padding(.top, 8)
-
-        if watchlistStatus != nil {
-          Button(action: {
-            showingMemoSheet.toggle()
-          }) {
-            Label("Add Memo", systemImage: "square.and.pencil")
-              .padding([.leading, .trailing])
-              .padding(.top, 8)
-          }
-        }
-
         if let overview = animeDetails?.overview {
           Text(overview.stripHTML)
             .font(.footnote)
@@ -160,83 +143,116 @@ struct AnimeDetailView: View {
             .padding(.top, 8)
         }
 
+        if watchlistStatus != nil {
+          RatingView(
+            maxRating: 10,
+            rating: $localRating,
+            starColor: .blue,
+            starRounding: .roundToFullStar,
+            size: 20
+          )
+          .padding([.leading, .trailing])
+          .padding(.top, 8)
+        }
+
+        HStack {
+          if watchlistStatus != nil {
+            Button(action: {
+              showingMemoSheet.toggle()
+            }) {
+              Label("Add Memo", systemImage: "square.and.pencil")
+                .padding([.leading, .trailing])
+                .padding(.top, 8)
+            }
+          }
+          Button(action: {
+            showingJustWatchSheet.toggle()
+          }) {
+            Label("Where to Watch", systemImage: "sparkles.tv")
+              .padding([.leading, .trailing])
+              .padding(.top, 8)
+          }
+        }
+
         Spacer()
 
-        if !filteredEpisodes.isEmpty {
-          VStack(alignment: .leading) {
-            HStack {
-              Menu {
-                ForEach(seasons, id: \.self) { season in
-                  Button(action: {
-                    filteredEpisodes = animeEpisodes.filter { $0.season == season }
-                    selectedSeason = "Season \(season)"
-                  }) {
-                    Text("Season \(season)")
-                  }
-                }
-                if hasSpecials {
-                  Button(action: {
-                    filteredEpisodes = animeEpisodes.filter { $0.type == "special" }
-                    selectedSeason = "Specials"
-                  }) {
-                    Text("Specials")
-                  }
-                }
-              } label: {
-                HStack {
-                  Text(selectedSeason ?? "")
-                  Image(systemName: "chevron.up.chevron.down")
-                }
-                .foregroundColor(.accentColor)
-                .bold()
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-              }
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding([.leading, .trailing])
-            }
-
-            List(filteredEpisodes, id: \.ids.simkl_id) { episode in
+        if animeDetails?.anime_type == "tv" {
+          if !filteredEpisodes.isEmpty {
+            VStack(alignment: .leading) {
               HStack {
-                ZStack {
-                  CustomKFImage(
-                    imageUrlString: episode.img != nil
-                      ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
-                    memoryCacheOnly: true,
-                    height: 70.42,
-                    width: 125
-                  )
-                  if blurImages {
-                    Rectangle()
-                      .fill(Color.clear)
-                      .frame(width: 125, height: 70.42)
-                      .background(BlurView(style: .regular))
-                      .cornerRadius(8)
+                Menu {
+                  ForEach(seasons, id: \.self) { season in
+                    Button(action: {
+                      filteredEpisodes = animeEpisodes.filter { $0.season == season }
+                      selectedSeason = "Season \(season)"
+                    }) {
+                      Text("Season \(season)")
+                    }
                   }
+                  if hasSpecials {
+                    Button(action: {
+                      filteredEpisodes = animeEpisodes.filter { $0.type == "special" }
+                      selectedSeason = "Specials"
+                    }) {
+                      Text("Specials")
+                    }
+                  }
+                } label: {
+                  HStack {
+                    Text(selectedSeason ?? "")
+                    Image(systemName: "chevron.up.chevron.down")
+                  }
+                  .foregroundColor(.accentColor)
+                  .bold()
+                  .padding(.horizontal, 10)
+                  .padding(.vertical, 8)
+                  .background(Color.gray.opacity(0.1))
+                  .cornerRadius(8)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding([.leading, .trailing])
+              }
 
-                VStack {
-                  Text(episode.title)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+              List(filteredEpisodes, id: \.ids.simkl_id) { episode in
+                HStack {
+                  ZStack {
+                    CustomKFImage(
+                      imageUrlString: episode.img != nil
+                        ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
+                      memoryCacheOnly: true,
+                      height: 70.42,
+                      width: 125
+                    )
+                    if blurImages {
+                      Rectangle()
+                        .fill(Color.clear)
+                        .frame(width: 125, height: 70.42)
+                        .background(BlurView(style: .regular))
+                        .cornerRadius(8)
+                    }
+                  }
 
-                  if let description = episode.description {
-                    Text(description)
-                      .font(.caption)
-                      .lineLimit(3)
+                  VStack {
+                    Text(episode.title)
+                      .font(.headline)
+                      .lineLimit(1)
                       .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if let description = episode.description {
+                      Text(description)
+                        .font(.caption)
+                        .lineLimit(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                   }
                 }
               }
+              .listStyle(.inset)
+              .frame(height: CGFloat(filteredEpisodes.count) * 93)
+              .scrollDisabled(true)
             }
-            .listStyle(.inset)
-            .frame(height: CGFloat(filteredEpisodes.count) * 93)
-            .scrollDisabled(true)
+            .padding(.top)
           }
-          .padding(.top)
         }
 
         Recommendations(recommendations: animeDetails?.users_recommendations ?? [])
@@ -254,6 +270,13 @@ struct AnimeDetailView: View {
           item_status: watchlistStatus ?? "", simkl_type: "anime"
         )
         .presentationDetents([.medium, .large])
+      }
+      .sheet(isPresented: $showingJustWatchSheet) {
+        JustWatchView(
+          tmdbId: animeDetails?.ids?.tmdb,
+          mediaType: animeDetails?.anime_type == "tv" ? "tv" : "movie"
+        )
+        .presentationDetents([.fraction(0.99)])
       }
     }
   }
