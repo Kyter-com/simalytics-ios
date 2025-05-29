@@ -154,7 +154,7 @@ struct SettingsView: View {
               HStack {
                 Text("GitHub")
                 Spacer()
-                Image("github")
+                Image("GitHub")
                   .imageScale(.large)
               }
             }
