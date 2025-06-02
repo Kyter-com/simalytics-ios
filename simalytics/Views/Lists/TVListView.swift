@@ -25,8 +25,10 @@ struct TVListView: View {
   private var resolvedSortDescriptor: SortDescriptor<V1.SDShows> {
     if sortField == "title" {
       return SortDescriptor(\V1.SDShows.title, order: sortAscending ? .forward : .reverse)
-    } else if sortField == "added_at" {
+    } else if sortField == "added_at" && status != "completed" {
       return SortDescriptor(\V1.SDShows.added_to_watchlist_at, order: sortAscending ? .forward : .reverse)
+    } else if sortField == "added_at" && status == "completed" {
+      return SortDescriptor(\V1.SDShows.last_watched_at, order: sortAscending ? .forward : .reverse)
     } else {
       return SortDescriptor(\V1.SDShows.year, order: sortAscending ? .forward : .reverse)
     }
@@ -76,12 +78,24 @@ struct TVListView: View {
                 .font(.footnote)
                 .foregroundColor(.secondary)
             }
-            if let isoString = show.added_to_watchlist_at,
-              let addedDate = Self.isoFormatter.date(from: isoString)
-            {
-              Text("Added: " + addedDate.timeAgoDisplay())
-                .font(.footnote)
-                .foregroundColor(.secondary)
+
+            // If the show is completed, display when it was completed instead of when it was added to list
+            if status == "completed" {
+              if let isoString = show.last_watched_at,
+                let completedDate = Self.isoFormatter.date(from: isoString)
+              {
+                Text("Completed: " + completedDate.timeAgoDisplay())
+                  .font(.footnote)
+                  .foregroundColor(.secondary)
+              }
+            } else {
+              if let isoString = show.added_to_watchlist_at,
+                let addedDate = Self.isoFormatter.date(from: isoString)
+              {
+                Text("Added: " + addedDate.timeAgoDisplay())
+                  .font(.footnote)
+                  .foregroundColor(.secondary)
+              }
             }
           }
         }
@@ -113,7 +127,11 @@ struct TVListView: View {
           Picker("Sort by", selection: $sortField) {
             Text("Title").tag("title")
             Text("Year").tag("year")
-            Text("Added to List").tag("added_at")
+            if status == "completed" {
+              Text("Completed").tag("added_at")
+            } else {
+              Text("Added to List").tag("added_at")
+            }
           }
 
           Picker("Order", selection: $sortAscending) {

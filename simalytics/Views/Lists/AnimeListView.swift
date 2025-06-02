@@ -25,8 +25,10 @@ struct AnimeListView: View {
   private var resolvedSortDescriptor: SortDescriptor<V1.SDAnimes> {
     if sortField == "title" {
       return SortDescriptor(\V1.SDAnimes.title, order: sortAscending ? .forward : .reverse)
-    } else if sortField == "added_at" {
+    } else if sortField == "added_at" && status != "completed" {
       return SortDescriptor(\V1.SDAnimes.added_to_watchlist_at, order: sortAscending ? .forward : .reverse)
+    } else if sortField == "added_at" && status == "completed" {
+      return SortDescriptor(\V1.SDAnimes.last_watched_at, order: sortAscending ? .forward : .reverse)
     } else {
       return SortDescriptor(\V1.SDAnimes.year, order: sortAscending ? .forward : .reverse)
     }
@@ -78,12 +80,24 @@ struct AnimeListView: View {
                 .font(.footnote)
                 .foregroundColor(.secondary)
             }
-            if let isoString = anime.added_to_watchlist_at,
-              let addedDate = Self.isoFormatter.date(from: isoString)
-            {
-              Text("Added: " + addedDate.timeAgoDisplay())
-                .font(.footnote)
-                .foregroundColor(.secondary)
+
+            // If the anime is completed, display when it was completed instead of when it was added to list
+            if status == "completed" {
+              if let isoString = anime.last_watched_at,
+                let completedDate = Self.isoFormatter.date(from: isoString)
+              {
+                Text("Completed: " + completedDate.timeAgoDisplay())
+                  .font(.footnote)
+                  .foregroundColor(.secondary)
+              }
+            } else {
+              if let isoString = anime.added_to_watchlist_at,
+                let addedDate = Self.isoFormatter.date(from: isoString)
+              {
+                Text("Added: " + addedDate.timeAgoDisplay())
+                  .font(.footnote)
+                  .foregroundColor(.secondary)
+              }
             }
           }
         }
@@ -115,7 +129,11 @@ struct AnimeListView: View {
           Picker("Sort by", selection: $sortField) {
             Text("Title").tag("title")
             Text("Year").tag("year")
-            Text("Added to List").tag("added_at")
+            if status == "completed" {
+              Text("Completed").tag("added_at")
+            } else {
+              Text("Added to List").tag("added_at")
+            }
           }
 
           Picker("Order", selection: $sortAscending) {

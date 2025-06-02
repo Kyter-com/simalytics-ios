@@ -25,8 +25,10 @@ struct MovieListView: View {
   private var resolvedSortDescriptor: SortDescriptor<V1.SDMovies> {
     if sortField == "title" {
       return SortDescriptor(\V1.SDMovies.title, order: sortAscending ? .forward : .reverse)
-    } else if sortField == "added_at" {
+    } else if sortField == "added_at" && status != "completed" {
       return SortDescriptor(\V1.SDMovies.added_to_watchlist_at, order: sortAscending ? .forward : .reverse)
+    } else if sortField == "added_at" && status == "completed" {
+      return SortDescriptor(\V1.SDMovies.last_watched_at, order: sortAscending ? .forward : .reverse)
     } else {
       return SortDescriptor(\V1.SDMovies.year, order: sortAscending ? .forward : .reverse)
     }
@@ -76,12 +78,24 @@ struct MovieListView: View {
                 .font(.footnote)
                 .foregroundColor(.secondary)
             }
-            if let isoString = movie.added_to_watchlist_at,
-              let addedDate = Self.isoFormatter.date(from: isoString)
-            {
-              Text("Added: " + addedDate.timeAgoDisplay())
-                .font(.footnote)
-                .foregroundColor(.secondary)
+
+            // If the movie is completed, display when it was completed instead of when it was added to list
+            if status == "completed" {
+              if let isoString = movie.last_watched_at,
+                let completedDate = Self.isoFormatter.date(from: isoString)
+              {
+                Text("Completed: " + completedDate.timeAgoDisplay())
+                  .font(.footnote)
+                  .foregroundColor(.secondary)
+              }
+            } else {
+              if let isoString = movie.added_to_watchlist_at,
+                let addedDate = Self.isoFormatter.date(from: isoString)
+              {
+                Text("Added: " + addedDate.timeAgoDisplay())
+                  .font(.footnote)
+                  .foregroundColor(.secondary)
+              }
             }
           }
         }
@@ -105,7 +119,11 @@ struct MovieListView: View {
           Picker("Sort by", selection: $sortField) {
             Text("Title").tag("title")
             Text("Year").tag("year")
-            Text("Added to List").tag("added_at")
+            if status == "completed" {
+              Text("Completed").tag("added_at")
+            } else {
+              Text("Added to List").tag("added_at")
+            }
           }
 
           Picker("Order", selection: $sortAscending) {
