@@ -21,9 +21,9 @@ struct ExploreView: View {
 
   private func fetchData() {
     do {
-      sdTrendingMovies = try context.fetch(FetchDescriptor<V1.TrendingMovies>())
-      sdTrendingShows = try context.fetch(FetchDescriptor<V1.TrendingShows>())
-      sdTrendingAnimes = try context.fetch(FetchDescriptor<V1.TrendingAnimes>())
+      sdTrendingMovies = try context.fetch(FetchDescriptor<V1.TrendingMovies>(sortBy: [SortDescriptor(\V1.TrendingMovies.order, order: .forward)]))
+      sdTrendingShows = try context.fetch(FetchDescriptor<V1.TrendingShows>(sortBy: [SortDescriptor(\V1.TrendingShows.order, order: .forward)]))
+      sdTrendingAnimes = try context.fetch(FetchDescriptor<V1.TrendingAnimes>(sortBy: [SortDescriptor(\V1.TrendingAnimes.order, order: .forward)]))
     } catch {
       sdTrendingMovies = []
       sdTrendingShows = []

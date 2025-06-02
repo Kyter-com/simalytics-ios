@@ -10,7 +10,7 @@ import Sentry
 
 func getTrendingMovies() async -> [TrendingMovieModel] {
   do {
-    var urlComponents = URLComponents(string: "https://api.simkl.com/movies/trending")!
+    var urlComponents = URLComponents(string: "https://api.simkl.com/movies/trending/today")!
     urlComponents.queryItems = [
       URLQueryItem(name: "extended", value: "overview,theater,metadata,tmdb,genres"),
       URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
@@ -34,7 +34,7 @@ func getTrendingMovies() async -> [TrendingMovieModel] {
 
 func getTrendingAnimes() async -> [TrendingAnimeModel] {
   do {
-    var urlComponents = URLComponents(string: "https://api.simkl.com/anime/trending")!
+    var urlComponents = URLComponents(string: "https://api.simkl.com/anime/trending/today")!
     urlComponents.queryItems = [
       URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres"),
       URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
@@ -58,7 +58,7 @@ func getTrendingAnimes() async -> [TrendingAnimeModel] {
 
 func getTrendingShows() async -> [TrendingShowModel] {
   do {
-    var urlComponents = URLComponents(string: "https://api.simkl.com/tv/trending")!
+    var urlComponents = URLComponents(string: "https://api.simkl.com/tv/trending/today")!
     urlComponents.queryItems = [
       URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres"),
       URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
@@ -79,3 +79,4 @@ func getTrendingShows() async -> [TrendingShowModel] {
     return []
   }
 }
+// TODO: Sort by completed date in completed lists

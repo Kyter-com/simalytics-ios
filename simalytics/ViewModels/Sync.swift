@@ -1571,36 +1571,39 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
 
     let oldMovies = try? context.fetch(FetchDescriptor<V1.TrendingMovies>())
     oldMovies?.forEach { context.delete($0) }
-    for movie in movies {
+    for (index, movieItem) in movies.enumerated() {
       context.insert(
         V1.TrendingMovies(
-          simkl: movie.ids.simkl_id,
-          title: movie.title,
-          poster: movie.poster
+          simkl: movieItem.ids.simkl_id,
+          title: movieItem.title,
+          poster: movieItem.poster,
+          order: index + 1,
         )
       )
     }
 
     let oldShows = try? context.fetch(FetchDescriptor<V1.TrendingShows>())
     oldShows?.forEach { context.delete($0) }
-    for show in shows {
+    for (index, showItem) in shows.enumerated() {
       context.insert(
         V1.TrendingShows(
-          simkl: show.ids.simkl_id,
-          title: show.title,
-          poster: show.poster
+          simkl: showItem.ids.simkl_id,
+          title: showItem.title,
+          poster: showItem.poster,
+          order: index + 1
         )
       )
     }
 
     let oldAnimes = try? context.fetch(FetchDescriptor<V1.TrendingAnimes>())
     oldAnimes?.forEach { context.delete($0) }
-    for anime in animes {
+    for (index, animeItem) in animes.enumerated() {
       context.insert(
         V1.TrendingAnimes(
-          simkl: anime.ids.simkl_id,
-          title: anime.title,
-          poster: anime.poster
+          simkl: animeItem.ids.simkl_id,
+          title: animeItem.title,
+          poster: animeItem.poster,
+          order: index + 1
         )
       )
     }
