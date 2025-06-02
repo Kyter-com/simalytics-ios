@@ -13,6 +13,7 @@ struct AnimeDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
+  @Environment(\.sizeCategory) var sizeCategory
   @State private var animeWatchlist: AnimeWatchlistModel?
   @State private var animeDetails: AnimeDetailsModel?
   @State private var animeEpisodes: [AnimeEpisodeModel] = []
@@ -37,6 +38,24 @@ struct AnimeDetailView: View {
 
   var hasSpecials: Bool {
     animeEpisodes.contains { $0.type == "special" }
+  }
+
+  func rowHeight(for sizeCategory: ContentSizeCategory) -> CGFloat {
+    switch sizeCategory {
+    case .extraSmall: return 70
+    case .small: return 80
+    case .medium: return 90
+    case .large: return 94
+    case .extraLarge: return 104
+    case .extraExtraLarge: return 114
+    case .extraExtraExtraLarge: return 124
+    case .accessibilityMedium: return 134
+    case .accessibilityLarge: return 144
+    case .accessibilityExtraLarge: return 154
+    case .accessibilityExtraExtraLarge: return 164
+    case .accessibilityExtraExtraExtraLarge: return 174
+    default: return 94
+    }
   }
 
   var body: some View {
@@ -248,7 +267,7 @@ struct AnimeDetailView: View {
                 }
               }
               .listStyle(.inset)
-              .frame(height: CGFloat(filteredEpisodes.count) * 93)
+              .frame(height: CGFloat(filteredEpisodes.count) * rowHeight(for: sizeCategory))
               .scrollDisabled(true)
             }
             .padding(.top)

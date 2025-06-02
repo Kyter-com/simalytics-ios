@@ -79,4 +79,3 @@ func getTrendingShows() async -> [TrendingShowModel] {
     return []
   }
 }
-// TODO: Sort by completed date in completed lists

@@ -13,6 +13,7 @@ struct ShowDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
+  @Environment(\.sizeCategory) var sizeCategory
   @State private var showDetails: ShowDetailsModel?
   @State private var showWatchlist: ShowWatchlistModel?
   @State private var showEpisodes: [ShowEpisodeModel] = []
@@ -50,6 +51,24 @@ struct ShowDetailView: View {
       }
     }
     return false
+  }
+
+  func rowHeight(for sizeCategory: ContentSizeCategory) -> CGFloat {
+    switch sizeCategory {
+    case .extraSmall: return 70
+    case .small: return 80
+    case .medium: return 90
+    case .large: return 94
+    case .extraLarge: return 104
+    case .extraExtraLarge: return 114
+    case .extraExtraExtraLarge: return 124
+    case .accessibilityMedium: return 134
+    case .accessibilityLarge: return 144
+    case .accessibilityExtraLarge: return 154
+    case .accessibilityExtraExtraLarge: return 164
+    case .accessibilityExtraExtraExtraLarge: return 174
+    default: return 94
+    }
   }
 
   var body: some View {
@@ -231,8 +250,7 @@ struct ShowDetailView: View {
                 ZStack(alignment: .bottomTrailing) {
                   ZStack {
                     CustomKFImage(
-                      imageUrlString: episode.img != nil
-                        ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
+                      imageUrlString: episode.img != nil ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
                       memoryCacheOnly: true,
                       height: 70.42,
                       width: 125
@@ -292,7 +310,7 @@ struct ShowDetailView: View {
               }
             }
             .listStyle(.inset)
-            .frame(height: CGFloat(filteredEpisodes.count) * 94)
+            .frame(height: CGFloat(filteredEpisodes.count) * rowHeight(for: sizeCategory))
             .scrollDisabled(true)
           }
           .padding(.top)
@@ -328,4 +346,3 @@ struct ShowDetailView: View {
   }
 }
 // TODO: Up next link to show
-// TODO: Fix episode list height
