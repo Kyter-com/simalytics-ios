@@ -314,6 +314,7 @@ struct ShowDetailView: View {
       }
       .sheet(isPresented: $showingShowEpisodeSheet) {
         ShowEpisodeView(episode: $selectedEpisode)
+          .presentationDetents([.medium])
       }
     }
   }
