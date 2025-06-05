@@ -313,7 +313,7 @@ struct ShowDetailView: View {
         .presentationDetents([.fraction(0.99)])
       }
       .sheet(isPresented: $showingShowEpisodeSheet) {
-        ShowEpisodeView(episode: selectedEpisode)
+        ShowEpisodeView(episode: $selectedEpisode)
       }
     }
   }

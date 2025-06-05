@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ShowEpisodeView: View {
   @Environment(\.dismiss) var dismiss
-  var episode: ShowEpisodeModel?
+  @Binding var episode: ShowEpisodeModel?
   var body: some View {
     Text(episode?.title ?? "")
   }
