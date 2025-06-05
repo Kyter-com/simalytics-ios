@@ -23,14 +23,16 @@ struct ShowDetailView: View {
   @State private var selectedSeason: String?
   @State private var localRating: Double = 0
   @State private var originalRating: Double = 0
-  @State private var showingMemoSheet = false
   @State private var memoText: String = ""
   @State private var privacySelection: String = "Public"
   @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
+  @State private var selectedEpisode: ShowEpisodeModel?
   var simkl_id: Int
 
-  // MARK: - JustWatch Integration
+  // MARK: - Sheets
   @State private var showingJustWatchSheet = false
+  @State private var showingShowEpisodeSheet = false
+  @State private var showingMemoSheet = false
 
   var seasons: [Int] {
     showEpisodes.compactMap { $0.season }.unique().sorted()
@@ -51,24 +53,6 @@ struct ShowDetailView: View {
       }
     }
     return false
-  }
-
-  func rowHeight(for sizeCategory: ContentSizeCategory) -> CGFloat {
-    switch sizeCategory {
-    case .extraSmall: return 70
-    case .small: return 80
-    case .medium: return 90
-    case .large: return 94
-    case .extraLarge: return 104
-    case .extraExtraLarge: return 114
-    case .extraExtraExtraLarge: return 124
-    case .accessibilityMedium: return 134
-    case .accessibilityLarge: return 144
-    case .accessibilityExtraLarge: return 154
-    case .accessibilityExtraExtraLarge: return 164
-    case .accessibilityExtraExtraExtraLarge: return 174
-    default: return 94
-    }
   }
 
   var body: some View {
@@ -243,9 +227,10 @@ struct ShowDetailView: View {
               }
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding([.leading, .trailing])
+              .padding([.top], 6)
             }
 
-            List(filteredEpisodes, id: \.ids.simkl_id) { episode in
+            ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
               HStack {
                 ZStack(alignment: .bottomTrailing) {
                   ZStack {
@@ -290,28 +275,13 @@ struct ShowDetailView: View {
                   }
                 }
               }
-              .swipeActions(edge: .trailing) {
-                Button {
-                  Task {
-                    await ShowDetailView.markEpisodeWatched(
-                      auth.simklAccessToken,
-                      showDetails?.title ?? "",
-                      simkl_id,
-                      episode.season ?? 0,
-                      episode.episode ?? 0,
-                      episode.ids.simkl_id
-                    )
-                    showWatchlist = await ShowDetailView.getShowWatchlist(simkl_id, auth.simklAccessToken)
-                  }
-                } label: {
-                  Label("Watched", systemImage: "checkmark.circle")
-                }
-                .tint(.green)
+              .padding([.top], 6)
+              .onTapGesture {
+                selectedEpisode = episode
+                showingShowEpisodeSheet.toggle()
               }
             }
-            .listStyle(.inset)
-            .frame(height: CGFloat(filteredEpisodes.count) * rowHeight(for: sizeCategory))
-            .scrollDisabled(true)
+            .padding([.leading, .trailing])
           }
           .padding(.top)
         }
@@ -341,6 +311,9 @@ struct ShowDetailView: View {
           mediaType: "tv"
         )
         .presentationDetents([.fraction(0.99)])
+      }
+      .sheet(isPresented: $showingShowEpisodeSheet) {
+        ShowEpisodeView(episode: selectedEpisode)
       }
     }
   }
