@@ -39,6 +39,7 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     await fetchAndStoreAnimeHold(accessToken, result.anime?.hold, context)
     await fetchAndStoreAnimeRatedAt(accessToken, result.anime?.rated_at, context)
     await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, context)
+    await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, context)
   } catch {
     SentrySDK.capture(error: error)
   }

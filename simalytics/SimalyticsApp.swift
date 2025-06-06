@@ -52,7 +52,7 @@ struct SimalyticsApp: App {
 
   var body: some Scene {
     WindowGroup {
-      IndexView()
+      ContentView()
         .environmentObject(auth)
         .environment(globalLoadingIndicator)
         .modelContainer(modelContainer)

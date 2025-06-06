@@ -13,7 +13,6 @@ struct AnimeDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
-  @Environment(\.sizeCategory) var sizeCategory
   @State private var animeWatchlist: AnimeWatchlistModel?
   @State private var animeDetails: AnimeDetailsModel?
   @State private var animeEpisodes: [AnimeEpisodeModel] = []
@@ -27,6 +26,8 @@ struct AnimeDetailView: View {
   @State private var memoText: String = ""
   @State private var privacySelection: String = "Public"
   @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
+  @State private var selectedEpisode: AnimeEpisodeModel?
+  @State private var showingShowEpisodeSheet = false
   var simkl_id: Int
 
   // MARK: - JustWatch Integration
@@ -40,22 +41,17 @@ struct AnimeDetailView: View {
     animeEpisodes.contains { $0.type == "special" }
   }
 
-  func rowHeight(for sizeCategory: ContentSizeCategory) -> CGFloat {
-    switch sizeCategory {
-    case .extraSmall: return 70
-    case .small: return 80
-    case .medium: return 90
-    case .large: return 94
-    case .extraLarge: return 104
-    case .extraExtraLarge: return 114
-    case .extraExtraExtraLarge: return 124
-    case .accessibilityMedium: return 134
-    case .accessibilityLarge: return 144
-    case .accessibilityExtraLarge: return 154
-    case .accessibilityExtraExtraLarge: return 164
-    case .accessibilityExtraExtraExtraLarge: return 174
-    default: return 94
+  func hasWatchedEpisode(season targetSeason: Int, episode targetEpisode: Int) -> Bool {
+    guard let seasons = animeWatchlist?.seasons else { return false }
+    for season in seasons {
+      guard let episodes = season.episodes else { continue }
+      if episodes.contains(where: {
+        $0.number == targetEpisode && season.number == targetSeason && $0.watched == true
+      }) {
+        return true
+      }
     }
+    return false
   }
 
   var body: some View {
@@ -232,22 +228,37 @@ struct AnimeDetailView: View {
                 .padding([.leading, .trailing])
               }
 
-              List(filteredEpisodes, id: \.ids.simkl_id) { episode in
+              ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
                 HStack {
-                  ZStack {
-                    CustomKFImage(
-                      imageUrlString: episode.img != nil
-                        ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
-                      memoryCacheOnly: true,
-                      height: 70.42,
-                      width: 125
-                    )
-                    if blurImages {
-                      Rectangle()
-                        .fill(Color.clear)
-                        .frame(width: 125, height: 70.42)
-                        .background(BlurView(style: .regular))
+                  ZStack(alignment: .bottomTrailing) {
+                    ZStack {
+                      CustomKFImage(
+                        imageUrlString: episode.img != nil
+                          ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
+                        memoryCacheOnly: true,
+                        height: 70.42,
+                        width: 125
+                      )
+                      if blurImages {
+                        Rectangle()
+                          .fill(Color.clear)
+                          .frame(width: 125, height: 70.42)
+                          .background(BlurView(style: .regular))
+                          .cornerRadius(8)
+                      }
+                    }
+                    if hasWatchedEpisode(
+                      season: episode.season ?? -1, episode: episode.episode ?? -1)
+                    {
+                      Image(systemName: "checkmark.circle")
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundColor(colorScheme == .dark ? Color.green.darker() : Color.green)
+                        .frame(width: 14, height: 14)
+                        .padding(4)
+                        .background(colorScheme == .dark ? Color.black : Color.white)
                         .cornerRadius(8)
+                        .offset(x: -2, y: -2)
                     }
                   }
 
@@ -265,10 +276,13 @@ struct AnimeDetailView: View {
                     }
                   }
                 }
+                .padding([.top], 6)
+                .onTapGesture {
+                  selectedEpisode = episode
+                  showingShowEpisodeSheet.toggle()
+                }
               }
-              .listStyle(.inset)
-              .frame(height: CGFloat(filteredEpisodes.count) * rowHeight(for: sizeCategory))
-              .scrollDisabled(true)
+              .padding([.leading, .trailing])
             }
             .padding(.top)
           }
@@ -296,6 +310,12 @@ struct AnimeDetailView: View {
           mediaType: animeDetails?.anime_type == "tv" ? "tv" : "movie"
         )
         .presentationDetents([.fraction(0.99)])
+      }
+      .sheet(isPresented: $showingShowEpisodeSheet) {
+        AnimeEpisodeView(
+          episode: $selectedEpisode, animeEpisodes: $animeEpisodes, animeWatchlist: $animeWatchlist, animeDetails: $animeDetails, simklId: simkl_id
+        )
+        .presentationDetents([.medium])
       }
     }
   }

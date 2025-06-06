@@ -13,7 +13,6 @@ struct ShowDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
-  @Environment(\.sizeCategory) var sizeCategory
   @State private var showDetails: ShowDetailsModel?
   @State private var showWatchlist: ShowWatchlistModel?
   @State private var showEpisodes: [ShowEpisodeModel] = []
@@ -260,7 +259,7 @@ struct ShowDetailView: View {
                       .offset(x: -2, y: -2)
                   }
                 }
-                // TODO: Episode Number in bottom left corner?
+
                 VStack {
                   Text(episode.title)
                     .font(.headline)
@@ -313,8 +312,10 @@ struct ShowDetailView: View {
         .presentationDetents([.fraction(0.99)])
       }
       .sheet(isPresented: $showingShowEpisodeSheet) {
-        ShowEpisodeView(episode: $selectedEpisode)
-          .presentationDetents([.medium])
+        ShowEpisodeView(
+          episode: $selectedEpisode, showEpisodes: $showEpisodes, showWatchlist: $showWatchlist, showDetails: $showDetails, simklId: simkl_id
+        )
+        .presentationDetents([.medium])
       }
     }
   }

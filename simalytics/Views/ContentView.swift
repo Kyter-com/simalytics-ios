@@ -1,5 +1,5 @@
 //
-//  MainView.swift
+//  ContentView.swift
 //  simalytics
 //
 //  Created by Nick Reisenauer on 2/24/25.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct IndexView: View {
+struct ContentView: View {
   @State private var selectedTab = 0
 
   var body: some View {

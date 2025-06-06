@@ -51,6 +51,54 @@ extension ShowDetailView {
     }
   }
 
+  static func markEpisodeUnwatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int, _ episodeId: Int) async {
+    do {
+      let url = URL(string: "https://api.simkl.com/sync/history/remove")!
+      var request = URLRequest(url: url)
+      request.httpMethod = "POST"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+      let formatter = ISO8601DateFormatter()
+      let dateString = formatter.string(from: Date())
+      let body: [String: Any] = [
+        "shows": [
+          [
+            "title": title,
+            "ids": [
+              "simkl": simklId
+            ],
+            "seasons": [
+              [
+                "number": season,
+                "episodes": [
+                  [
+                    "number": episode
+                  ]
+                ],
+              ]
+            ],
+          ]
+        ]
+      ]
+      let specialsBody: [String: Any] = [
+        "episodes": [
+          [
+            "watched_at": dateString,
+            "ids": [
+              "simkl": episodeId
+            ],
+          ]
+        ]
+      ]
+      request.httpBody = try JSONSerialization.data(withJSONObject: episode != 0 ? body : specialsBody)
+      _ = try await URLSession.shared.data(for: request)
+    } catch {
+      SentrySDK.capture(error: error)
+    }
+  }
+
   static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int, _ episodeId: Int) async {
     do {
       let url = URL(string: "https://api.simkl.com/sync/history")!

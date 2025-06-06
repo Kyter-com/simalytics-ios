@@ -1,5 +1,5 @@
 //
-//  ShowEpisodeView.swift
+//  AnimeEpisodeView.swift
 //  simalytics
 //
 //  Created by Nick Reisenauer on 6/5/25.
@@ -7,14 +7,14 @@
 
 import SwiftUI
 
-struct ShowEpisodeView: View {
+struct AnimeEpisodeView: View {
   @Environment(\.dismiss) var dismiss
   @Environment(\.colorScheme) var colorScheme
   @EnvironmentObject private var auth: Auth
-  @Binding var episode: ShowEpisodeModel?
-  @Binding var showEpisodes: [ShowEpisodeModel]
-  @Binding var showWatchlist: ShowWatchlistModel?
-  @Binding var showDetails: ShowDetailsModel?
+  @Binding var episode: AnimeEpisodeModel?
+  @Binding var animeEpisodes: [AnimeEpisodeModel]
+  @Binding var animeWatchlist: AnimeWatchlistModel?
+  @Binding var animeDetails: AnimeDetailsModel?
   var simklId: Int
 
   var body: some View {
@@ -46,34 +46,34 @@ struct ShowEpisodeView: View {
       Button(action: {
         Task {
           if !hasWatched {
-            await ShowDetailView.markEpisodeWatched(
+            await AnimeDetailView.markEpisodeWatched(
               auth.simklAccessToken,
-              showDetails?.title ?? "",
+              animeDetails?.title ?? "",
               simklId,
               episode?.season ?? 0,
               episode?.episode ?? 0,
               episode?.ids.simkl_id ?? 0
             )
             if let episode = episode {
-              if let index = showWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {
-                if let episodeIndex = showWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
-                  showWatchlist?.seasons?[index].episodes?[episodeIndex].watched = true
+              if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {
+                if let episodeIndex = animeWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
+                  animeWatchlist?.seasons?[index].episodes?[episodeIndex].watched = true
                 }
               }
             }
           } else {
-            await ShowDetailView.markEpisodeUnwatched(
+            await AnimeDetailView.markEpisodeUnwatched(
               auth.simklAccessToken,
-              showDetails?.title ?? "",
+              animeDetails?.title ?? "",
               simklId,
               episode?.season ?? 0,
               episode?.episode ?? 0,
               episode?.ids.simkl_id ?? 0
             )
             if let episode = episode {
-              if let index = showWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {
-                if let episodeIndex = showWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
-                  showWatchlist?.seasons?[index].episodes?[episodeIndex].watched = false
+              if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {
+                if let episodeIndex = animeWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
+                  animeWatchlist?.seasons?[index].episodes?[episodeIndex].watched = false
                 }
               }
             }
@@ -103,7 +103,7 @@ struct ShowEpisodeView: View {
   }
 
   func hasWatchedEpisode(season targetSeason: Int, episode targetEpisode: Int) -> Bool {
-    guard let seasons = showWatchlist?.seasons else { return false }
+    guard let seasons = animeWatchlist?.seasons else { return false }
     for season in seasons {
       guard let episodes = season.episodes else { continue }
       if episodes.contains(where: {
