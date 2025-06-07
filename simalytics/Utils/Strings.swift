@@ -20,4 +20,14 @@ extension String {
 
     return strippedText
   }
+
+  func formattedEpisodeDate() -> String {
+    let isoFormatter = ISO8601DateFormatter()
+    guard let date = isoFormatter.date(from: self) else { return self }
+
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return formatter.string(from: date)
+  }
 }

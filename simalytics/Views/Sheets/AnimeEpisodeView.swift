@@ -37,7 +37,7 @@ struct AnimeEpisodeView: View {
         Text("S\(episode?.season ?? 0) E\(episode?.episode ?? 0)")
           .font(.caption)
           .bold()
-        Text(formattedDate(from: episode?.date))
+        Text(episode?.date?.formattedEpisodeDate() ?? "")
           .font(.caption)
         Spacer()
       }
@@ -113,15 +113,5 @@ struct AnimeEpisodeView: View {
       }
     }
     return false
-  }
-  func formattedDate(from isoString: String?) -> String {
-    guard let isoString = isoString else { return "" }
-    let isoFormatter = ISO8601DateFormatter()
-    guard let date = isoFormatter.date(from: isoString) else { return isoString }
-
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .none
-    return formatter.string(from: date)
   }
 }
