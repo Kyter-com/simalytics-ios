@@ -131,17 +131,7 @@ extension ShowDetailView {
           ]
         ]
       ]
-      let specialsBody: [String: Any] = [
-        "episodes": [
-          [
-            "watched_at": dateString,
-            "ids": [
-              "simkl": episodeId
-            ],
-          ]
-        ]
-      ]
-      request.httpBody = try JSONSerialization.data(withJSONObject: episode != 0 ? body : specialsBody)
+      request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
       SentrySDK.capture(error: error)
