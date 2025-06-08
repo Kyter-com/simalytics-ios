@@ -100,4 +100,3 @@ struct MemoView: View {
   }
 }
 // TODO: Background genre/tmdb info sync
-// TODO: Episode detail view
