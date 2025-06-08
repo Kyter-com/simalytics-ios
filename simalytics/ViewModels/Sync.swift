@@ -40,6 +40,8 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     await fetchAndStoreAnimeRatedAt(accessToken, result.anime?.rated_at, context)
     await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, context)
     await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, context)
+    await syncLatestTrending(accessToken, context)
+    await processChangesApi(accessToken, context)
   } catch {
     SentrySDK.capture(error: error)
   }
@@ -1554,9 +1556,8 @@ func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _
   }
 }
 
-func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) async {
+func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
   do {
-    let context = ModelContext(modelContainer)
     var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
     if syncRecord == nil {
       syncRecord = V1.SDLastSync(id: 1)
@@ -1621,6 +1622,14 @@ func syncLatestTrending(_ accessToken: String, modelContainer: ModelContainer) a
 
     syncRecord!.trending_data = now.ISO8601Format()
     try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+func processChangesApi(_ accessToken: String, _ context: ModelContext) async {
+  do {
+
   } catch {
     SentrySDK.capture(error: error)
   }

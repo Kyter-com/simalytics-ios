@@ -60,7 +60,6 @@ struct SimalyticsApp: App {
           if !auth.simklAccessToken.isEmpty {
             globalLoadingIndicator.startSync()
             await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContainer)
-            await syncLatestTrending(auth.simklAccessToken, modelContainer: modelContainer)
             globalLoadingIndicator.stopSync()
           }
         }

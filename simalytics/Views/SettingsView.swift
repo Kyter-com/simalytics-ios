@@ -113,7 +113,6 @@ struct SettingsView: View {
                     auth.simklAccessToken = accessToken
                     globalLoadingIndicator.startSync()
                     await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
-                    await syncLatestTrending(auth.simklAccessToken, modelContainer: modelContext.container)
                     globalLoadingIndicator.stopSync()
                   } catch {
                     showErrorAlert = true
