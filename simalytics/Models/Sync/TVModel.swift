@@ -24,6 +24,7 @@ struct TVModel_show: Codable {
   let not_aired_episodes_count: Int?
   let show: TVModel_show_item?
   let memo: TVModel_show_item_memo?
+  let next_to_watch_info: TVModel_show_item_next_to_watch_info?
 }
 
 struct TVModel_show_item: Codable {
@@ -50,4 +51,11 @@ struct TVModel_show_item_ids: Codable {
 struct TVModel_show_item_memo: Codable {
   let text: String?
   let is_private: Bool?
+}
+
+struct TVModel_show_item_next_to_watch_info: Codable {
+  let title: String?
+  let season: Int?
+  let episode: Int?
+  let date: String?
 }

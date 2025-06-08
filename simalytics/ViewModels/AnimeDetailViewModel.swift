@@ -39,8 +39,6 @@ extension AnimeDetailView {
       request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-      let formatter = ISO8601DateFormatter()
-      let dateString = formatter.string(from: Date())
       let body: [String: Any] = [
         "shows": [
           [

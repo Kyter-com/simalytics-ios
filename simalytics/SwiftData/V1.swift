@@ -117,7 +117,7 @@ enum V1: VersionedSchema {
     var id_tmdb: String?
     var memo_text: String?
     var memo_is_private: Bool?
-
+    var last_sd_synced_at: String?
     init(
       simkl: Int,
       title: String?,
@@ -137,7 +137,8 @@ enum V1: VersionedSchema {
       id_jwslug: String?,
       id_tmdb: String?,
       memo_text: String?,
-      memo_is_private: Bool?
+      memo_is_private: Bool?,
+      last_sd_synced_at: String? = nil
     ) {
       self.simkl = simkl
       self.title = title
@@ -158,6 +159,7 @@ enum V1: VersionedSchema {
       self.id_tmdb = id_tmdb
       self.memo_text = memo_text
       self.memo_is_private = memo_is_private
+      self.last_sd_synced_at = last_sd_synced_at
     }
   }
 
@@ -189,6 +191,11 @@ enum V1: VersionedSchema {
     var id_traktslug: String?
     var id_jwslug: String?
     var id_tvdb: String?
+    var next_to_watch_info_title: String?
+    var next_to_watch_info_season: Int?
+    var next_to_watch_info_episode: Int?
+    var next_to_watch_info_date: String?
+    var last_sd_synced_at: String?
     init(
       simkl: Int,
       added_to_watchlist_at: String?,
@@ -215,7 +222,12 @@ enum V1: VersionedSchema {
       id_tmdb: String?,
       id_traktslug: String?,
       id_jwslug: String?,
-      id_tvdb: String?
+      id_tvdb: String?,
+      next_to_watch_info_title: String? = nil,
+      next_to_watch_info_season: Int? = nil,
+      next_to_watch_info_episode: Int? = nil,
+      next_to_watch_info_date: String? = nil,
+      last_sd_synced_at: String? = nil
     ) {
       self.simkl = simkl
       self.added_to_watchlist_at = added_to_watchlist_at
@@ -243,6 +255,11 @@ enum V1: VersionedSchema {
       self.id_traktslug = id_traktslug
       self.id_jwslug = id_jwslug
       self.id_tvdb = id_tvdb
+      self.next_to_watch_info_title = next_to_watch_info_title
+      self.next_to_watch_info_season = next_to_watch_info_season
+      self.next_to_watch_info_episode = next_to_watch_info_episode
+      self.next_to_watch_info_date = next_to_watch_info_date
+      self.last_sd_synced_at = last_sd_synced_at
     }
   }
 
@@ -285,6 +302,11 @@ enum V1: VersionedSchema {
     var id_letterslug: String?
     var id_jwslug: String?
     var id_anidb: String?
+    var next_to_watch_info_title: String?
+    var next_to_watch_info_season: Int?
+    var next_to_watch_info_episode: Int?
+    var next_to_watch_info_date: String?
+    var last_sd_synced_at: String?
     init(
       simkl: Int,
       added_to_watchlist_at: String? = nil,
@@ -322,7 +344,12 @@ enum V1: VersionedSchema {
       id_traktslug: String? = nil,
       id_letterslug: String? = nil,
       id_jwslug: String? = nil,
-      id_anidb: String? = nil
+      id_anidb: String? = nil,
+      next_to_watch_info_title: String? = nil,
+      next_to_watch_info_season: Int? = nil,
+      next_to_watch_info_episode: Int? = nil,
+      next_to_watch_info_date: String? = nil,
+      last_sd_synced_at: String? = nil
     ) {
       self.simkl = simkl
       self.added_to_watchlist_at = added_to_watchlist_at
@@ -361,6 +388,11 @@ enum V1: VersionedSchema {
       self.id_letterslug = id_letterslug
       self.id_jwslug = id_jwslug
       self.id_anidb = id_anidb
+      self.next_to_watch_info_title = next_to_watch_info_title
+      self.next_to_watch_info_season = next_to_watch_info_season
+      self.next_to_watch_info_episode = next_to_watch_info_episode
+      self.next_to_watch_info_date = next_to_watch_info_date
+      self.last_sd_synced_at = last_sd_synced_at
     }
   }
 

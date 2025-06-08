@@ -742,7 +742,7 @@ func fetchAndStoreTVWatching(_ accessToken: String, _ lastActivity: String?, _ c
     if lastActivity == syncRecord!.tv_watching { return }
 
     var endpoint = URLComponents(
-      string: "https://api.simkl.com/sync/all-items/shows/watching?memos=yes")!
+      string: "https://api.simkl.com/sync/all-items/shows/watching?memos=yes&next_watch_info=yes")!
 
     let lastActivityDate = formatter.date(from: lastActivity)!
     if let previousSyncDate = syncRecord!.tv_watching.flatMap(formatter.date(from:)) {
@@ -751,7 +751,7 @@ func fetchAndStoreTVWatching(_ accessToken: String, _ lastActivity: String?, _ c
           from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
         endpoint = URLComponents(
           string:
-            "https://api.simkl.com/sync/all-items/shows/watching?memos=yes&date_from=\(dateFrom)"
+            "https://api.simkl.com/sync/all-items/shows/watching?memos=yes&next_watch_info=yes&date_from=\(dateFrom)"
         )!
       }
     }
@@ -798,7 +798,12 @@ func fetchAndStoreTVWatching(_ accessToken: String, _ lastActivity: String?, _ c
           id_tmdb: showItem.show?.ids?.tmdb,
           id_traktslug: showItem.show?.ids?.traktslug,
           id_jwslug: showItem.show?.ids?.jwslug,
-          id_tvdb: showItem.show?.ids?.tvdb
+          id_tvdb: showItem.show?.ids?.tvdb,
+          next_to_watch_info_title: showItem.next_to_watch_info?.title,
+          next_to_watch_info_season: showItem.next_to_watch_info?.season,
+          next_to_watch_info_episode: showItem.next_to_watch_info?.episode,
+          next_to_watch_info_date: showItem.next_to_watch_info?.date,
+          last_sd_synced_at: formatter.string(from: Date())
         )
       )
     }
@@ -1324,7 +1329,7 @@ func fetchAndStoreAnimeWatching(_ accessToken: String, _ lastActivity: String?, 
     if lastActivity == syncRecord!.anime_watching { return }
 
     var endpoint = URLComponents(
-      string: "https://api.simkl.com/sync/all-items/anime/watching?memos=yes")!
+      string: "https://api.simkl.com/sync/all-items/anime/watching?memos=yes&next_watch_info=yes")!
 
     let lastActivityDate = formatter.date(from: lastActivity)!
     if let previousSyncDate = syncRecord!.anime_watching.flatMap(formatter.date(from:)) {
@@ -1333,7 +1338,7 @@ func fetchAndStoreAnimeWatching(_ accessToken: String, _ lastActivity: String?, 
           from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
         endpoint = URLComponents(
           string:
-            "https://api.simkl.com/sync/all-items/anime/watching?memos=yes&date_from=\(dateFrom)"
+            "https://api.simkl.com/sync/all-items/anime/watching?memos=yes&next_watch_info=yes&date_from=\(dateFrom)"
         )!
       }
     }
@@ -1390,7 +1395,12 @@ func fetchAndStoreAnimeWatching(_ accessToken: String, _ lastActivity: String?, 
           id_traktslug: animeItem.show?.ids.traktslug,
           id_letterslug: animeItem.show?.ids.letterslug,
           id_jwslug: animeItem.show?.ids.jwslug,
-          id_anidb: animeItem.show?.ids.anidb
+          id_anidb: animeItem.show?.ids.anidb,
+          next_to_watch_info_title: animeItem.next_to_watch_info?.title,
+          next_to_watch_info_season: animeItem.next_to_watch_info?.season,
+          next_to_watch_info_episode: animeItem.next_to_watch_info?.episode,
+          next_to_watch_info_date: animeItem.next_to_watch_info?.date,
+          last_sd_synced_at: formatter.string(from: Date())
         )
       )
     }

@@ -25,6 +25,7 @@ struct AnimeModel_record: Codable {
   let anime_type: String?
   let show: AnimeModel_record_item?
   let memo: AnimeModel_record_item_memo?
+  let next_to_watch_info: AnimeModel_record_item_next_to_watch_info?
 }
 
 struct AnimeModel_record_item: Codable {
@@ -61,4 +62,11 @@ struct AnimeModel_record_item_ids: Codable {
 struct AnimeModel_record_item_memo: Codable {
   let text: String?
   let is_private: Bool?
+}
+
+struct AnimeModel_record_item_next_to_watch_info: Codable {
+  let title: String?
+  let season: Int?
+  let episode: Int?
+  let date: String?
 }

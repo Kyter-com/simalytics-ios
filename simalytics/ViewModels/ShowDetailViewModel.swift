@@ -60,8 +60,6 @@ extension ShowDetailView {
       request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-      let formatter = ISO8601DateFormatter()
-      let dateString = formatter.string(from: Date())
       let body: [String: Any] = [
         "shows": [
           [
@@ -82,17 +80,7 @@ extension ShowDetailView {
           ]
         ]
       ]
-      let specialsBody: [String: Any] = [
-        "episodes": [
-          [
-            "watched_at": dateString,
-            "ids": [
-              "simkl": episodeId
-            ],
-          ]
-        ]
-      ]
-      request.httpBody = try JSONSerialization.data(withJSONObject: episode != 0 ? body : specialsBody)
+      request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
       SentrySDK.capture(error: error)
