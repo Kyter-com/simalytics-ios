@@ -1628,8 +1628,61 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
 }
 
 func processChangesApi(_ accessToken: String, _ context: ModelContext) async {
+  let formatter = ISO8601DateFormatter()
   do {
+    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    if syncRecord == nil {
+      syncRecord = V1.SDLastSync(id: 1)
+      context.insert(syncRecord!)
+    }
 
+    let now = Date()
+    let oneHourInSeconds: TimeInterval = 1 * 60 * 60
+    let oneHourAgo = now.addingTimeInterval(-oneHourInSeconds)
+    var needsSync = false
+    if let lastSyncDateStr = syncRecord!.changes_api,
+      let lastSyncDate = formatter.date(from: lastSyncDateStr)
+    {
+      if lastSyncDate < oneHourAgo {
+        needsSync = true
+      }
+    } else {
+      needsSync = true
+    }
+    if !needsSync { return }
+
+    var endpoint = URLComponents(string: "https://api.simkl.com/changes?type=shows,anime")!
+
+    if let previousSyncDate = syncRecord!.changes_api.flatMap(formatter.date(from:)) {
+      let dateFrom = formatter.string(
+        from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
+      endpoint = URLComponents(
+        string:
+          "https://api.simkl.com/changes?type=shows,anime&date_from=\(dateFrom)"
+      )!
+    }
+
+    print("\(endpoint.url!)")
+    var request = URLRequest(url: endpoint.url!)
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    guard let result = try? JSONDecoder().decode(UpdatesModel.self, from: data) else {
+      syncRecord!.changes_api = now.ISO8601Format()
+      try context.save()
+      return
+    }
+
+    let shows = result.shows ?? []
+    let animes = result.anime ?? []
+
+    for show in shows {}
+    for anime in animes {}
+
+    syncRecord!.changes_api = now.ISO8601Format()
+    try context.save()
   } catch {
     SentrySDK.capture(error: error)
   }
