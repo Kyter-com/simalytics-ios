@@ -15,6 +15,7 @@ struct ShowEpisodeModel: Codable {
   let type: String?
   let date: String?
   let img: String?
+  let aired: Bool?
   let ids: ShowEpisodeModelIds
 }
 

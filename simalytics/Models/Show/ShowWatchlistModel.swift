@@ -12,6 +12,7 @@ struct ShowWatchlistModel: Codable {
   let last_watched_at: String?
   let simkl: Int
   let episodes_watched: Int?
+  let episodes_aired: Int?
   var seasons: [ShowWatchlistModel_seasons]?
 }
 

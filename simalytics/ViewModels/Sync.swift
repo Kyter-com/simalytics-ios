@@ -41,7 +41,7 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, context)
     await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, context)
     await syncLatestTrending(accessToken, context)
-    await processChangesApi(accessToken, context)
+    await processUpNextEpisodes(accessToken, context)
   } catch {
     SentrySDK.capture(error: error)
   }
@@ -1627,7 +1627,7 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
   }
 }
 
-func processChangesApi(_ accessToken: String, _ context: ModelContext) async {
+func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async {
   let formatter = ISO8601DateFormatter()
   do {
     var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
@@ -1651,35 +1651,181 @@ func processChangesApi(_ accessToken: String, _ context: ModelContext) async {
     }
     if !needsSync { return }
 
-    var endpoint = URLComponents(string: "https://api.simkl.com/changes?type=shows,anime")!
+    var sdShowsFD = FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.status == "watching" })
+    sdShowsFD.propertiesToFetch = [\.simkl]
+    let sdShowsIds = try context.fetch(sdShowsFD)
 
-    if let previousSyncDate = syncRecord!.changes_api.flatMap(formatter.date(from:)) {
-      let dateFrom = formatter.string(
-        from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
-      endpoint = URLComponents(
-        string:
-          "https://api.simkl.com/changes?type=shows,anime&date_from=\(dateFrom)"
-      )!
+    var sdAnimesFD = FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.status == "watching" && $0.anime_type == "tv" })
+    sdAnimesFD.propertiesToFetch = [\.simkl]
+    let sdAnimesIds = try context.fetch(sdAnimesFD)
+
+    for show in sdShowsIds {
+      let watchedEpisodes = await ShowDetailView.getShowWatchlist(show.simkl, accessToken)
+
+      guard
+        let watched = watchedEpisodes,
+        (watched.episodes_aired ?? 0) > (watched.episodes_watched ?? 0),
+        let seasons = watched.seasons
+      else { continue }
+
+      let allEpisodes = await ShowDetailView.getShowEpisodes(show.simkl)
+
+      // All episodes that have aired but are not marked as watched
+      let unwatched =
+        allEpisodes
+        .filter { $0.aired == true }
+        .filter { episode in
+          guard
+            let seasonNum = episode.season,
+            let epNum = episode.episode
+          else { return false }
+
+          let isWatched =
+            seasons
+            .first(where: { $0.number == seasonNum })?
+            .episodes?
+            .first(where: { $0.number == epNum })?
+            .watched ?? false
+
+          return !isWatched
+        }
+
+      // All episodes that *have* been watched
+      let actuallyWatchedEpisodes = allEpisodes.filter { episode in
+        guard
+          let seasonNum = episode.season,
+          let epNum = episode.episode
+        else { return false }
+
+        return
+          seasons
+          .first(where: { $0.number == seasonNum })?
+          .episodes?
+          .first(where: { $0.number == epNum })?
+          .watched ?? false
+      }
+
+      // Find the highest watched episode (latest)
+      let highestWatched =
+        actuallyWatchedEpisodes
+        .sorted(by: { ($0.season ?? 0, $0.episode ?? 0) > ($1.season ?? 0, $1.episode ?? 0) })
+        .first
+
+      // Find the first unwatched episode that comes *after* the highest watched
+      let nextUnwatched =
+        unwatched
+        .filter { episode in
+          guard let highest = highestWatched else { return true }  // no episodes watched yet
+          let current = (episode.season ?? 0, episode.episode ?? 0)
+          let highestSeen = (highest.season ?? 0, highest.episode ?? 0)
+          return current > highestSeen
+        }
+        .sorted(by: { ($0.season ?? 0, $0.episode ?? 0) < ($1.season ?? 0, $1.episode ?? 0) })  // get the next in order
+        .first
+
+      if let latest = nextUnwatched {
+        print("Updating", show.simkl)
+
+        let simklId = show.simkl  // capture value outside the predicate
+
+        let fetchDescriptor = FetchDescriptor<V1.SDShows>(
+          predicate: #Predicate<V1.SDShows> { $0.simkl == simklId }
+        )
+
+        if let existingShow = try context.fetch(fetchDescriptor).first {
+          existingShow.next_to_watch_info_title = latest.title
+          existingShow.next_to_watch_info_season = latest.season
+          existingShow.next_to_watch_info_episode = latest.episode
+          existingShow.next_to_watch_info_date = latest.date
+
+          try context.save()
+        }
+      }
     }
 
-    print("\(endpoint.url!)")
-    var request = URLRequest(url: endpoint.url!)
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    for anime in sdAnimesIds {
+      let watchedEpisodes = await AnimeDetailView.getAnimeWatchlist(anime.simkl, accessToken)
 
-    let (data, _) = try await URLSession.shared.data(for: request)
-    guard let result = try? JSONDecoder().decode(UpdatesModel.self, from: data) else {
-      syncRecord!.changes_api = now.ISO8601Format()
-      try context.save()
-      return
+      guard
+        let watched = watchedEpisodes,
+        (watched.episodes_aired ?? 0) > (watched.episodes_watched ?? 0),
+        let seasons = watched.seasons
+      else { continue }
+
+      let allEpisodes = await AnimeDetailView.getAnimeEpisodes(anime.simkl)
+
+      // All episodes that have aired but are not marked as watched
+      let unwatched =
+        allEpisodes
+        .filter { $0.aired == true }
+        .filter { episode in
+          guard
+            let seasonNum = episode.season,
+            let epNum = episode.episode
+          else { return false }
+
+          let isWatched =
+            seasons
+            .first(where: { $0.number == seasonNum })?
+            .episodes?
+            .first(where: { $0.number == epNum })?
+            .watched ?? false
+
+          return !isWatched
+        }
+
+      // All episodes that *have* been watched
+      let actuallyWatchedEpisodes = allEpisodes.filter { episode in
+        guard
+          let seasonNum = episode.season,
+          let epNum = episode.episode
+        else { return false }
+
+        return
+          seasons
+          .first(where: { $0.number == seasonNum })?
+          .episodes?
+          .first(where: { $0.number == epNum })?
+          .watched ?? false
+      }
+
+      // Find the highest watched episode (latest)
+      let highestWatched =
+        actuallyWatchedEpisodes
+        .sorted(by: { ($0.season ?? 0, $0.episode ?? 0) > ($1.season ?? 0, $1.episode ?? 0) })
+        .first
+
+      // Find the first unwatched episode that comes *after* the highest watched
+      let nextUnwatched =
+        unwatched
+        .filter { episode in
+          guard let highest = highestWatched else { return true }  // no episodes watched yet
+          let current = (episode.season ?? 0, episode.episode ?? 0)
+          let highestSeen = (highest.season ?? 0, highest.episode ?? 0)
+          return current > highestSeen
+        }
+        .sorted(by: { ($0.season ?? 0, $0.episode ?? 0) < ($1.season ?? 0, $1.episode ?? 0) })  // get the next in order
+        .first
+
+      if let latest = nextUnwatched {
+        print("Updating", anime.simkl)
+
+        let simklId = anime.simkl  // capture value outside the predicate
+
+        let fetchDescriptor = FetchDescriptor<V1.SDAnimes>(
+          predicate: #Predicate<V1.SDAnimes> { $0.simkl == simklId }
+        )
+
+        if let existingShow = try context.fetch(fetchDescriptor).first {
+          existingShow.next_to_watch_info_title = latest.title
+          existingShow.next_to_watch_info_season = latest.season
+          existingShow.next_to_watch_info_episode = latest.episode
+          existingShow.next_to_watch_info_date = latest.date
+
+          try context.save()
+        }
+      }
     }
-
-    let shows = result.shows ?? []
-    let animes = result.anime ?? []
-
-    for show in shows {}
-    for anime in animes {}
 
     syncRecord!.changes_api = now.ISO8601Format()
     try context.save()
