@@ -234,7 +234,8 @@ struct ShowDetailView: View {
                 ZStack(alignment: .bottomTrailing) {
                   ZStack {
                     CustomKFImage(
-                      imageUrlString: episode.img != nil ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
+                      imageUrlString: episode.img != nil
+                        ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
                       memoryCacheOnly: true,
                       height: 70.42,
                       width: 125
@@ -247,7 +248,8 @@ struct ShowDetailView: View {
                         .cornerRadius(8)
                     }
                   }
-                  if hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1) {
+                  if hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1)
+                  {
                     Image(systemName: "checkmark.circle")
                       .resizable()
                       .scaledToFit()
@@ -313,11 +315,11 @@ struct ShowDetailView: View {
       }
       .sheet(isPresented: $showingShowEpisodeSheet) {
         ShowEpisodeView(
-          episode: $selectedEpisode, showEpisodes: $showEpisodes, showWatchlist: $showWatchlist, showDetails: $showDetails, simklId: simkl_id
+          episode: $selectedEpisode, showEpisodes: $showEpisodes, showWatchlist: $showWatchlist,
+          showDetails: $showDetails, simklId: simkl_id
         )
         .presentationDetents([.medium])
       }
     }
   }
 }
-// TODO: Up next link to show

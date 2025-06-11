@@ -15,10 +15,15 @@ protocol UpNextMedia {
   var next_to_watch_info_title: String? { get }
   var next_to_watch_info_season: Int? { get }
   var next_to_watch_info_episode: Int? { get }
+  var type: String { get }
 }
 
-extension V1.SDShows: UpNextMedia {}
-extension V1.SDAnimes: UpNextMedia {}
+extension V1.SDShows: UpNextMedia {
+  var type: String { "tv" }
+}
+extension V1.SDAnimes: UpNextMedia {
+  var type: String { "anime" }
+}
 
 struct UpNextView: View {
   @EnvironmentObject private var auth: Auth
@@ -50,7 +55,7 @@ struct UpNextView: View {
   }
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       if auth.simklAccessToken.isEmpty {
         ContentUnavailableView {
           Label("Sign in to Simkl", systemImage: "lock.shield")
@@ -59,56 +64,58 @@ struct UpNextView: View {
         }
       } else {
         List(filteredMedia, id: \.simkl) { mediaItem in
-          HStack {
-            if let poster = mediaItem.poster {
-              CustomKFImage(
-                imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
-                memoryCacheOnly: false,
-                height: 118,
-                width: 80
-              )
-            }
-
-            VStack(alignment: .leading) {
-              if let title = mediaItem.title {
-                Text(title)
-                  .font(.headline)
-                  .padding(.top, 8)
-              }
-              if let title = mediaItem.next_to_watch_info_title {
-                Text(title)
-                  .font(.subheadline)
-              }
-              Spacer()
-              if let season = mediaItem.next_to_watch_info_season {
-                Text("Season \(season)")
-                  .font(.subheadline)
-                  .foregroundColor(.secondary)
-              }
-              if let episode = mediaItem.next_to_watch_info_episode {
-                Text("Episode \(episode)")
-                  .font(.subheadline)
-                  .foregroundColor(.secondary)
-              }
-              Spacer()
-            }
-          }
-          .swipeActions(edge: .trailing) {
-            Button {
-              Task {
-                await ShowDetailView.markEpisodeWatched(
-                  auth.simklAccessToken,
-                  mediaItem.title ?? "",
-                  mediaItem.simkl,
-                  mediaItem.next_to_watch_info_season ?? 0,
-                  mediaItem.next_to_watch_info_episode ?? 0,
+          NavigationLink(destination: destinationView(for: mediaItem)) {
+            HStack {
+              if let poster = mediaItem.poster {
+                CustomKFImage(
+                  imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
+                  memoryCacheOnly: false,
+                  height: 118,
+                  width: 80
                 )
-                await syncLatestActivities(auth.simklAccessToken, modelContainer: context.container)
               }
-            } label: {
-              Label("Watched", systemImage: "checkmark.circle")
+
+              VStack(alignment: .leading) {
+                if let title = mediaItem.title {
+                  Text(title)
+                    .font(.headline)
+                    .padding(.top, 8)
+                }
+                if let title = mediaItem.next_to_watch_info_title {
+                  Text(title)
+                    .font(.subheadline)
+                }
+                Spacer()
+                if let season = mediaItem.next_to_watch_info_season {
+                  Text("Season \(season)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                }
+                if let episode = mediaItem.next_to_watch_info_episode {
+                  Text("Episode \(episode)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                }
+                Spacer()
+              }
             }
-            .tint(.green)
+            .swipeActions(edge: .trailing) {
+              Button {
+                Task {
+                  await ShowDetailView.markEpisodeWatched(
+                    auth.simklAccessToken,
+                    mediaItem.title ?? "",
+                    mediaItem.simkl,
+                    mediaItem.next_to_watch_info_season ?? 0,
+                    mediaItem.next_to_watch_info_episode ?? 0,
+                  )
+                  await syncLatestActivities(auth.simklAccessToken, modelContainer: context.container)
+                }
+              } label: {
+                Label("Watched", systemImage: "checkmark.circle")
+              }
+              .tint(.green)
+            }
           }
         }
         .listStyle(.inset)
@@ -122,6 +129,18 @@ struct UpNextView: View {
           }
         }
       }
+    }
+  }
+
+  @ViewBuilder
+  private func destinationView(for mediaItem: any UpNextMedia) -> some View {
+    switch mediaItem.type {
+    case "tv":
+      ShowDetailView(simkl_id: mediaItem.simkl)
+    case "anime":
+      AnimeDetailView(simkl_id: mediaItem.simkl)  // Replace with your actual anime detail view
+    default:
+      ShowDetailView(simkl_id: mediaItem.simkl)
     }
   }
 }

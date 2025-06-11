@@ -1637,20 +1637,20 @@ func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async
     }
 
     let now = Date()
-    let oneHourInSeconds: TimeInterval = 1 * 60 * 60
-    let oneHourAgo = now.addingTimeInterval(-oneHourInSeconds)
+    let sixHoursInSeconds: TimeInterval = 6 * 60 * 60
+    let sixHoursAgo = now.addingTimeInterval(-sixHoursInSeconds)
     var needsSync = false
     if let lastSyncDateStr = syncRecord!.changes_api,
       let lastSyncDate = formatter.date(from: lastSyncDateStr)
     {
-      if lastSyncDate < oneHourAgo {
+      if lastSyncDate < sixHoursAgo {
         needsSync = true
       }
     } else {
       needsSync = true
     }
     if !needsSync { return }
-
+    // TODO: Cache trending images
     var sdShowsFD = FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.status == "watching" })
     sdShowsFD.propertiesToFetch = [\.simkl]
     let sdShowsIds = try context.fetch(sdShowsFD)
@@ -1834,3 +1834,5 @@ func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async
   }
 }
 // TODO: Figure out how to display episodes for BigTime
+// TODO: Widgets with next episode and show progress
+// TODO: Sync calendar data for "new" and notifications
