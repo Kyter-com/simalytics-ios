@@ -51,7 +51,7 @@ extension ShowDetailView {
     }
   }
 
-  static func markEpisodeUnwatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int, _ episodeId: Int) async {
+  static func markEpisodeUnwatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async {
     do {
       let url = URL(string: "https://api.simkl.com/sync/history/remove")!
       var request = URLRequest(url: url)
@@ -87,7 +87,7 @@ extension ShowDetailView {
     }
   }
 
-  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int, _ episodeId: Int) async {
+  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async {
     do {
       let url = URL(string: "https://api.simkl.com/sync/history")!
       var request = URLRequest(url: url)

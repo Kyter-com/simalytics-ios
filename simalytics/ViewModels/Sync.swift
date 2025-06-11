@@ -1399,7 +1399,7 @@ func fetchAndStoreAnimeWatching(_ accessToken: String, _ lastActivity: String?, 
           id_jwslug: animeItem.show?.ids.jwslug,
           id_anidb: animeItem.show?.ids.anidb,
           next_to_watch_info_title: animeItem.next_to_watch_info?.title,
-          next_to_watch_info_season: animeItem.next_to_watch_info?.season,
+          next_to_watch_info_season: animeItem.next_to_watch_info?.season ?? 1,
           next_to_watch_info_episode: animeItem.next_to_watch_info?.episode,
           next_to_watch_info_date: animeItem.next_to_watch_info?.date,
           last_sd_synced_at: formatter.string(from: Date())
@@ -1833,3 +1833,4 @@ func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async
     SentrySDK.capture(error: error)
   }
 }
+// TODO: Figure out how to display episodes for BigTime

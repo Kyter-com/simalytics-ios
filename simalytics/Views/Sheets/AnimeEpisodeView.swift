@@ -51,8 +51,7 @@ struct AnimeEpisodeView: View {
               animeDetails?.title ?? "",
               simklId,
               episode?.season ?? 0,
-              episode?.episode ?? 0,
-              episode?.ids.simkl_id ?? 0
+              episode?.episode ?? 0
             )
             if let episode = episode {
               if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {
@@ -67,8 +66,7 @@ struct AnimeEpisodeView: View {
               animeDetails?.title ?? "",
               simklId,
               episode?.season ?? 0,
-              episode?.episode ?? 0,
-              episode?.ids.simkl_id ?? 0
+              episode?.episode ?? 0
             )
             if let episode = episode {
               if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {

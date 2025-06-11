@@ -30,7 +30,7 @@ extension AnimeDetailView {
     }
   }
 
-  static func markEpisodeUnwatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int, _ episodeId: Int) async {
+  static func markEpisodeUnwatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async {
     do {
       let url = URL(string: "https://api.simkl.com/sync/history/remove")!
       var request = URLRequest(url: url)
@@ -113,7 +113,7 @@ extension AnimeDetailView {
     }
   }
 
-  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int, _ episodeId: Int) async {
+  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async {
     do {
       let url = URL(string: "https://api.simkl.com/sync/history")!
       var request = URLRequest(url: url)
@@ -145,17 +145,7 @@ extension AnimeDetailView {
           ]
         ]
       ]
-      let specialsBody: [String: Any] = [
-        "episodes": [
-          [
-            "watched_at": dateString,
-            "ids": [
-              "simkl": episodeId
-            ],
-          ]
-        ]
-      ]
-      request.httpBody = try JSONSerialization.data(withJSONObject: episode != 0 ? body : specialsBody)
+      request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
       SentrySDK.capture(error: error)
