@@ -70,16 +70,16 @@ struct ShowDetailView: View {
               KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
             }
 
-            // Setup initial filteredShows to Season 1 or Specials if nothing is aired yet
-            if !showEpisodes.filter({ $0.season == 1 }).isEmpty {
-              filteredEpisodes = showEpisodes.filter({ $0.season == 1 })
-              selectedSeason = "Season 1"
+            if let smallestSeason = showEpisodes.filter({ $0.season ?? 0 > 0 }).map({ $0.season ?? 0 }).min() {
+              filteredEpisodes = showEpisodes.filter({ $0.season == smallestSeason })
+              selectedSeason = "Season \(smallestSeason)"
             } else if !showEpisodes.filter({ $0.type == "special" }).isEmpty {
               filteredEpisodes = showEpisodes.filter({ $0.type == "special" })
               selectedSeason = "Specials"
             } else {
               filteredEpisodes = []
             }
+            // TODO: Better "no image" for shows
 
             isLoading = false
 
@@ -248,8 +248,7 @@ struct ShowDetailView: View {
                         .cornerRadius(8)
                     }
                   }
-                  if hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1)
-                  {
+                  if hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1) {
                     Image(systemName: "checkmark.circle")
                       .resizable()
                       .scaledToFit()
