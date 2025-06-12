@@ -11,6 +11,7 @@ struct ShowEpisodeView: View {
   @Environment(\.dismiss) var dismiss
   @Environment(\.colorScheme) var colorScheme
   @EnvironmentObject private var auth: Auth
+  @Environment(\.modelContext) private var context
   @Binding var episode: ShowEpisodeModel?
   @Binding var showEpisodes: [ShowEpisodeModel]
   @Binding var showWatchlist: ShowWatchlistModel?
@@ -76,6 +77,7 @@ struct ShowEpisodeView: View {
               }
             }
           }
+          await syncLatestActivities(auth.simklAccessToken, modelContainer: context.container)
         }
       }) {
         Text(hasWatched ? "Watched" : "Watch")
