@@ -226,6 +226,3 @@ extension ShowWatchlistButton {
     }
   }
 }
-
-// TODO: Anime specials mark as watched
-// TODO: Specials marked as watched
