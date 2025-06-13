@@ -59,7 +59,7 @@ struct ExploreView: View {
                               imageUrlString: showItem.poster != nil
                                 ? "\(SIMKL_CDN_URL)/posters/\(showItem.poster!)_m.jpg"
                                 : NO_IMAGE_URL,
-                              memoryCacheOnly: true,
+                              memoryCacheOnly: false,
                               height: 147,
                               width: 100
                             )
@@ -86,7 +86,7 @@ struct ExploreView: View {
                               imageUrlString: movieItem.poster != nil
                                 ? "\(SIMKL_CDN_URL)/posters/\(movieItem.poster!)_m.jpg"
                                 : NO_IMAGE_URL,
-                              memoryCacheOnly: true,
+                              memoryCacheOnly: false,
                               height: 150,
                               width: 100
                             )
@@ -113,7 +113,7 @@ struct ExploreView: View {
                               imageUrlString: animeItem.poster != nil
                                 ? "\(SIMKL_CDN_URL)/posters/\(animeItem.poster!)_m.jpg"
                                 : NO_IMAGE_URL,
-                              memoryCacheOnly: true,
+                              memoryCacheOnly: false,
                               height: 150,
                               width: 100
                             )

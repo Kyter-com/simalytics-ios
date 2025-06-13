@@ -25,6 +25,7 @@ struct CustomKFImage: View {
       .cacheMemoryOnly(memoryCacheOnly)
       .memoryCacheExpiration(.days(7))
       .diskCacheExpiration(.days(30))
+      .cancelOnDisappear(true)
       .aspectRatio(contentMode: .fit)
       .frame(width: width, height: height)
       .clipShape(RoundedRectangle(cornerRadius: 8))

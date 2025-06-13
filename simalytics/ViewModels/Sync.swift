@@ -1650,7 +1650,6 @@ func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async
       needsSync = true
     }
     if !needsSync { return }
-    // TODO: Cache trending images
     var sdShowsFD = FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.status == "watching" })
     sdShowsFD.propertiesToFetch = [\.simkl]
     let sdShowsIds = try context.fetch(sdShowsFD)
