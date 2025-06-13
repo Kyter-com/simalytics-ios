@@ -45,7 +45,7 @@ struct JustWatchView: View {
                     VStack {
                       CustomKFImage(
                         imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: true,
+                        memoryCacheOnly: false,
                         height: 50,
                         width: 50
                       )
@@ -72,7 +72,7 @@ struct JustWatchView: View {
                     VStack {
                       CustomKFImage(
                         imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: true,
+                        memoryCacheOnly: false,
                         height: 50,
                         width: 50
                       )
@@ -99,7 +99,7 @@ struct JustWatchView: View {
                     VStack {
                       CustomKFImage(
                         imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: true,
+                        memoryCacheOnly: false,
                         height: 50,
                         width: 50
                       )
@@ -126,7 +126,7 @@ struct JustWatchView: View {
                     VStack {
                       CustomKFImage(
                         imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: true,
+                        memoryCacheOnly: false,
                         height: 50,
                         width: 50
                       )
@@ -153,7 +153,7 @@ struct JustWatchView: View {
                     VStack {
                       CustomKFImage(
                         imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: true,
+                        memoryCacheOnly: false,
                         height: 50,
                         width: 50
                       )
