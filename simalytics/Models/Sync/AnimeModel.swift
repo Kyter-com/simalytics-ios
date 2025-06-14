@@ -66,7 +66,6 @@ struct AnimeModel_record_item_memo: Codable {
 
 struct AnimeModel_record_item_next_to_watch_info: Codable {
   let title: String?
-  let season: Int?
   let episode: Int?
   let date: String?
 }

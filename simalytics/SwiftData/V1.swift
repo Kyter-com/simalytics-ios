@@ -306,7 +306,6 @@ enum V1: VersionedSchema {
     var id_jwslug: String?
     var id_anidb: String?
     var next_to_watch_info_title: String?
-    var next_to_watch_info_season: Int?
     var next_to_watch_info_episode: Int?
     var next_to_watch_info_date: String?
     var last_sd_synced_at: String?
@@ -349,7 +348,6 @@ enum V1: VersionedSchema {
       id_jwslug: String? = nil,
       id_anidb: String? = nil,
       next_to_watch_info_title: String? = nil,
-      next_to_watch_info_season: Int? = nil,
       next_to_watch_info_episode: Int? = nil,
       next_to_watch_info_date: String? = nil,
       last_sd_synced_at: String? = nil
@@ -392,7 +390,6 @@ enum V1: VersionedSchema {
       self.id_jwslug = id_jwslug
       self.id_anidb = id_anidb
       self.next_to_watch_info_title = next_to_watch_info_title
-      self.next_to_watch_info_season = next_to_watch_info_season
       self.next_to_watch_info_episode = next_to_watch_info_episode
       self.next_to_watch_info_date = next_to_watch_info_date
       self.last_sd_synced_at = last_sd_synced_at

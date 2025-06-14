@@ -23,6 +23,7 @@ extension V1.SDShows: UpNextMedia {
 }
 extension V1.SDAnimes: UpNextMedia {
   var type: String { "anime" }
+  var next_to_watch_info_season: Int? { nil }
 }
 
 struct UpNextView: View {
