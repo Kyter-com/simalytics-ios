@@ -107,7 +107,7 @@ struct UpNextView: View {
                     auth.simklAccessToken,
                     mediaItem.title ?? "",
                     mediaItem.simkl,
-                    mediaItem.next_to_watch_info_season ?? 0,
+                    mediaItem.type == "anime" ? 1 : mediaItem.next_to_watch_info_season ?? 0,
                     mediaItem.next_to_watch_info_episode ?? 0,
                   )
                   await syncLatestActivities(auth.simklAccessToken, modelContainer: context.container)

@@ -248,7 +248,7 @@ struct AnimeDetailView: View {
                       }
                     }
                     if hasWatchedEpisode(
-                      season: episode.season ?? -1, episode: episode.episode ?? -1)
+                      season: episode.type == "special" ? 0 : 1, episode: episode.episode ?? -1)
                     {
                       Image(systemName: "checkmark.circle")
                         .resizable()

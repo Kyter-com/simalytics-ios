@@ -19,7 +19,7 @@ struct AnimeEpisodeView: View {
   var simklId: Int
 
   var body: some View {
-    let hasWatched = hasWatchedEpisode(season: episode?.season ?? -1, episode: episode?.episode ?? -1)
+    let hasWatched = hasWatchedEpisode(season: episode?.type == "special" ? 0 : 1, episode: episode?.episode ?? -1)
     VStack {
       HStack {
         CustomKFImage(
@@ -36,7 +36,7 @@ struct AnimeEpisodeView: View {
 
       if episode?.episode != nil && episode?.season != nil {
         HStack {
-          Text("S\(episode?.season ?? 0) E\(episode?.episode ?? 0)")
+          Text("E\(episode?.episode ?? 0)")
             .font(.caption)
             .bold()
           Text(episode?.date?.formattedEpisodeDate() ?? "")
@@ -54,11 +54,11 @@ struct AnimeEpisodeView: View {
                 auth.simklAccessToken,
                 animeDetails?.title ?? "",
                 simklId,
-                episode?.season ?? 0,
+                episode?.type == "special" ? 0 : 1,
                 episode?.episode ?? 0
               )
               if let episode = episode {
-                if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {
+                if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == (episode.type == "special" ? 0 : 1) }) {
                   if let episodeIndex = animeWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
                     animeWatchlist?.seasons?[index].episodes?[episodeIndex].watched = true
                   }
@@ -69,11 +69,11 @@ struct AnimeEpisodeView: View {
                 auth.simklAccessToken,
                 animeDetails?.title ?? "",
                 simklId,
-                episode?.season ?? 0,
+                episode?.type == "special" ? 0 : 1,
                 episode?.episode ?? 0
               )
               if let episode = episode {
-                if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {
+                if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == (episode.type == "special" ? 0 : 1) }) {
                   if let episodeIndex = animeWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
                     animeWatchlist?.seasons?[index].episodes?[episodeIndex].watched = false
                   }
