@@ -238,4 +238,3 @@ extension AnimeWatchlistButton {
     }
   }
 }
-// TODO: Fix anime seasons and all that to be 100's and season 0 and 1
