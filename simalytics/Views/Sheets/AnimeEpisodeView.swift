@@ -34,7 +34,7 @@ struct AnimeEpisodeView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
       }
 
-      if episode?.episode != nil && episode?.season != nil {
+      if episode?.episode != nil && episode?.season != nil && episode?.season != 0 {
         HStack {
           Text("E\(episode?.episode ?? 0)")
             .font(.caption)
@@ -46,7 +46,7 @@ struct AnimeEpisodeView: View {
         .padding([.top, .bottom], 2)
       }
 
-      if episode?.episode != nil && episode?.season != nil {
+      if episode?.episode != nil && episode?.season != nil && episode?.season != 0 {
         Button(action: {
           Task {
             if !hasWatched {
