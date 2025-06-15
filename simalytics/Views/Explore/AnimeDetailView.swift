@@ -63,7 +63,7 @@ struct AnimeDetailView: View {
             animeWatchlist = await AnimeDetailView.getAnimeWatchlist(
               simkl_id, auth.simklAccessToken)
             watchlistStatus = animeWatchlist?.list
-            animeEpisodes = await AnimeDetailView.getAnimeEpisodes(simkl_id)
+            animeEpisodes = await AnimeDetailView.getAnimeEpisodes(simkl_id, countSeasons: true)
 
             if let fanart = animeDetails?.fanart {
               let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!

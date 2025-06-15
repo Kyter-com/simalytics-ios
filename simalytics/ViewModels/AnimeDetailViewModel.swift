@@ -152,7 +152,7 @@ extension AnimeDetailView {
     }
   }
 
-  static func getAnimeEpisodes(_ simkl_id: Int) async -> [AnimeEpisodeModel] {
+  static func getAnimeEpisodes(_ simkl_id: Int, countSeasons: Bool = false) async -> [AnimeEpisodeModel] {
     do {
       var urlComponents = URLComponents(string: "https://api.simkl.com/anime/episodes/\(simkl_id)")!
       urlComponents.queryItems = [
@@ -169,17 +169,34 @@ extension AnimeDetailView {
       }
 
       let episodes = try JSONDecoder().decode([AnimeEpisodeModel].self, from: data)
-      // Map through the episodes and assign custom seasons
-      let processedEpisodes = episodes.map { episode -> AnimeEpisodeModel in
-        var modifiedEpisode = episode
-        if episode.type != "special", let episodeNumber = episode.episode {
-          modifiedEpisode.season = episodeNumber / 100 + 1
-        } else {
-          modifiedEpisode.season = 0
+
+      if countSeasons {
+        // Map through the episodes and assign custom seasons
+        let processedEpisodes = episodes.map { episode -> AnimeEpisodeModel in
+          var modifiedEpisode = episode
+          if episode.type != "special", let episodeNumber = episode.episode {
+            modifiedEpisode.season = episodeNumber / 100 + 1
+          } else {
+            modifiedEpisode.season = 0
+          }
+          return modifiedEpisode
         }
-        return modifiedEpisode
+        return processedEpisodes
+      } else {
+        // Count special as season 0 and everything else as season 1
+        let processedEpisodes = episodes.map { episode -> AnimeEpisodeModel in
+          var modifiedEpisode = episode
+          if episode.type == "special" {
+            modifiedEpisode.season = 0
+          } else if episode.episode != nil {
+            modifiedEpisode.season = 1
+          } else {
+            modifiedEpisode.season = nil
+          }
+          return modifiedEpisode
+        }
+        return processedEpisodes
       }
-      return processedEpisodes
     } catch {
       SentrySDK.capture(error: error)
       return []

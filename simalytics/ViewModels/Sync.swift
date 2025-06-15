@@ -1750,7 +1750,7 @@ func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async
         let seasons = watched.seasons
       else { continue }
 
-      let allEpisodes = await AnimeDetailView.getAnimeEpisodes(anime.simkl)
+      let allEpisodes = await AnimeDetailView.getAnimeEpisodes(anime.simkl, countSeasons: false)
 
       // All episodes that have aired but are not marked as watched
       let unwatched =
