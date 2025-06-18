@@ -65,7 +65,7 @@ struct MovieDetailView: View {
         HStack {
           CustomKFImage(
             imageUrlString: movieDetails?.poster != nil
-              ? "\(SIMKL_CDN_URL)/posters/\(movieDetails?.poster ?? "")_m.jpg" : NO_IMAGE_URL,
+              ? "\(SIMKL_CDN_URL)/posters/\(movieDetails?.poster ?? "")_m.jpg" : nil,
             memoryCacheOnly: true,
             height: 225,
             width: 150

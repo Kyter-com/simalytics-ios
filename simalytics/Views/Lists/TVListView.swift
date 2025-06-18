@@ -63,7 +63,7 @@ struct TVListView: View {
           CustomKFImage(
             imageUrlString: show.poster != nil
               ? "\(SIMKL_CDN_URL)/posters/\(show.poster!)_m.jpg"
-              : NO_IMAGE_URL,
+              : nil,
             memoryCacheOnly: true,
             height: 118,
             width: 80

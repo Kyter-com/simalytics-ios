@@ -58,7 +58,7 @@ struct ExploreView: View {
                             CustomKFImage(
                               imageUrlString: showItem.poster != nil
                                 ? "\(SIMKL_CDN_URL)/posters/\(showItem.poster!)_m.jpg"
-                                : NO_IMAGE_URL,
+                                : nil,
                               memoryCacheOnly: false,
                               height: 147,
                               width: 100
@@ -85,7 +85,7 @@ struct ExploreView: View {
                             CustomKFImage(
                               imageUrlString: movieItem.poster != nil
                                 ? "\(SIMKL_CDN_URL)/posters/\(movieItem.poster!)_m.jpg"
-                                : NO_IMAGE_URL,
+                                : nil,
                               memoryCacheOnly: false,
                               height: 150,
                               width: 100
@@ -112,7 +112,7 @@ struct ExploreView: View {
                             CustomKFImage(
                               imageUrlString: animeItem.poster != nil
                                 ? "\(SIMKL_CDN_URL)/posters/\(animeItem.poster!)_m.jpg"
-                                : NO_IMAGE_URL,
+                                : nil,
                               memoryCacheOnly: false,
                               height: 150,
                               width: 100

@@ -38,7 +38,7 @@ struct Recommendations: View {
                     CustomKFImage(
                       imageUrlString: item.poster != nil
                         ? "\(SIMKL_CDN_URL)/posters/\(item.poster!)_m.jpg"
-                        : NO_IMAGE_URL,
+                        : nil,
                       memoryCacheOnly: true,
                       height: 147,
                       width: 100

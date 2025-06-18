@@ -65,7 +65,7 @@ struct AnimeListView: View {
           CustomKFImage(
             imageUrlString: anime.poster != nil
               ? "\(SIMKL_CDN_URL)/posters/\(anime.poster!)_m.jpg"
-              : NO_IMAGE_URL,
+              : nil,
             memoryCacheOnly: true,
             height: 118,
             width: 80

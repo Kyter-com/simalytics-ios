@@ -234,7 +234,7 @@ struct AnimeDetailView: View {
                     ZStack {
                       CustomKFImage(
                         imageUrlString: episode.img != nil
-                          ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : NO_IMAGE_URL,
+                          ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : nil,
                         memoryCacheOnly: true,
                         height: 70.42,
                         width: 125
