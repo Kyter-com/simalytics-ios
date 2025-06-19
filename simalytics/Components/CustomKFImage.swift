@@ -15,15 +15,23 @@ struct CustomKFImage: View {
   let width: CGFloat
 
   var body: some View {
+    let processor = DownsamplingImageProcessor(size: CGSize(width: width * UIScreen.main.scale, height: height * UIScreen.main.scale))
+    // Using .scale ensures that we downsample to the exact number of pixels for the display,
+    // which is important for image quality on Retina displays.
+
     Group {
       if let imageUrlString = imageUrlString, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
         KFImage(url)
+          .processor(processor) // Add the DownsamplingImageProcessor
           .fade(duration: 0.33)
           .placeholder {
             ProgressView()
+              .frame(width: width, height: height) // Ensure placeholder respects frame
           }
           .resizable()
-          .serialize(as: .JPEG)
+          // .serialize(as: .JPEG) // Consider if this is always needed.
+          // If source images are often PNGs with transparency that needs preserving, this could be an issue.
+          // However, for typical photos/posters, JPEG is fine for cache size. Assuming it's intentional.
           .cacheMemoryOnly(memoryCacheOnly)
           .memoryCacheExpiration(.days(7))
           .diskCacheExpiration(.days(30))
