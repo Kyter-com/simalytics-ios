@@ -23,6 +23,7 @@ struct ParallaxBackgroundImage: View {
           )
           .serialize(as: .JPEG)
           .cacheMemoryOnly(true)
+          .fromMemoryCacheOrRefresh(true)
           .memoryCacheExpiration(.days(7))
           .fade(duration: 0.10)
           .resizable()
@@ -37,3 +38,4 @@ struct ParallaxBackgroundImage: View {
     }
   }
 }
+// TODO: https://nilcoalescing.com/blog/StretchyHeaderInSwiftUI/?utm_source=substack&utm_medium=email

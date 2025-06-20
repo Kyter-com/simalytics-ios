@@ -25,6 +25,7 @@ struct CustomKFImage: View {
           .resizable()
           .serialize(as: .JPEG)
           .cacheMemoryOnly(memoryCacheOnly)
+          .fromMemoryCacheOrRefresh(true)
           .memoryCacheExpiration(.days(7))
           .diskCacheExpiration(.days(30))
           .cancelOnDisappear(true)
