@@ -38,4 +38,5 @@ struct ParallaxBackgroundImage: View {
     }
   }
 }
+
 // TODO: https://nilcoalescing.com/blog/StretchyHeaderInSwiftUI/?utm_source=substack&utm_medium=email
