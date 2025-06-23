@@ -110,10 +110,14 @@ struct SettingsView: View {
 
                     let simpleKeychain = SimpleKeychain()
                     try simpleKeychain.set(accessToken, forKey: "simkl-access-token")
-                    auth.simklAccessToken = accessToken
-                    globalLoadingIndicator.startSync()
-                    await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
-                    globalLoadingIndicator.stopSync()
+                    auth.simklAccessToken = accessToken // Update UI immediately
+
+                    // Run sync in a background task
+                    Task {
+                        globalLoadingIndicator.startSync()
+                        await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
+                        globalLoadingIndicator.stopSync()
+                    }
                   } catch {
                     showErrorAlert = true
                   }
