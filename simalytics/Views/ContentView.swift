@@ -7,16 +7,6 @@
 
 import SwiftUI
 
-struct GlassEffectIfAvailable: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content.glassEffect(.regular.interactive(), in: .rect(cornerRadius: 0))
-        } else {
-            content
-        }
-    }
-}
-
 struct ContentView: View {
   @State private var selectedTab = 0
 
@@ -43,7 +33,12 @@ struct ContentView: View {
         }
         .tag(3)
     }
-    .modifier(GlassEffectIfAvailable())
+    .background {
+      if #available(iOS 26, *) {
+        Color.clear
+          .glassBackgroundEffect()
+      }
+    }
     .onChange(of: selectedTab) {
       let generator = UIImpactFeedbackGenerator(style: .light)
       generator.impactOccurred()
