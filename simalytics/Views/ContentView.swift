@@ -33,12 +33,6 @@ struct ContentView: View {
         }
         .tag(3)
     }
-    .background {
-      if #available(iOS 26, *) {
-        Color.clear
-          .glassBackgroundEffect()
-      }
-    }
     .onChange(of: selectedTab) {
       let generator = UIImpactFeedbackGenerator(style: .light)
       generator.impactOccurred()
