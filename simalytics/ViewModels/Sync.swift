@@ -11,7 +11,6 @@ import SwiftData
 
 func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer) async {
   do {
-    let context = ModelContext(modelContainer)
     let urlComponents = URLComponents(string: "https://api.simkl.com/sync/activities")!
     var request = URLRequest(url: urlComponents.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -21,27 +20,92 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     let (data, _) = try await URLSession.shared.data(for: request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
 
-    await fetchAndStoreMoviesPlanToWatch(accessToken, result.movies?.plantowatch, context)
-    await fetchAndStoreMoviesDropped(accessToken, result.movies?.dropped, context)
-    await fetchAndStoreMoviesCompleted(accessToken, result.movies?.completed, context)
-    await fetchAndStoreMoviesRemovedFromList(accessToken, result.movies?.removed_from_list, context)
-    await fetchAndStoreMoviesRatedAt(accessToken, result.movies?.rated_at, context)
-    await fetchAndStoreTVPlanToWatch(accessToken, result.tv_shows?.plantowatch, context)
-    await fetchAndStoreTVCompleted(accessToken, result.tv_shows?.completed, context)
-    await fetchAndStoreTVHold(accessToken, result.tv_shows?.hold, context)
-    await fetchAndStoreTVDropped(accessToken, result.tv_shows?.dropped, context)
-    await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, context)
-    await fetchAndStoreTVRemovedFromList(accessToken, result.tv_shows?.removed_from_list, context)
-    await fetchAndStoreTVRatedAt(accessToken, result.tv_shows?.rated_at, context)
-    await fetchAndStoreAnimePlanToWatch(accessToken, result.anime?.plantowatch, context)
-    await fetchAndStoreAnimeDropped(accessToken, result.anime?.dropped, context)
-    await fetchAndStoreAnimeCompleted(accessToken, result.anime?.completed, context)
-    await fetchAndStoreAnimeHold(accessToken, result.anime?.hold, context)
-    await fetchAndStoreAnimeRatedAt(accessToken, result.anime?.rated_at, context)
-    await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, context)
-    await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, context)
-    await syncLatestTrending(accessToken, context)
-    await processUpNextEpisodes(accessToken, context)
+    await withTaskGroup(of: Void.self) { group in
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreMoviesPlanToWatch(accessToken, result.movies?.plantowatch, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreMoviesDropped(accessToken, result.movies?.dropped, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreMoviesCompleted(accessToken, result.movies?.completed, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreMoviesRemovedFromList(accessToken, result.movies?.removed_from_list, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreMoviesRatedAt(accessToken, result.movies?.rated_at, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreTVPlanToWatch(accessToken, result.tv_shows?.plantowatch, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreTVCompleted(accessToken, result.tv_shows?.completed, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreTVHold(accessToken, result.tv_shows?.hold, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreTVDropped(accessToken, result.tv_shows?.dropped, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreTVRemovedFromList(accessToken, result.tv_shows?.removed_from_list, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreTVRatedAt(accessToken, result.tv_shows?.rated_at, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreAnimePlanToWatch(accessToken, result.anime?.plantowatch, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreAnimeDropped(accessToken, result.anime?.dropped, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreAnimeCompleted(accessToken, result.anime?.completed, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreAnimeHold(accessToken, result.anime?.hold, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreAnimeRatedAt(accessToken, result.anime?.rated_at, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await syncLatestTrending(accessToken, context)
+      }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await processUpNextEpisodes(accessToken, context)
+      }
+    }
   } catch {
     SentrySDK.capture(error: error)
   }
