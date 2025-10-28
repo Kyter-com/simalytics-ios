@@ -45,8 +45,15 @@ struct SettingsView: View {
         Form {
           Section {
             HStack {
-              Text(auth.simklAccessToken.isEmpty ? "Not Connected" : "Connected")
+              Image(systemName: "link.circle.fill")
+                .font(.title2)
+                .foregroundColor(.blue)
+                .frame(width: 28, height: 28)
+
+              Text("Simkl Status")
               Spacer()
+              Text(auth.simklAccessToken.isEmpty ? "Not Connected" : "Connected")
+                .foregroundColor(.secondary)
               PulseCircle(active: !auth.simklAccessToken.isEmpty)
             }
             if auth.simklAccessToken.isEmpty {
@@ -110,13 +117,13 @@ struct SettingsView: View {
 
                     let simpleKeychain = SimpleKeychain()
                     try simpleKeychain.set(accessToken, forKey: "simkl-access-token")
-                    auth.simklAccessToken = accessToken // Update UI immediately
+                    auth.simklAccessToken = accessToken  // Update UI immediately
 
                     // Run sync in a background task
                     Task {
-                        globalLoadingIndicator.startSync()
-                        await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
-                        globalLoadingIndicator.stopSync()
+                      globalLoadingIndicator.startSync()
+                      await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
+                      globalLoadingIndicator.stopSync()
                     }
                   } catch {
                     showErrorAlert = true
@@ -137,28 +144,48 @@ struct SettingsView: View {
               .frame(maxWidth: .infinity, alignment: .center)
             }
           } header: {
-            Text("Simkl Connection")
+            Text("Account")
           }
 
           Section {
             HStack {
+              Image(systemName: "photo.circle.fill")
+                .font(.title2)
+                .foregroundColor(.purple)
+                .frame(width: 28, height: 28)
+
               Text("Blur Episode Images")
               Spacer()
               Toggle("", isOn: $blurImages)
             }
           } header: {
-            Text("Show Settings")
+            Text("Display")
           }
 
-          Section(header: Text("Ratings & Feedback")) {
+          Section(header: Text("Support")) {
             Button(action: {
               UIApplication.shared.open(URL(string: "https://github.com/Kyter-com/simalytics-ios/")!)
             }) {
               HStack {
+                Image(systemName: "circle.fill")
+                  .font(.title2)
+                  .foregroundColor(.black)
+                  .frame(width: 28, height: 28)
+                  .overlay(
+                    Image("github")
+                      .resizable()
+                      .scaledToFit()
+                      .frame(width: 16, height: 16)
+                      .foregroundColor(.white)
+                  )
+
                 Text("GitHub")
+                  .foregroundColor(.primary)
                 Spacer()
-                Image("GitHub")
-                  .imageScale(.large)
+                Image(systemName: "chevron.right")
+                  .font(.footnote)
+                  .fontWeight(.semibold)
+                  .foregroundColor(Color(UIColor.tertiaryLabel))
               }
             }
             Button(action: {
@@ -172,9 +199,18 @@ struct SettingsView: View {
               }
             }) {
               HStack {
+                Image(systemName: "envelope.circle.fill")
+                  .font(.title2)
+                  .foregroundColor(.blue)
+                  .frame(width: 28, height: 28)
+
                 Text("Send Feedback")
+                  .foregroundColor(.primary)
                 Spacer()
-                Image(systemName: "envelope")
+                Image(systemName: "chevron.right")
+                  .font(.footnote)
+                  .fontWeight(.semibold)
+                  .foregroundColor(Color(UIColor.tertiaryLabel))
               }
             }
           }
@@ -188,9 +224,17 @@ struct SettingsView: View {
               }
             }) {
               HStack {
+                Image(systemName: "lock.circle.fill")
+                  .font(.title2)
+                  .foregroundColor(.indigo)
+                  .frame(width: 28, height: 28)
+
                 Text("Simkl Privacy Policy")
+                  .foregroundColor(.primary)
                 Spacer()
-                Image(systemName: "arrow.up.right")
+                Image(systemName: "arrow.up.forward")
+                  .font(.footnote)
+                  .foregroundColor(Color(UIColor.tertiaryLabel))
               }
             }
             Button(action: {
@@ -201,9 +245,17 @@ struct SettingsView: View {
               }
             }) {
               HStack {
+                Image(systemName: "doc.circle.fill")
+                  .font(.title2)
+                  .foregroundColor(.teal)
+                  .frame(width: 28, height: 28)
+
                 Text("Simkl Terms of Service")
+                  .foregroundColor(.primary)
                 Spacer()
-                Image(systemName: "arrow.up.right")
+                Image(systemName: "arrow.up.forward")
+                  .font(.footnote)
+                  .foregroundColor(Color(UIColor.tertiaryLabel))
               }
             }
             Button(action: {
@@ -214,14 +266,22 @@ struct SettingsView: View {
               }
             }) {
               HStack {
+                Image(systemName: "tv.circle.fill")
+                  .font(.title2)
+                  .foregroundColor(.green)
+                  .frame(width: 28, height: 28)
+
                 Text("TMDB Terms of Use")
+                  .foregroundColor(.primary)
                 Spacer()
-                Image(systemName: "arrow.up.right")
+                Image(systemName: "arrow.up.forward")
+                  .font(.footnote)
+                  .foregroundColor(Color(UIColor.tertiaryLabel))
               }
             }
           }
 
-          Section(header: Text("Privacy & Legal")) {
+          Section(header: Text("Legal")) {
             Button(action: {
               if let url = URL(
                 string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
@@ -230,9 +290,17 @@ struct SettingsView: View {
               }
             }) {
               HStack {
+                Image(systemName: "doc.circle.fill")
+                  .font(.title2)
+                  .foregroundColor(.gray)
+                  .frame(width: 28, height: 28)
+
                 Text("End User License Agreement")
+                  .foregroundColor(.primary)
                 Spacer()
-                Image(systemName: "arrow.up.right")
+                Image(systemName: "arrow.up.forward")
+                  .font(.footnote)
+                  .foregroundColor(Color(UIColor.tertiaryLabel))
               }
             }
 
@@ -244,9 +312,17 @@ struct SettingsView: View {
               }
             }) {
               HStack {
+                Image(systemName: "hand.raised.circle.fill")
+                  .font(.title2)
+                  .foregroundColor(.blue)
+                  .frame(width: 28, height: 28)
+
                 Text("Privacy Policy")
+                  .foregroundColor(.primary)
                 Spacer()
-                Image(systemName: "arrow.up.right")
+                Image(systemName: "arrow.up.forward")
+                  .font(.footnote)
+                  .foregroundColor(Color(UIColor.tertiaryLabel))
               }
             }
 
@@ -258,15 +334,23 @@ struct SettingsView: View {
               }
             }) {
               HStack {
+                Image(systemName: "checkmark.circle.fill")
+                  .font(.title2)
+                  .foregroundColor(.mint)
+                  .frame(width: 28, height: 28)
+
                 Text("Terms & Conditions")
+                  .foregroundColor(.primary)
                 Spacer()
-                Image(systemName: "arrow.up.right")
+                Image(systemName: "arrow.up.forward")
+                  .font(.footnote)
+                  .foregroundColor(Color(UIColor.tertiaryLabel))
               }
             }
           }
 
           if !auth.simklAccessToken.isEmpty {
-            Section(header: Text("Account Settings")) {
+            Section(header: Text("Data Management")) {
               Button(action: {
                 Task {
                   let simpleKeychain = SimpleKeychain()
@@ -276,11 +360,15 @@ struct SettingsView: View {
                 }
               }) {
                 HStack {
+                  Image(systemName: "trash.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.red)
+                    .frame(width: 28, height: 28)
+
                   Text("Clear Locally Stored Data")
+                    .foregroundColor(.red)
                   Spacer()
-                  Image(systemName: "arrow.up.trash")
                 }
-                .foregroundColor(.red)
               }
 
               Button(action: {
@@ -291,11 +379,18 @@ struct SettingsView: View {
                 }
               }) {
                 HStack {
+                  Image(systemName: "xmark.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.red)
+                    .frame(width: 28, height: 28)
+
                   Text("Delete Account")
+                    .foregroundColor(.red)
                   Spacer()
-                  Image(systemName: "arrow.up.right")
+                  Image(systemName: "arrow.up.forward")
+                    .font(.footnote)
+                    .foregroundColor(Color(UIColor.tertiaryLabel))
                 }
-                .foregroundColor(.red)
               }
             }
           }

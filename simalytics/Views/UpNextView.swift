@@ -139,9 +139,12 @@ struct UpNextView: View {
     case "tv":
       ShowDetailView(simkl_id: mediaItem.simkl)
     case "anime":
-      AnimeDetailView(simkl_id: mediaItem.simkl)  // Replace with your actual anime detail view
+      AnimeDetailView(simkl_id: mediaItem.simkl)
     default:
       ShowDetailView(simkl_id: mediaItem.simkl)
     }
   }
 }
+
+// TODO: https://www.shutterstock.com/image-vector/s-letter-media-play-button-logo-1994243441
+// TODO: https://www.logoground.com/logo.php?id=1027401
