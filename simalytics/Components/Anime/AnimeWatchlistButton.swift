@@ -11,6 +11,7 @@ struct AnimeWatchlistButton: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
+  @ScaledMetric(relativeTo: .body) private var buttonPadding: CGFloat = 15
   @Binding var status: String?
   var simkl_id: Int
   let statusOptions = ["watching", "plantowatch", "completed", "hold", "dropped"]
@@ -39,14 +40,15 @@ struct AnimeWatchlistButton: View {
     } label: {
       HStack {
         Image(systemName: mapStatusToIcon(status))
+          .font(.body)
         Text(mapStatus(status))
           .multilineTextAlignment(.center)
           .frame(maxWidth: .infinity)
       }
       .foregroundColor(foregroundColor(status))
       .bold()
-      .padding(.horizontal, 15)
-      .padding(.vertical, 15)
+      .padding(.horizontal, buttonPadding)
+      .padding(.vertical, buttonPadding)
       .background(mapStatusToColor(status))
       .cornerRadius(8)
     }
