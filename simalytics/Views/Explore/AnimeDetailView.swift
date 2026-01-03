@@ -13,6 +13,7 @@ struct AnimeDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
+  @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @State private var animeWatchlist: AnimeWatchlistModel?
   @State private var animeDetails: AnimeDetailsModel?
   @State private var animeEpisodes: [AnimeEpisodeModel] = []
@@ -89,8 +90,9 @@ struct AnimeDetailView: View {
                   FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.simkl == simkl_id })
                 )
                 if let anime = animes.first {
-                  self.localRating = Double(anime.user_rating ?? 0)
-                  self.originalRating = Double(anime.user_rating ?? 0)
+                  let simklRating = Double(anime.user_rating ?? 0)
+                  self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
+                  self.originalRating = self.localRating
                   self.memoText = anime.memo_text ?? ""
                   self.privacySelection = anime.memo_is_private ?? true ? "Private" : "Public"
                 }
@@ -160,7 +162,7 @@ struct AnimeDetailView: View {
 
         if watchlistStatus != nil {
           RatingView(
-            maxRating: 10,
+            maxRating: useFiveStarRating ? 5 : 10,
             rating: $localRating,
             starColor: .blue,
             starRounding: .roundToFullStar,
@@ -293,7 +295,8 @@ struct AnimeDetailView: View {
       .onChange(of: localRating) {
         if localRating == originalRating { return }
         Task {
-          await AnimeDetailView.addAnimeRating(simkl_id, auth.simklAccessToken, localRating)
+          let ratingForSimkl = useFiveStarRating ? localRating * 2 : localRating
+          await AnimeDetailView.addAnimeRating(simkl_id, auth.simklAccessToken, ratingForSimkl)
           await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
         }
       }

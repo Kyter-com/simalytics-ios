@@ -13,6 +13,7 @@ struct MovieDetailView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
+  @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @State private var movieDetails: MovieDetailsModel?
   @State private var movieWatchlist: MovieWatchlistModel?
   @State private var isLoading = true
@@ -49,8 +50,9 @@ struct MovieDetailView: View {
                   FetchDescriptor<V1.SDMovies>(predicate: #Predicate { $0.simkl == simkl_id })
                 )
                 if let movie = movies.first {
-                  self.localRating = Double(movie.user_rating ?? 0)
-                  self.originalRating = Double(movie.user_rating ?? 0)
+                  let simklRating = Double(movie.user_rating ?? 0)
+                  self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
+                  self.originalRating = self.localRating
                   self.memoText = movie.memo_text ?? ""
                   self.privacySelection = movie.memo_is_private ?? true ? "Private" : "Public"
                 }
@@ -169,7 +171,7 @@ struct MovieDetailView: View {
 
         if watchlistStatus != nil {
           RatingView(
-            maxRating: 10,
+            maxRating: useFiveStarRating ? 5 : 10,
             rating: $localRating,
             starColor: .blue,
             starRounding: .roundToFullStar,
@@ -205,7 +207,8 @@ struct MovieDetailView: View {
       .onChange(of: localRating) {
         if localRating == originalRating { return }
         Task {
-          await MovieDetailView.addMovieRating(simkl_id, auth.simklAccessToken, localRating)
+          let ratingForSimkl = useFiveStarRating ? localRating * 2 : localRating
+          await MovieDetailView.addMovieRating(simkl_id, auth.simklAccessToken, ratingForSimkl)
           await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
         }
       }

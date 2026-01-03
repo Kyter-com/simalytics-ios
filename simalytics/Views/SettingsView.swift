@@ -15,6 +15,7 @@ struct SettingsView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
   @AppStorage("blurEpisodeImages") private var blurImages = false
+  @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @State private var showErrorAlert = false
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var modelContext
@@ -157,6 +158,16 @@ struct SettingsView: View {
               Text("Blur Episode Images")
               Spacer()
               Toggle("", isOn: $blurImages)
+            }
+            HStack {
+              Image(systemName: "star.circle.fill")
+                .font(.title2)
+                .foregroundColor(.yellow)
+                .frame(width: 28, height: 28)
+
+              Text("Use 5-Star Ratings")
+              Spacer()
+              Toggle("", isOn: $useFiveStarRating)
             }
           } header: {
             Text("Display")
