@@ -175,7 +175,7 @@ struct MovieDetailView: View {
             rating: $localRating,
             starColor: .blue,
             starRounding: .roundToFullStar,
-            size: 20
+            size: useFiveStarRating ? 28 : 20
           )
           .padding([.leading, .trailing])
           .padding(.top, 8)
