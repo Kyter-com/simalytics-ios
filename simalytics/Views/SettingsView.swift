@@ -197,9 +197,8 @@ struct SettingsView: View {
                 Text("GitHub")
                   .foregroundColor(.primary)
                 Spacer()
-                Image(systemName: "chevron.right")
+                Image(systemName: "arrow.up.forward")
                   .font(.footnote)
-                  .fontWeight(.semibold)
                   .foregroundColor(Color(UIColor.tertiaryLabel))
               }
             }
