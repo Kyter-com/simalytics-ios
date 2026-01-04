@@ -364,6 +364,21 @@ struct SettingsView: View {
             }
           }
 
+          Section(header: Text("About")) {
+            NavigationLink(destination: AcknowledgementsView()) {
+              HStack {
+                Image(systemName: "heart.circle.fill")
+                  .font(.title2)
+                  .foregroundColor(.pink)
+                  .frame(width: 28, height: 28)
+
+                Text("Acknowledgements")
+                  .foregroundColor(.primary)
+                Spacer()
+              }
+            }
+          }
+
           if !auth.simklAccessToken.isEmpty {
             Section(header: Text("Data Management")) {
               Button(action: {
