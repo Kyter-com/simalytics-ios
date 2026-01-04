@@ -33,6 +33,7 @@ struct ShowDetailView: View {
   @State private var showingJustWatchSheet = false
   @State private var showingShowEpisodeSheet = false
   @State private var showingMemoSheet = false
+  @State private var showingFullscreenPoster = false
 
   var seasons: [Int] {
     showEpisodes.compactMap { $0.season }.unique().sorted()
@@ -115,6 +116,9 @@ struct ShowDetailView: View {
               RoundedRectangle(cornerRadius: 8).stroke(
                 colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
             )
+            .onTapGesture {
+              showingFullscreenPoster = true
+            }
           }
           Spacer()
           VStack {
@@ -320,6 +324,11 @@ struct ShowDetailView: View {
           showDetails: $showDetails, simklId: simkl_id
         )
         .presentationDetents([.medium])
+      }
+      .fullScreenCover(isPresented: $showingFullscreenPoster) {
+        if let poster = showDetails?.poster {
+          FullscreenPosterView(posterPath: poster)
+        }
       }
     }
   }

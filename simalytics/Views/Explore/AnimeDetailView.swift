@@ -31,8 +31,9 @@ struct AnimeDetailView: View {
   @State private var showingShowEpisodeSheet = false
   var simkl_id: Int
 
-  // MARK: - JustWatch Integration
+  // MARK: - Sheets
   @State private var showingJustWatchSheet = false
+  @State private var showingFullscreenPoster = false
 
   var seasons: [Int] {
     animeEpisodes.compactMap { $0.season }.unique().filter { $0 > 0 }.sorted()
@@ -116,6 +117,9 @@ struct AnimeDetailView: View {
               RoundedRectangle(cornerRadius: 8).stroke(
                 colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
             )
+            .onTapGesture {
+              showingFullscreenPoster = true
+            }
           }
           Spacer()
           VStack {
@@ -319,6 +323,11 @@ struct AnimeDetailView: View {
           episode: $selectedEpisode, animeEpisodes: $animeEpisodes, animeWatchlist: $animeWatchlist, animeDetails: $animeDetails, simklId: simkl_id
         )
         .presentationDetents([.medium])
+      }
+      .fullScreenCover(isPresented: $showingFullscreenPoster) {
+        if let poster = animeDetails?.poster {
+          FullscreenPosterView(posterPath: poster)
+        }
       }
     }
   }

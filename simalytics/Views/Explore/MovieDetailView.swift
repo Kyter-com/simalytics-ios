@@ -25,8 +25,9 @@ struct MovieDetailView: View {
   @State private var privacySelection: String = "Public"
   var simkl_id: Int
 
-  // MARK: - JustWatch Integration
+  // MARK: - Sheets
   @State private var showingJustWatchSheet = false
+  @State private var showingFullscreenPoster = false
 
   var body: some View {
     if isLoading {
@@ -76,6 +77,11 @@ struct MovieDetailView: View {
             RoundedRectangle(cornerRadius: 8).stroke(
               colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
           )
+          .onTapGesture {
+            if movieDetails?.poster != nil {
+              showingFullscreenPoster = true
+            }
+          }
 
           Spacer()
           VStack(alignment: .leading) {
@@ -224,6 +230,11 @@ struct MovieDetailView: View {
           mediaType: "movie"
         )
         .presentationDetents([.fraction(0.99)])
+      }
+      .fullScreenCover(isPresented: $showingFullscreenPoster) {
+        if let poster = movieDetails?.poster {
+          FullscreenPosterView(posterPath: poster)
+        }
       }
     }
   }
