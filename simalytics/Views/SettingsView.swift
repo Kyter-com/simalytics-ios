@@ -178,17 +178,10 @@ struct SettingsView: View {
               UIApplication.shared.open(URL(string: "https://github.com/Kyter-com/simalytics-ios/")!)
             }) {
               HStack {
-                Image(systemName: "circle.fill")
+                Image("GitHub")
                   .font(.title2)
-                  .foregroundColor(.black)
+                  .foregroundStyle(.primary)
                   .frame(width: 28, height: 28)
-                  .overlay(
-                    Image("github")
-                      .resizable()
-                      .scaledToFit()
-                      .frame(width: 16, height: 16)
-                      .foregroundColor(.white)
-                  )
 
                 Text("GitHub")
                   .foregroundColor(.primary)
