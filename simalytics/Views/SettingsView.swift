@@ -405,6 +405,18 @@ struct SettingsView: View {
               }
             }
           }
+
+          Section {
+          } footer: {
+            HStack {
+              Spacer()
+              Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+              Spacer()
+            }
+            .padding(.top, 8)
+          }
         }
         .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {
           Button("OK", role: .cancel) {}
