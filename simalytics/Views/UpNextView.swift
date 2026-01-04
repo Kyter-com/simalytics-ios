@@ -28,6 +28,7 @@ extension V1.SDAnimes: UpNextMedia {
 
 struct UpNextView: View {
   @EnvironmentObject private var auth: Auth
+  @AppStorage("hideAnime") private var hideAnime = false
   @State private var searchText: String = ""
   @Environment(\.modelContext) private var context
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
@@ -44,7 +45,7 @@ struct UpNextView: View {
   ) private var animes: [V1.SDAnimes]
 
   var filteredMedia: [any UpNextMedia] {
-    let allMedia: [any UpNextMedia] = shows + animes
+    let allMedia: [any UpNextMedia] = hideAnime ? Array(shows) : shows + animes
     if searchText.isEmpty {
       return allMedia
     } else {

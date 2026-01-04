@@ -12,6 +12,7 @@ struct ListView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
+  @AppStorage("hideAnime") private var hideAnime = false
   @State private var moviesPlanToWatchCount: Int = 0
   @State private var moviesDroppedCount: Int = 0
   @State private var moviesCompletedCount: Int = 0
@@ -212,9 +213,10 @@ struct ListView: View {
 
         }
 
-        Section(header: Text("Anime")) {
+        if !hideAnime {
+          Section(header: Text("Anime")) {
 
-          NavigationLink(destination: AnimeListView(status: "plantowatch")) {
+            NavigationLink(destination: AnimeListView(status: "plantowatch")) {
             HStack {
               Image(systemName: "star")
                 .bold()
@@ -324,6 +326,7 @@ struct ListView: View {
             }
           }
 
+          }
         }
       }
       .listStyle(.insetGrouped)

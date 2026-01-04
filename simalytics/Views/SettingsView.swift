@@ -16,6 +16,7 @@ struct SettingsView: View {
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
   @AppStorage("blurEpisodeImages") private var blurImages = false
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
+  @AppStorage("hideAnime") private var hideAnime = false
   @State private var showErrorAlert = false
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var modelContext
@@ -168,6 +169,16 @@ struct SettingsView: View {
               Text("Use 5-Star Ratings")
               Spacer()
               Toggle("", isOn: $useFiveStarRating)
+            }
+            HStack {
+              Image(systemName: "eye.slash.circle.fill")
+                .font(.title2)
+                .foregroundColor(.orange)
+                .frame(width: 28, height: 28)
+
+              Text("Hide Anime")
+              Spacer()
+              Toggle("", isOn: $hideAnime)
             }
           } header: {
             Text("Display")

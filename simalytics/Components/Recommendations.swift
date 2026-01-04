@@ -9,9 +9,10 @@ import SwiftUI
 
 struct Recommendations: View {
   var recommendations: [RecommendationModel]?
+  @AppStorage("hideAnime") private var hideAnime = false
 
   var body: some View {
-    if let recommendations = recommendations, !recommendations.isEmpty {
+    if let recommendations = recommendations?.filter({ !hideAnime || $0.type != "anime" }), !recommendations.isEmpty {
       VStack(alignment: .leading) {
         Group {
           ExploreGroupTitle(title: "Users Also Watched")

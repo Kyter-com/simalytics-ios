@@ -13,6 +13,7 @@ struct ExploreView: View {
   @EnvironmentObject private var auth: Auth
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var context
+  @AppStorage("hideAnime") private var hideAnime = false
   @State private var sdTrendingShows: [V1.TrendingShows] = []
   @State private var sdTrendingMovies: [V1.TrendingMovies] = []
   @State private var sdTrendingAnimes: [V1.TrendingAnimes] = []
@@ -100,30 +101,32 @@ struct ExploreView: View {
                   }
                 }
 
-                Group {
-                  ExploreGroupTitle(title: "Trending Animes")
-                  ScrollView(.horizontal, showsIndicators: true) {
-                    HStack(spacing: 16) {
-                      ForEach(sdTrendingAnimes, id: \.simkl) { animeItem in
-                        NavigationLink(
-                          destination: AnimeDetailView(simkl_id: animeItem.simkl)
-                        ) {
-                          VStack {
-                            CustomKFImage(
-                              imageUrlString: animeItem.poster != nil
-                                ? "\(SIMKL_CDN_URL)/posters/\(animeItem.poster!)_m.jpg"
-                                : nil,
-                              memoryCacheOnly: false,
-                              height: 150,
-                              width: 100
-                            )
-                            ExploreTitle(title: animeItem.title ?? "")
+                if !hideAnime {
+                  Group {
+                    ExploreGroupTitle(title: "Trending Animes")
+                    ScrollView(.horizontal, showsIndicators: true) {
+                      HStack(spacing: 16) {
+                        ForEach(sdTrendingAnimes, id: \.simkl) { animeItem in
+                          NavigationLink(
+                            destination: AnimeDetailView(simkl_id: animeItem.simkl)
+                          ) {
+                            VStack {
+                              CustomKFImage(
+                                imageUrlString: animeItem.poster != nil
+                                  ? "\(SIMKL_CDN_URL)/posters/\(animeItem.poster!)_m.jpg"
+                                  : nil,
+                                memoryCacheOnly: false,
+                                height: 150,
+                                width: 100
+                              )
+                              ExploreTitle(title: animeItem.title ?? "")
+                            }
                           }
+                          .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                       }
+                      .padding([.leading, .trailing, .bottom])
                     }
-                    .padding([.leading, .trailing, .bottom])
                   }
                 }
                 Spacer()
@@ -145,7 +148,7 @@ struct ExploreView: View {
       }
       .searchable(text: $searchText, placement: .automatic)
       .searchScopes($searchCategory) {
-        ForEach(SearchCategory.allCases) { category in
+        ForEach(SearchCategory.allCases.filter { !hideAnime || $0 != .anime }) { category in
           Text(category.rawValue).tag(category)
         }
       }

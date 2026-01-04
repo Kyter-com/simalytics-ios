@@ -11,6 +11,7 @@ import SwiftUI
 struct SearchResultsView: View {
   @Binding var searchText: String
   @Binding var searchCategory: SearchCategory
+  @AppStorage("hideAnime") private var hideAnime = false
   @State private var searchResults: [SearchResultModel] = []
   @State private var debounceWorkItem: DispatchWorkItem?
 
@@ -23,7 +24,7 @@ struct SearchResultsView: View {
           GridItem(.flexible()),
         ], spacing: 16
       ) {
-        ForEach(searchResults, id: \.ids.simkl_id) { searchResult in
+        ForEach(searchResults.filter { !hideAnime || $0.endpoint_type != "anime" }, id: \.ids.simkl_id) { searchResult in
           NavigationLink(destination: {
             let type = searchResult.endpoint_type
             let id = searchResult.ids.simkl_id
