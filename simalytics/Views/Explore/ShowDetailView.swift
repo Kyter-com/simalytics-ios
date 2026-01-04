@@ -245,7 +245,7 @@ struct ShowDetailView: View {
                       height: 70.42,
                       width: 125
                     )
-                    if blurImages {
+                    if blurImages && !hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1) {
                       Rectangle()
                         .fill(Color.clear)
                         .frame(width: 125, height: 70.42)
