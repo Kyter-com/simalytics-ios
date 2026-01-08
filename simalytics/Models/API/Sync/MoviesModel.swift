@@ -44,3 +44,31 @@ struct MoviesModel_movie_item_memo: Codable {
   let text: String?
   let is_private: Bool?
 }
+
+// MARK: - SwiftData Conversion
+
+extension MoviesModel_movie {
+  func toSwiftData() -> V1.SDMovies {
+    V1.SDMovies(
+      simkl: (movie?.ids?.simkl)!,
+      title: movie?.title,
+      added_to_watchlist_at: added_to_watchlist_at,
+      last_watched_at: last_watched_at,
+      user_rated_at: user_rated_at,
+      status: status,
+      user_rating: user_rating,
+      poster: movie?.poster,
+      year: movie?.year,
+      id_slug: movie?.ids?.slug,
+      id_tvdbmslug: movie?.ids?.tvdbmslug,
+      id_imdb: movie?.ids?.imdb,
+      id_offen: movie?.ids?.offen,
+      id_traktslug: movie?.ids?.traktslug,
+      id_letterslug: movie?.ids?.letterslug,
+      id_jwslug: movie?.ids?.jwslug,
+      id_tmdb: movie?.ids?.tmdb,
+      memo_text: memo?.text,
+      memo_is_private: memo?.is_private
+    )
+  }
+}

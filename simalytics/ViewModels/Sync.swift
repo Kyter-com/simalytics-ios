@@ -156,29 +156,7 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
 
     let movies = result.movies ?? []
     for movieItem in movies {
-      context.insert(
-        V1.SDMovies(
-          simkl: (movieItem.movie?.ids?.simkl)!,
-          title: movieItem.movie?.title,
-          added_to_watchlist_at: movieItem.added_to_watchlist_at,
-          last_watched_at: movieItem.last_watched_at,
-          user_rated_at: movieItem.user_rated_at,
-          status: movieItem.status,
-          user_rating: movieItem.user_rating,
-          poster: movieItem.movie?.poster,
-          year: movieItem.movie?.year,
-          id_slug: movieItem.movie?.ids?.slug,
-          id_tvdbmslug: movieItem.movie?.ids?.tvdbmslug,
-          id_imdb: movieItem.movie?.ids?.imdb,
-          id_offen: movieItem.movie?.ids?.offen,
-          id_traktslug: movieItem.movie?.ids?.traktslug,
-          id_letterslug: movieItem.movie?.ids?.letterslug,
-          id_jwslug: movieItem.movie?.ids?.jwslug,
-          id_tmdb: movieItem.movie?.ids?.tmdb,
-          memo_text: movieItem.memo?.text,
-          memo_is_private: movieItem.memo?.is_private
-        )
-      )
+      context.insert(movieItem.toSwiftData())
     }
 
     syncRecord!.movies_plantowatch = lastActivity
@@ -232,29 +210,7 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
 
     let movies = result.movies ?? []
     for movieItem in movies {
-      context.insert(
-        V1.SDMovies(
-          simkl: (movieItem.movie?.ids?.simkl)!,
-          title: movieItem.movie?.title,
-          added_to_watchlist_at: movieItem.added_to_watchlist_at,
-          last_watched_at: movieItem.last_watched_at,
-          user_rated_at: movieItem.user_rated_at,
-          status: movieItem.status,
-          user_rating: movieItem.user_rating,
-          poster: movieItem.movie?.poster,
-          year: movieItem.movie?.year,
-          id_slug: movieItem.movie?.ids?.slug,
-          id_tvdbmslug: movieItem.movie?.ids?.tvdbmslug,
-          id_imdb: movieItem.movie?.ids?.imdb,
-          id_offen: movieItem.movie?.ids?.offen,
-          id_traktslug: movieItem.movie?.ids?.traktslug,
-          id_letterslug: movieItem.movie?.ids?.letterslug,
-          id_jwslug: movieItem.movie?.ids?.jwslug,
-          id_tmdb: movieItem.movie?.ids?.tmdb,
-          memo_text: movieItem.memo?.text,
-          memo_is_private: movieItem.memo?.is_private
-        )
-      )
+      context.insert(movieItem.toSwiftData())
     }
 
     syncRecord!.movies_dropped = lastActivity
@@ -308,29 +264,7 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
 
     let movies = result.movies ?? []
     for movieItem in movies {
-      context.insert(
-        V1.SDMovies(
-          simkl: (movieItem.movie?.ids?.simkl)!,
-          title: movieItem.movie?.title,
-          added_to_watchlist_at: movieItem.added_to_watchlist_at,
-          last_watched_at: movieItem.last_watched_at,
-          user_rated_at: movieItem.user_rated_at,
-          status: movieItem.status,
-          user_rating: movieItem.user_rating,
-          poster: movieItem.movie?.poster,
-          year: movieItem.movie?.year,
-          id_slug: movieItem.movie?.ids?.slug,
-          id_tvdbmslug: movieItem.movie?.ids?.tvdbmslug,
-          id_imdb: movieItem.movie?.ids?.imdb,
-          id_offen: movieItem.movie?.ids?.offen,
-          id_traktslug: movieItem.movie?.ids?.traktslug,
-          id_letterslug: movieItem.movie?.ids?.letterslug,
-          id_jwslug: movieItem.movie?.ids?.jwslug,
-          id_tmdb: movieItem.movie?.ids?.tmdb,
-          memo_text: movieItem.memo?.text,
-          memo_is_private: movieItem.memo?.is_private
-        )
-      )
+      context.insert(movieItem.toSwiftData())
     }
 
     syncRecord!.movies_completed = lastActivity
@@ -434,29 +368,7 @@ func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, 
 
     let movies = result.movies ?? []
     for movieItem in movies {
-      context.insert(
-        V1.SDMovies(
-          simkl: (movieItem.movie?.ids?.simkl)!,
-          title: movieItem.movie?.title,
-          added_to_watchlist_at: movieItem.added_to_watchlist_at,
-          last_watched_at: movieItem.last_watched_at,
-          user_rated_at: movieItem.user_rated_at,
-          status: movieItem.status,
-          user_rating: movieItem.user_rating,
-          poster: movieItem.movie?.poster,
-          year: movieItem.movie?.year,
-          id_slug: movieItem.movie?.ids?.slug,
-          id_tvdbmslug: movieItem.movie?.ids?.tvdbmslug,
-          id_imdb: movieItem.movie?.ids?.imdb,
-          id_offen: movieItem.movie?.ids?.offen,
-          id_traktslug: movieItem.movie?.ids?.traktslug,
-          id_letterslug: movieItem.movie?.ids?.letterslug,
-          id_jwslug: movieItem.movie?.ids?.jwslug,
-          id_tmdb: movieItem.movie?.ids?.tmdb,
-          memo_text: movieItem.memo?.text,
-          memo_is_private: movieItem.memo?.is_private
-        )
-      )
+      context.insert(movieItem.toSwiftData())
     }
 
     syncRecord!.movies_rated_at = lastActivity
@@ -509,36 +421,7 @@ func fetchAndStoreTVPlanToWatch(_ accessToken: String, _ lastActivity: String?, 
 
     let shows = result.shows ?? []
     for showItem in shows {
-      context.insert(
-        V1.SDShows(
-          simkl: (showItem.show?.ids?.simkl)!,
-          added_to_watchlist_at: showItem.added_to_watchlist_at,
-          last_watched_at: showItem.last_watched_at,
-          user_rated_at: showItem.user_rated_at,
-          user_rating: showItem.user_rating,
-          status: showItem.status,
-          last_watched: showItem.last_watched,
-          next_to_watch: showItem.next_to_watch,
-          watched_episodes_count: showItem.watched_episodes_count,
-          total_episodes_count: showItem.total_episodes_count,
-          not_aired_episodes_count: showItem.not_aired_episodes_count,
-          title: showItem.show?.title,
-          poster: showItem.show?.poster,
-          year: showItem.show?.year,
-          memo_text: showItem.memo?.text,
-          memo_is_private: showItem.memo?.is_private,
-          id_slug: showItem.show?.ids?.slug,
-          id_offen: showItem.show?.ids?.offen,
-          id_tvdbslug: showItem.show?.ids?.tvdbslug,
-          id_instagram: showItem.show?.ids?.instagram,
-          id_tw: showItem.show?.ids?.tw,
-          id_imdb: showItem.show?.ids?.imdb,
-          id_tmdb: showItem.show?.ids?.tmdb,
-          id_traktslug: showItem.show?.ids?.traktslug,
-          id_jwslug: showItem.show?.ids?.jwslug,
-          id_tvdb: showItem.show?.ids?.tvdb
-        )
-      )
+      context.insert(showItem.toSwiftData())
     }
 
     syncRecord!.tv_plantowatch = lastActivity
@@ -591,36 +474,7 @@ func fetchAndStoreTVCompleted(_ accessToken: String, _ lastActivity: String?, _ 
 
     let shows = result.shows ?? []
     for showItem in shows {
-      context.insert(
-        V1.SDShows(
-          simkl: (showItem.show?.ids?.simkl)!,
-          added_to_watchlist_at: showItem.added_to_watchlist_at,
-          last_watched_at: showItem.last_watched_at,
-          user_rated_at: showItem.user_rated_at,
-          user_rating: showItem.user_rating,
-          status: showItem.status,
-          last_watched: showItem.last_watched,
-          next_to_watch: showItem.next_to_watch,
-          watched_episodes_count: showItem.watched_episodes_count,
-          total_episodes_count: showItem.total_episodes_count,
-          not_aired_episodes_count: showItem.not_aired_episodes_count,
-          title: showItem.show?.title,
-          poster: showItem.show?.poster,
-          year: showItem.show?.year,
-          memo_text: showItem.memo?.text,
-          memo_is_private: showItem.memo?.is_private,
-          id_slug: showItem.show?.ids?.slug,
-          id_offen: showItem.show?.ids?.offen,
-          id_tvdbslug: showItem.show?.ids?.tvdbslug,
-          id_instagram: showItem.show?.ids?.instagram,
-          id_tw: showItem.show?.ids?.tw,
-          id_imdb: showItem.show?.ids?.imdb,
-          id_tmdb: showItem.show?.ids?.tmdb,
-          id_traktslug: showItem.show?.ids?.traktslug,
-          id_jwslug: showItem.show?.ids?.jwslug,
-          id_tvdb: showItem.show?.ids?.tvdb
-        )
-      )
+      context.insert(showItem.toSwiftData())
     }
 
     syncRecord!.tv_completed = lastActivity
@@ -673,36 +527,7 @@ func fetchAndStoreTVHold(_ accessToken: String, _ lastActivity: String?, _ conte
 
     let shows = result.shows ?? []
     for showItem in shows {
-      context.insert(
-        V1.SDShows(
-          simkl: (showItem.show?.ids?.simkl)!,
-          added_to_watchlist_at: showItem.added_to_watchlist_at,
-          last_watched_at: showItem.last_watched_at,
-          user_rated_at: showItem.user_rated_at,
-          user_rating: showItem.user_rating,
-          status: showItem.status,
-          last_watched: showItem.last_watched,
-          next_to_watch: showItem.next_to_watch,
-          watched_episodes_count: showItem.watched_episodes_count,
-          total_episodes_count: showItem.total_episodes_count,
-          not_aired_episodes_count: showItem.not_aired_episodes_count,
-          title: showItem.show?.title,
-          poster: showItem.show?.poster,
-          year: showItem.show?.year,
-          memo_text: showItem.memo?.text,
-          memo_is_private: showItem.memo?.is_private,
-          id_slug: showItem.show?.ids?.slug,
-          id_offen: showItem.show?.ids?.offen,
-          id_tvdbslug: showItem.show?.ids?.tvdbslug,
-          id_instagram: showItem.show?.ids?.instagram,
-          id_tw: showItem.show?.ids?.tw,
-          id_imdb: showItem.show?.ids?.imdb,
-          id_tmdb: showItem.show?.ids?.tmdb,
-          id_traktslug: showItem.show?.ids?.traktslug,
-          id_jwslug: showItem.show?.ids?.jwslug,
-          id_tvdb: showItem.show?.ids?.tvdb
-        )
-      )
+      context.insert(showItem.toSwiftData())
     }
 
     syncRecord!.tv_hold = lastActivity
@@ -755,36 +580,7 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
 
     let shows = result.shows ?? []
     for showItem in shows {
-      context.insert(
-        V1.SDShows(
-          simkl: (showItem.show?.ids?.simkl)!,
-          added_to_watchlist_at: showItem.added_to_watchlist_at,
-          last_watched_at: showItem.last_watched_at,
-          user_rated_at: showItem.user_rated_at,
-          user_rating: showItem.user_rating,
-          status: showItem.status,
-          last_watched: showItem.last_watched,
-          next_to_watch: showItem.next_to_watch,
-          watched_episodes_count: showItem.watched_episodes_count,
-          total_episodes_count: showItem.total_episodes_count,
-          not_aired_episodes_count: showItem.not_aired_episodes_count,
-          title: showItem.show?.title,
-          poster: showItem.show?.poster,
-          year: showItem.show?.year,
-          memo_text: showItem.memo?.text,
-          memo_is_private: showItem.memo?.is_private,
-          id_slug: showItem.show?.ids?.slug,
-          id_offen: showItem.show?.ids?.offen,
-          id_tvdbslug: showItem.show?.ids?.tvdbslug,
-          id_instagram: showItem.show?.ids?.instagram,
-          id_tw: showItem.show?.ids?.tw,
-          id_imdb: showItem.show?.ids?.imdb,
-          id_tmdb: showItem.show?.ids?.tmdb,
-          id_traktslug: showItem.show?.ids?.traktslug,
-          id_jwslug: showItem.show?.ids?.jwslug,
-          id_tvdb: showItem.show?.ids?.tvdb
-        )
-      )
+      context.insert(showItem.toSwiftData())
     }
 
     syncRecord!.tv_dropped = lastActivity
@@ -836,42 +632,9 @@ func fetchAndStoreTVWatching(_ accessToken: String, _ lastActivity: String?, _ c
     }
 
     let shows = result.shows ?? []
+    let syncTimestamp = formatter.string(from: Date())
     for showItem in shows {
-      context.insert(
-        V1.SDShows(
-          simkl: (showItem.show?.ids?.simkl)!,
-          added_to_watchlist_at: showItem.added_to_watchlist_at,
-          last_watched_at: showItem.last_watched_at,
-          user_rated_at: showItem.user_rated_at,
-          user_rating: showItem.user_rating,
-          status: showItem.status,
-          last_watched: showItem.last_watched,
-          next_to_watch: showItem.next_to_watch,
-          watched_episodes_count: showItem.watched_episodes_count,
-          total_episodes_count: showItem.total_episodes_count,
-          not_aired_episodes_count: showItem.not_aired_episodes_count,
-          title: showItem.show?.title,
-          poster: showItem.show?.poster,
-          year: showItem.show?.year,
-          memo_text: showItem.memo?.text,
-          memo_is_private: showItem.memo?.is_private,
-          id_slug: showItem.show?.ids?.slug,
-          id_offen: showItem.show?.ids?.offen,
-          id_tvdbslug: showItem.show?.ids?.tvdbslug,
-          id_instagram: showItem.show?.ids?.instagram,
-          id_tw: showItem.show?.ids?.tw,
-          id_imdb: showItem.show?.ids?.imdb,
-          id_tmdb: showItem.show?.ids?.tmdb,
-          id_traktslug: showItem.show?.ids?.traktslug,
-          id_jwslug: showItem.show?.ids?.jwslug,
-          id_tvdb: showItem.show?.ids?.tvdb,
-          next_to_watch_info_title: showItem.next_to_watch_info?.title,
-          next_to_watch_info_season: showItem.next_to_watch_info?.season,
-          next_to_watch_info_episode: showItem.next_to_watch_info?.episode,
-          next_to_watch_info_date: showItem.next_to_watch_info?.date,
-          last_sd_synced_at: formatter.string(from: Date())
-        )
-      )
+      context.insert(showItem.toSwiftData(syncedAt: syncTimestamp))
     }
 
     syncRecord!.tv_watching = lastActivity
@@ -974,36 +737,7 @@ func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ co
 
     let shows = result.shows ?? []
     for showItem in shows {
-      context.insert(
-        V1.SDShows(
-          simkl: (showItem.show?.ids?.simkl)!,
-          added_to_watchlist_at: showItem.added_to_watchlist_at,
-          last_watched_at: showItem.last_watched_at,
-          user_rated_at: showItem.user_rated_at,
-          user_rating: showItem.user_rating,
-          status: showItem.status,
-          last_watched: showItem.last_watched,
-          next_to_watch: showItem.next_to_watch,
-          watched_episodes_count: showItem.watched_episodes_count,
-          total_episodes_count: showItem.total_episodes_count,
-          not_aired_episodes_count: showItem.not_aired_episodes_count,
-          title: showItem.show?.title,
-          poster: showItem.show?.poster,
-          year: showItem.show?.year,
-          memo_text: showItem.memo?.text,
-          memo_is_private: showItem.memo?.is_private,
-          id_slug: showItem.show?.ids?.slug,
-          id_offen: showItem.show?.ids?.offen,
-          id_tvdbslug: showItem.show?.ids?.tvdbslug,
-          id_instagram: showItem.show?.ids?.instagram,
-          id_tw: showItem.show?.ids?.tw,
-          id_imdb: showItem.show?.ids?.imdb,
-          id_tmdb: showItem.show?.ids?.tmdb,
-          id_traktslug: showItem.show?.ids?.traktslug,
-          id_jwslug: showItem.show?.ids?.jwslug,
-          id_tvdb: showItem.show?.ids?.tvdb
-        )
-      )
+      context.insert(showItem.toSwiftData())
     }
 
     syncRecord!.tv_rated_at = lastActivity
@@ -1056,46 +790,7 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
 
     let animes = result.anime ?? []
     for animeItem in animes {
-      context.insert(
-        V1.SDAnimes(
-          simkl: (animeItem.show?.ids.simkl)!,
-          added_to_watchlist_at: animeItem.added_to_watchlist_at,
-          last_watched_at: animeItem.last_watched_at,
-          user_rated_at: animeItem.user_rated_at,
-          user_rating: animeItem.user_rating,
-          status: animeItem.status,
-          last_watched: animeItem.last_watched,
-          next_to_watch: animeItem.next_to_watch,
-          watched_episodes_count: animeItem.watched_episodes_count,
-          total_episodes_count: animeItem.total_episodes_count,
-          not_aired_episodes_count: animeItem.not_aired_episodes_count,
-          anime_type: animeItem.anime_type,
-          poster: animeItem.show?.poster,
-          year: animeItem.show?.year,
-          title: animeItem.show?.title,
-          memo_text: animeItem.memo?.text,
-          memo_is_private: animeItem.memo?.is_private,
-          id_slug: animeItem.show?.ids.slug,
-          id_offjp: animeItem.show?.ids.offjp,
-          id_ann: animeItem.show?.ids.ann,
-          id_mal: animeItem.show?.ids.mal,
-          id_anfo: animeItem.show?.ids.anfo,
-          id_offen: animeItem.show?.ids.offen,
-          id_wikien: animeItem.show?.ids.wikien,
-          id_wikijp: animeItem.show?.ids.wikijp,
-          id_allcin: animeItem.show?.ids.allcin,
-          id_imdb: animeItem.show?.ids.imdb,
-          id_tmdb: animeItem.show?.ids.tmdb,
-          id_animeplanet: animeItem.show?.ids.animeplanet,
-          id_anisearch: animeItem.show?.ids.anisearch,
-          id_kitsu: animeItem.show?.ids.kitsu,
-          id_livechart: animeItem.show?.ids.livechart,
-          id_traktslug: animeItem.show?.ids.traktslug,
-          id_letterslug: animeItem.show?.ids.letterslug,
-          id_jwslug: animeItem.show?.ids.jwslug,
-          id_anidb: animeItem.show?.ids.anidb
-        )
-      )
+      context.insert(animeItem.toSwiftData())
     }
 
     syncRecord!.anime_plantowatch = lastActivity
@@ -1148,46 +843,7 @@ func fetchAndStoreAnimeDropped(_ accessToken: String, _ lastActivity: String?, _
 
     let animes = result.anime ?? []
     for animeItem in animes {
-      context.insert(
-        V1.SDAnimes(
-          simkl: (animeItem.show?.ids.simkl)!,
-          added_to_watchlist_at: animeItem.added_to_watchlist_at,
-          last_watched_at: animeItem.last_watched_at,
-          user_rated_at: animeItem.user_rated_at,
-          user_rating: animeItem.user_rating,
-          status: animeItem.status,
-          last_watched: animeItem.last_watched,
-          next_to_watch: animeItem.next_to_watch,
-          watched_episodes_count: animeItem.watched_episodes_count,
-          total_episodes_count: animeItem.total_episodes_count,
-          not_aired_episodes_count: animeItem.not_aired_episodes_count,
-          anime_type: animeItem.anime_type,
-          poster: animeItem.show?.poster,
-          year: animeItem.show?.year,
-          title: animeItem.show?.title,
-          memo_text: animeItem.memo?.text,
-          memo_is_private: animeItem.memo?.is_private,
-          id_slug: animeItem.show?.ids.slug,
-          id_offjp: animeItem.show?.ids.offjp,
-          id_ann: animeItem.show?.ids.ann,
-          id_mal: animeItem.show?.ids.mal,
-          id_anfo: animeItem.show?.ids.anfo,
-          id_offen: animeItem.show?.ids.offen,
-          id_wikien: animeItem.show?.ids.wikien,
-          id_wikijp: animeItem.show?.ids.wikijp,
-          id_allcin: animeItem.show?.ids.allcin,
-          id_imdb: animeItem.show?.ids.imdb,
-          id_tmdb: animeItem.show?.ids.tmdb,
-          id_animeplanet: animeItem.show?.ids.animeplanet,
-          id_anisearch: animeItem.show?.ids.anisearch,
-          id_kitsu: animeItem.show?.ids.kitsu,
-          id_livechart: animeItem.show?.ids.livechart,
-          id_traktslug: animeItem.show?.ids.traktslug,
-          id_letterslug: animeItem.show?.ids.letterslug,
-          id_jwslug: animeItem.show?.ids.jwslug,
-          id_anidb: animeItem.show?.ids.anidb
-        )
-      )
+      context.insert(animeItem.toSwiftData())
     }
 
     syncRecord!.anime_dropped = lastActivity
@@ -1240,46 +896,7 @@ func fetchAndStoreAnimeCompleted(_ accessToken: String, _ lastActivity: String?,
 
     let animes = result.anime ?? []
     for animeItem in animes {
-      context.insert(
-        V1.SDAnimes(
-          simkl: (animeItem.show?.ids.simkl)!,
-          added_to_watchlist_at: animeItem.added_to_watchlist_at,
-          last_watched_at: animeItem.last_watched_at,
-          user_rated_at: animeItem.user_rated_at,
-          user_rating: animeItem.user_rating,
-          status: animeItem.status,
-          last_watched: animeItem.last_watched,
-          next_to_watch: animeItem.next_to_watch,
-          watched_episodes_count: animeItem.watched_episodes_count,
-          total_episodes_count: animeItem.total_episodes_count,
-          not_aired_episodes_count: animeItem.not_aired_episodes_count,
-          anime_type: animeItem.anime_type,
-          poster: animeItem.show?.poster,
-          year: animeItem.show?.year,
-          title: animeItem.show?.title,
-          memo_text: animeItem.memo?.text,
-          memo_is_private: animeItem.memo?.is_private,
-          id_slug: animeItem.show?.ids.slug,
-          id_offjp: animeItem.show?.ids.offjp,
-          id_ann: animeItem.show?.ids.ann,
-          id_mal: animeItem.show?.ids.mal,
-          id_anfo: animeItem.show?.ids.anfo,
-          id_offen: animeItem.show?.ids.offen,
-          id_wikien: animeItem.show?.ids.wikien,
-          id_wikijp: animeItem.show?.ids.wikijp,
-          id_allcin: animeItem.show?.ids.allcin,
-          id_imdb: animeItem.show?.ids.imdb,
-          id_tmdb: animeItem.show?.ids.tmdb,
-          id_animeplanet: animeItem.show?.ids.animeplanet,
-          id_anisearch: animeItem.show?.ids.anisearch,
-          id_kitsu: animeItem.show?.ids.kitsu,
-          id_livechart: animeItem.show?.ids.livechart,
-          id_traktslug: animeItem.show?.ids.traktslug,
-          id_letterslug: animeItem.show?.ids.letterslug,
-          id_jwslug: animeItem.show?.ids.jwslug,
-          id_anidb: animeItem.show?.ids.anidb
-        )
-      )
+      context.insert(animeItem.toSwiftData())
     }
 
     syncRecord!.anime_completed = lastActivity
@@ -1332,46 +949,7 @@ func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ co
 
     let animes = result.anime ?? []
     for animeItem in animes {
-      context.insert(
-        V1.SDAnimes(
-          simkl: (animeItem.show?.ids.simkl)!,
-          added_to_watchlist_at: animeItem.added_to_watchlist_at,
-          last_watched_at: animeItem.last_watched_at,
-          user_rated_at: animeItem.user_rated_at,
-          user_rating: animeItem.user_rating,
-          status: animeItem.status,
-          last_watched: animeItem.last_watched,
-          next_to_watch: animeItem.next_to_watch,
-          watched_episodes_count: animeItem.watched_episodes_count,
-          total_episodes_count: animeItem.total_episodes_count,
-          not_aired_episodes_count: animeItem.not_aired_episodes_count,
-          anime_type: animeItem.anime_type,
-          poster: animeItem.show?.poster,
-          year: animeItem.show?.year,
-          title: animeItem.show?.title,
-          memo_text: animeItem.memo?.text,
-          memo_is_private: animeItem.memo?.is_private,
-          id_slug: animeItem.show?.ids.slug,
-          id_offjp: animeItem.show?.ids.offjp,
-          id_ann: animeItem.show?.ids.ann,
-          id_mal: animeItem.show?.ids.mal,
-          id_anfo: animeItem.show?.ids.anfo,
-          id_offen: animeItem.show?.ids.offen,
-          id_wikien: animeItem.show?.ids.wikien,
-          id_wikijp: animeItem.show?.ids.wikijp,
-          id_allcin: animeItem.show?.ids.allcin,
-          id_imdb: animeItem.show?.ids.imdb,
-          id_tmdb: animeItem.show?.ids.tmdb,
-          id_animeplanet: animeItem.show?.ids.animeplanet,
-          id_anisearch: animeItem.show?.ids.anisearch,
-          id_kitsu: animeItem.show?.ids.kitsu,
-          id_livechart: animeItem.show?.ids.livechart,
-          id_traktslug: animeItem.show?.ids.traktslug,
-          id_letterslug: animeItem.show?.ids.letterslug,
-          id_jwslug: animeItem.show?.ids.jwslug,
-          id_anidb: animeItem.show?.ids.anidb
-        )
-      )
+      context.insert(animeItem.toSwiftData())
     }
 
     syncRecord!.anime_hold = lastActivity
@@ -1423,51 +1001,9 @@ func fetchAndStoreAnimeWatching(_ accessToken: String, _ lastActivity: String?, 
     }
 
     let animes = result.anime ?? []
+    let syncTimestamp = formatter.string(from: Date())
     for animeItem in animes {
-      context.insert(
-        V1.SDAnimes(
-          simkl: (animeItem.show?.ids.simkl)!,
-          added_to_watchlist_at: animeItem.added_to_watchlist_at,
-          last_watched_at: animeItem.last_watched_at,
-          user_rated_at: animeItem.user_rated_at,
-          user_rating: animeItem.user_rating,
-          status: animeItem.status,
-          last_watched: animeItem.last_watched,
-          next_to_watch: animeItem.next_to_watch,
-          watched_episodes_count: animeItem.watched_episodes_count,
-          total_episodes_count: animeItem.total_episodes_count,
-          not_aired_episodes_count: animeItem.not_aired_episodes_count,
-          anime_type: animeItem.anime_type,
-          poster: animeItem.show?.poster,
-          year: animeItem.show?.year,
-          title: animeItem.show?.title,
-          memo_text: animeItem.memo?.text,
-          memo_is_private: animeItem.memo?.is_private,
-          id_slug: animeItem.show?.ids.slug,
-          id_offjp: animeItem.show?.ids.offjp,
-          id_ann: animeItem.show?.ids.ann,
-          id_mal: animeItem.show?.ids.mal,
-          id_anfo: animeItem.show?.ids.anfo,
-          id_offen: animeItem.show?.ids.offen,
-          id_wikien: animeItem.show?.ids.wikien,
-          id_wikijp: animeItem.show?.ids.wikijp,
-          id_allcin: animeItem.show?.ids.allcin,
-          id_imdb: animeItem.show?.ids.imdb,
-          id_tmdb: animeItem.show?.ids.tmdb,
-          id_animeplanet: animeItem.show?.ids.animeplanet,
-          id_anisearch: animeItem.show?.ids.anisearch,
-          id_kitsu: animeItem.show?.ids.kitsu,
-          id_livechart: animeItem.show?.ids.livechart,
-          id_traktslug: animeItem.show?.ids.traktslug,
-          id_letterslug: animeItem.show?.ids.letterslug,
-          id_jwslug: animeItem.show?.ids.jwslug,
-          id_anidb: animeItem.show?.ids.anidb,
-          next_to_watch_info_title: animeItem.next_to_watch_info?.title,
-          next_to_watch_info_episode: animeItem.next_to_watch_info?.episode,
-          next_to_watch_info_date: animeItem.next_to_watch_info?.date,
-          last_sd_synced_at: formatter.string(from: Date())
-        )
-      )
+      context.insert(animeItem.toSwiftData(syncedAt: syncTimestamp))
     }
 
     syncRecord!.anime_watching = lastActivity
@@ -1570,46 +1106,7 @@ func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _
 
     let animes = result.anime ?? []
     for animeItem in animes {
-      context.insert(
-        V1.SDAnimes(
-          simkl: (animeItem.show?.ids.simkl)!,
-          added_to_watchlist_at: animeItem.added_to_watchlist_at,
-          last_watched_at: animeItem.last_watched_at,
-          user_rated_at: animeItem.user_rated_at,
-          user_rating: animeItem.user_rating,
-          status: animeItem.status,
-          last_watched: animeItem.last_watched,
-          next_to_watch: animeItem.next_to_watch,
-          watched_episodes_count: animeItem.watched_episodes_count,
-          total_episodes_count: animeItem.total_episodes_count,
-          not_aired_episodes_count: animeItem.not_aired_episodes_count,
-          anime_type: animeItem.anime_type,
-          poster: animeItem.show?.poster,
-          year: animeItem.show?.year,
-          title: animeItem.show?.title,
-          memo_text: animeItem.memo?.text,
-          memo_is_private: animeItem.memo?.is_private,
-          id_slug: animeItem.show?.ids.slug,
-          id_offjp: animeItem.show?.ids.offjp,
-          id_ann: animeItem.show?.ids.ann,
-          id_mal: animeItem.show?.ids.mal,
-          id_anfo: animeItem.show?.ids.anfo,
-          id_offen: animeItem.show?.ids.offen,
-          id_wikien: animeItem.show?.ids.wikien,
-          id_wikijp: animeItem.show?.ids.wikijp,
-          id_allcin: animeItem.show?.ids.allcin,
-          id_imdb: animeItem.show?.ids.imdb,
-          id_tmdb: animeItem.show?.ids.tmdb,
-          id_animeplanet: animeItem.show?.ids.animeplanet,
-          id_anisearch: animeItem.show?.ids.anisearch,
-          id_kitsu: animeItem.show?.ids.kitsu,
-          id_livechart: animeItem.show?.ids.livechart,
-          id_traktslug: animeItem.show?.ids.traktslug,
-          id_letterslug: animeItem.show?.ids.letterslug,
-          id_jwslug: animeItem.show?.ids.jwslug,
-          id_anidb: animeItem.show?.ids.anidb
-        )
-      )
+      context.insert(animeItem.toSwiftData())
     }
 
     syncRecord!.anime_rated_at = lastActivity
