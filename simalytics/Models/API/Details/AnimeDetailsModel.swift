@@ -16,7 +16,7 @@ struct AnimeDetailsModel: Codable {
   let year_start_end: String?
   let users_recommendations: [RecommendationModel]?
   let total_episodes: Int?
-  let ratings: ShowDetailsModelRatings?
+  let ratings: Ratings?
   let runtime: Int?
   let anime_type: String
   let year: Int?
@@ -27,14 +27,4 @@ struct AnimeDetailsModel: Codable {
 
 struct AnimeDetailsModelIds: Codable {
   let tmdb: String?
-}
-
-struct AnimeDetailsModelRatings: Codable {
-  let simkl: AnimeDetailsModelRating?
-  let imdb: AnimeDetailsModelRating?
-}
-
-struct AnimeDetailsModelRating: Codable {
-  let rating: Double?
-  let votes: Int?
 }
