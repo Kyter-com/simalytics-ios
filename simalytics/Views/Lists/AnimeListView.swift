@@ -102,6 +102,29 @@ struct AnimeListView: View {
           }
         }
       }
+      .contextMenu {
+        if let malId = anime.id_mal {
+          ShareLink(
+            item: URL(string: "https://myanimelist.net/anime/\(malId)")!,
+            subject: Text(anime.title ?? ""),
+            message: Text("Check out \(anime.title ?? "this anime")!")
+          ) {
+            Label("Share", systemImage: "square.and.arrow.up")
+          }
+        }
+      } preview: {
+        PreviewCard(
+          title: anime.title ?? "Unknown",
+          year: anime.year,
+          poster: anime.poster,
+          userRating: anime.user_rating,
+          status: anime.status,
+          mediaType: "anime",
+          animeType: anime.anime_type,
+          watchedEpisodes: anime.watched_episodes_count,
+          totalEpisodes: anime.total_episodes_count
+        )
+      }
     }
     .onAppear {
       sortDescriptor = resolvedSortDescriptor

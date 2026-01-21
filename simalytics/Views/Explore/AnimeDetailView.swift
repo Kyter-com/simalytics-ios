@@ -169,7 +169,7 @@ struct AnimeDetailView: View {
             maxRating: useFiveStarRating ? 5 : 10,
             rating: $localRating,
             starColor: .blue,
-            starRounding: .roundToFullStar,
+            starRounding: useFiveStarRating ? .roundToHalfStar : .roundToFullStar,
             size: useFiveStarRating ? 28 : 20
           )
           .padding([.leading, .trailing])

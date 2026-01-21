@@ -68,6 +68,24 @@ struct ExploreView: View {
                           }
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                          ShareLink(
+                            item: URL(string: "https://simkl.com/tv/\(showItem.simkl)")!,
+                            subject: Text(showItem.title ?? ""),
+                            message: Text("Check out \(showItem.title ?? "this show")!")
+                          ) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                          }
+                        } preview: {
+                          SmartPreviewCard(
+                            simklId: showItem.simkl,
+                            title: showItem.title ?? "Unknown",
+                            year: nil,
+                            poster: showItem.poster,
+                            mediaType: "tv",
+                            localData: LocalDataLookup.lookup(simklId: showItem.simkl, mediaType: "tv", context: context)
+                          )
+                        }
                       }
                     }
                     .padding([.leading, .trailing, .bottom])
@@ -95,6 +113,24 @@ struct ExploreView: View {
                           }
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                          ShareLink(
+                            item: URL(string: "https://simkl.com/movies/\(movieItem.simkl)")!,
+                            subject: Text(movieItem.title ?? ""),
+                            message: Text("Check out \(movieItem.title ?? "this movie")!")
+                          ) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                          }
+                        } preview: {
+                          SmartPreviewCard(
+                            simklId: movieItem.simkl,
+                            title: movieItem.title ?? "Unknown",
+                            year: nil,
+                            poster: movieItem.poster,
+                            mediaType: "movie",
+                            localData: LocalDataLookup.lookup(simklId: movieItem.simkl, mediaType: "movie", context: context)
+                          )
+                        }
                       }
                     }
                     .padding([.leading, .trailing, .bottom])
@@ -123,6 +159,24 @@ struct ExploreView: View {
                             }
                           }
                           .buttonStyle(.plain)
+                          .contextMenu {
+                            ShareLink(
+                              item: URL(string: "https://simkl.com/anime/\(animeItem.simkl)")!,
+                              subject: Text(animeItem.title ?? ""),
+                              message: Text("Check out \(animeItem.title ?? "this anime")!")
+                            ) {
+                              Label("Share", systemImage: "square.and.arrow.up")
+                            }
+                          } preview: {
+                            SmartPreviewCard(
+                              simklId: animeItem.simkl,
+                              title: animeItem.title ?? "Unknown",
+                              year: nil,
+                              poster: animeItem.poster,
+                              mediaType: "anime",
+                              localData: LocalDataLookup.lookup(simklId: animeItem.simkl, mediaType: "anime", context: context)
+                            )
+                          }
                         }
                       }
                       .padding([.leading, .trailing, .bottom])

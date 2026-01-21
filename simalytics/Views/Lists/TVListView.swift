@@ -100,6 +100,28 @@ struct TVListView: View {
           }
         }
       }
+      .contextMenu {
+        if let tmdbId = show.id_tmdb {
+          ShareLink(
+            item: URL(string: "https://www.themoviedb.org/tv/\(tmdbId)")!,
+            subject: Text(show.title ?? ""),
+            message: Text("Check out \(show.title ?? "this show")!")
+          ) {
+            Label("Share", systemImage: "square.and.arrow.up")
+          }
+        }
+      } preview: {
+        PreviewCard(
+          title: show.title ?? "Unknown",
+          year: show.year,
+          poster: show.poster,
+          userRating: show.user_rating,
+          status: show.status,
+          mediaType: "tv",
+          watchedEpisodes: show.watched_episodes_count,
+          totalEpisodes: show.total_episodes_count
+        )
+      }
     }
     .onAppear {
       sortDescriptor = resolvedSortDescriptor

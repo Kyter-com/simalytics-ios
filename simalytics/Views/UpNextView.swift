@@ -119,6 +119,17 @@ struct UpNextView: View {
               .tint(.green)
             }
           }
+          .contextMenu {
+            ShareLink(
+              item: URL(string: "https://simkl.com/\(mediaItem.type)/\(mediaItem.simkl)")!,
+              subject: Text(mediaItem.title ?? ""),
+              message: Text("Check out \(mediaItem.title ?? "this")!")
+            ) {
+              Label("Share", systemImage: "square.and.arrow.up")
+            }
+          } preview: {
+            UpNextPreviewCard(mediaItem: mediaItem)
+          }
         }
         .listStyle(.inset)
         .searchable(text: $searchText, placement: .automatic)
@@ -149,3 +160,78 @@ struct UpNextView: View {
 
 // TODO: https://www.shutterstock.com/image-vector/s-letter-media-play-button-logo-1994243441
 // TODO: https://www.logoground.com/logo.php?id=1027401
+
+struct UpNextPreviewCard: View {
+  let mediaItem: any UpNextMedia
+
+  private var posterURL: String? {
+    guard let poster = mediaItem.poster else { return nil }
+    return "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg"
+  }
+
+  private var nextEpisodeText: String? {
+    var parts: [String] = []
+    if let season = mediaItem.next_to_watch_info_season {
+      parts.append("S\(season)")
+    }
+    if let episode = mediaItem.next_to_watch_info_episode {
+      parts.append("E\(episode)")
+    }
+    return parts.isEmpty ? nil : parts.joined(separator: " ")
+  }
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 16) {
+      CustomKFImage(
+        imageUrlString: posterURL,
+        memoryCacheOnly: true,
+        height: 225,
+        width: 150
+      )
+
+      VStack(alignment: .leading, spacing: 8) {
+        Text(mediaItem.title ?? "Unknown")
+          .font(.title2)
+          .fontWeight(.bold)
+          .lineLimit(3)
+
+        HStack(spacing: 4) {
+          Image(systemName: mediaItem.type == "anime" ? "sparkles.tv" : "tv")
+          Text(mediaItem.type == "anime" ? "Anime" : "TV Show")
+        }
+        .font(.subheadline)
+        .foregroundColor(.secondary)
+
+        if let episodeTitle = mediaItem.next_to_watch_info_title {
+          Text(episodeTitle)
+            .font(.subheadline)
+            .lineLimit(2)
+        }
+
+        if let nextEp = nextEpisodeText {
+          HStack(spacing: 4) {
+            Image(systemName: "play.circle")
+              .foregroundColor(.blue)
+            Text("Next: \(nextEp)")
+          }
+          .font(.subheadline)
+          .foregroundColor(.secondary)
+        }
+
+        Text("Watching")
+          .font(.caption)
+          .padding(.horizontal, 8)
+          .padding(.vertical, 4)
+          .background(Color.secondary.opacity(0.2))
+          .clipShape(Capsule())
+
+        Spacer()
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.vertical, 8)
+    }
+    .padding(16)
+    .frame(width: 350, height: 260)
+    .background(Color(.systemBackground))
+  }
+}

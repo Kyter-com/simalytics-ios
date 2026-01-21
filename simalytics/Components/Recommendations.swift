@@ -5,11 +5,13 @@
 //  Created by Nick Reisenauer on 3/30/25.
 //
 
+import SwiftData
 import SwiftUI
 
 struct Recommendations: View {
   var recommendations: [RecommendationModel]?
   @AppStorage("hideAnime") private var hideAnime = false
+  @Environment(\.modelContext) private var context
 
   var body: some View {
     if let recommendations = recommendations?.filter({ !hideAnime || $0.type != "anime" }), !recommendations.isEmpty {
@@ -48,6 +50,24 @@ struct Recommendations: View {
                   }
                 }
                 .buttonStyle(.plain)
+                .contextMenu {
+                  ShareLink(
+                    item: URL(string: "https://simkl.com/\(item.type == "tv" ? "tv" : item.type)/\(item.ids.simkl)")!,
+                    subject: Text(item.title),
+                    message: Text("Check out \(item.title)!")
+                  ) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                  }
+                } preview: {
+                  SmartPreviewCard(
+                    simklId: item.ids.simkl,
+                    title: item.title,
+                    year: item.year,
+                    poster: item.poster,
+                    mediaType: item.type,
+                    localData: LocalDataLookup.lookup(simklId: item.ids.simkl, mediaType: item.type, context: context)
+                  )
+                }
               }
             }
             .padding([.leading, .trailing, .bottom])

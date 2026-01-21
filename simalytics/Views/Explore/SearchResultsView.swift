@@ -6,12 +6,14 @@
 //
 
 import Sentry
+import SwiftData
 import SwiftUI
 
 struct SearchResultsView: View {
   @Binding var searchText: String
   @Binding var searchCategory: SearchCategory
   @AppStorage("hideAnime") private var hideAnime = false
+  @Environment(\.modelContext) private var context
   @State private var searchResults: [SearchResultModel] = []
   @State private var debounceWorkItem: DispatchWorkItem?
 
@@ -54,6 +56,26 @@ struct SearchResultsView: View {
             }
           }
           .buttonStyle(.plain)
+          .contextMenu {
+            let urlType = searchResult.endpoint_type == "movies" ? "movies" : searchResult.endpoint_type
+            ShareLink(
+              item: URL(string: "https://simkl.com/\(urlType)/\(searchResult.ids.simkl_id)")!,
+              subject: Text(searchResult.title),
+              message: Text("Check out \(searchResult.title)!")
+            ) {
+              Label("Share", systemImage: "square.and.arrow.up")
+            }
+          } preview: {
+            let mediaType = searchResult.endpoint_type == "movies" ? "movie" : searchResult.endpoint_type
+            SmartPreviewCard(
+              simklId: searchResult.ids.simkl_id,
+              title: searchResult.title,
+              year: searchResult.year,
+              poster: searchResult.poster,
+              mediaType: mediaType,
+              localData: LocalDataLookup.lookup(simklId: searchResult.ids.simkl_id, mediaType: mediaType, context: context)
+            )
+          }
         }
       }
       .padding()

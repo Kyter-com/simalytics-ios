@@ -100,6 +100,26 @@ struct MovieListView: View {
           }
         }
       }
+      .contextMenu {
+        if let tmdbId = movie.id_tmdb {
+          ShareLink(
+            item: URL(string: "https://www.themoviedb.org/movie/\(tmdbId)")!,
+            subject: Text(movie.title ?? ""),
+            message: Text("Check out \(movie.title ?? "this movie")!")
+          ) {
+            Label("Share", systemImage: "square.and.arrow.up")
+          }
+        }
+      } preview: {
+        PreviewCard(
+          title: movie.title ?? "Unknown",
+          year: movie.year,
+          poster: movie.poster,
+          userRating: movie.user_rating,
+          status: movie.status,
+          mediaType: "movie"
+        )
+      }
     }
     .onAppear {
       sortDescriptor = resolvedSortDescriptor
