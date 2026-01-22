@@ -433,7 +433,7 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
               Spacer()
             }
-            .padding(.top, 8)
+            .padding(.vertical, 24)
           }
         }
         .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {
