@@ -105,6 +105,10 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
         let context = ModelContext(modelContainer)
         await processUpNextEpisodes(accessToken, context)
       }
+      group.addTask {
+        let context = ModelContext(modelContainer)
+        await refreshStaleData(accessToken, context)
+      }
     }
   } catch {
     SentrySDK.capture(error: error)

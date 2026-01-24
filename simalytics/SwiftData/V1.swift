@@ -44,6 +44,7 @@ enum V1: VersionedSchema {
 
     var trending_data: String?
     var changes_api: String?
+    var stale_data_refresh: String?
     init(
       id: Int = 1,
       movies_plantowatch: String? = nil,
@@ -69,7 +70,8 @@ enum V1: VersionedSchema {
       anime_rated_at: String? = nil,
 
       trending_data: String? = nil,
-      changes_api: String? = nil
+      changes_api: String? = nil,
+      stale_data_refresh: String? = nil
     ) {
       self.id = id
       self.movies_plantowatch = movies_plantowatch
@@ -96,6 +98,7 @@ enum V1: VersionedSchema {
 
       self.trending_data = trending_data
       self.changes_api = changes_api
+      self.stale_data_refresh = stale_data_refresh
     }
   }
 
