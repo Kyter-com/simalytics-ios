@@ -15,6 +15,11 @@ struct MovieWatchlistButton: View {
   @Binding var status: String?
   var simkl_id: Int
   let statusOptions = ["plantowatch", "dropped", "completed"]
+  @State private var isRollingBackStatus = false
+  @State private var showUpdateErrorAlert = false
+  @State private var updateErrorMessage = ""
+  @State private var statusUpdateTask: Task<Void, Never>?
+  @State private var latestMutationID: UUID?
 
   var body: some View {
     Menu {
@@ -52,11 +57,41 @@ struct MovieWatchlistButton: View {
       .background(mapStatusToColor(status))
       .cornerRadius(8)
     }
-    .onChange(of: status ?? "nil") { _, newValue in
-      Task {
-        await MovieWatchlistButton.updateMovieList(simkl_id, auth.simklAccessToken, newValue)
+    .onChange(of: status ?? "nil") { oldValue, newValue in
+      if isRollingBackStatus {
+        isRollingBackStatus = false
+        return
+      }
+
+      let previousStatus = oldValue == "nil" ? nil : oldValue
+      let mutationID = UUID()
+      latestMutationID = mutationID
+      statusUpdateTask?.cancel()
+      statusUpdateTask = Task {
+        if let errorMessage = await MovieWatchlistButton.updateMovieList(simkl_id, auth.simklAccessToken, newValue) {
+          if Task.isCancelled || latestMutationID != mutationID {
+            return
+          }
+          isRollingBackStatus = true
+          status = previousStatus
+          updateErrorMessage = errorMessage
+          showUpdateErrorAlert = true
+          return
+        }
+
+        if Task.isCancelled || latestMutationID != mutationID {
+          return
+        }
         await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
       }
+    }
+    .onDisappear {
+      statusUpdateTask?.cancel()
+    }
+    .alert("Couldn't update list", isPresented: $showUpdateErrorAlert) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      Text(updateErrorMessage)
     }
   }
 

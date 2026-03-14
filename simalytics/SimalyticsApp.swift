@@ -29,6 +29,17 @@ struct SimalyticsApp: App {
   @StateObject private var auth = Auth()
   @State private var globalLoadingIndicator = GlobalLoadingIndicator()
 
+  private static var sentryReleaseName: String? {
+    guard let infoDictionary = Bundle.main.infoDictionary,
+      let version = infoDictionary["CFBundleShortVersionString"] as? String,
+      let build = infoDictionary["CFBundleVersion"] as? String
+    else {
+      return nil
+    }
+
+    return "simalytics-ios@\(version)+\(build)"
+  }
+
   let modelContainer: ModelContainer = {
     do {
       let schema = Schema([
@@ -45,8 +56,49 @@ struct SimalyticsApp: App {
 
   init() {
     SentrySDK.start { options in
-      options.dsn = "https://2f19a4a9e212e5ee432f16fa2e22780d@o507828.ingest.us.sentry.io/4508956076605440"
+      if let dsn = (Bundle.main.infoDictionary?["SENTRY_DSN"] as? String)?
+        .trimmingCharacters(in: .whitespacesAndNewlines),
+        !dsn.isEmpty
+      {
+        options.dsn = dsn
+      } else {
+#if DEBUG
+        assertionFailure("Missing SENTRY_DSN in Info.plist")
+#endif
+        print("warning: Missing SENTRY_DSN in Info.plist. Sentry is disabled.")
+        return
+      }
+
+      if let environment = (Bundle.main.infoDictionary?["SENTRY_ENVIRONMENT"] as? String)?
+        .trimmingCharacters(in: .whitespacesAndNewlines),
+        !environment.isEmpty
+      {
+        options.environment = environment
+      }
+
+      options.releaseName = Self.sentryReleaseName
+      options.tracesSampleRate = 0.1
       options.enableMetricKit = true
+      options.beforeSend = { event in
+        guard let request = event.request else {
+          return event
+        }
+
+        if var headers = request.headers {
+          for key in headers.keys {
+            let normalizedKey = key.lowercased()
+            if normalizedKey == "authorization"
+              || normalizedKey.contains("token")
+              || normalizedKey.contains("cookie")
+            {
+              headers[key] = "[REDACTED]"
+            }
+          }
+          request.headers = headers
+        }
+
+        return event
+      }
     }
   }
 

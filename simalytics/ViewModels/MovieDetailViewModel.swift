@@ -81,7 +81,7 @@ extension MovieDetailView {
 }
 
 extension MovieWatchlistButton {
-  static func updateMovieList(_ simkl_id: Int, _ accessToken: String, _ list: String) async {
+  static func updateMovieList(_ simkl_id: Int, _ accessToken: String, _ list: String) async -> String? {
     do {
       if list == "nil" {
         let urlComponents = URLComponents(string: "https://api.simkl.com/sync/history/remove")!
@@ -102,7 +102,7 @@ extension MovieWatchlistButton {
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        _ = try await URLSession.shared.data(for: request)
+        try await performSimklMutationRequest(request)
       } else {
         let urlComponents = URLComponents(string: "https://api.simkl.com/sync/add-to-list")!
 
@@ -123,11 +123,15 @@ extension MovieWatchlistButton {
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        _ = try await URLSession.shared.data(for: request)
+        try await performSimklMutationRequest(request)
       }
+      return nil
     } catch {
+      if isSimklCancellationError(error) {
+        return nil
+      }
       SentrySDK.capture(error: error)
-      return
+      return simklMutationUserMessage(for: error)
     }
   }
 }
