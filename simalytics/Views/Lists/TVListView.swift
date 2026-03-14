@@ -67,20 +67,25 @@ struct TVListView: View {
     return filtered.sorted { lhs, rhs in
       let lhsReleaseDate = normalizeReleaseDateString(lhs.release_date)
       let rhsReleaseDate = normalizeReleaseDateString(rhs.release_date)
+      let lhsSortYear = lhsReleaseDate.flatMap { Int($0.prefix(4)) } ?? lhs.year
+      let rhsSortYear = rhsReleaseDate.flatMap { Int($0.prefix(4)) } ?? rhs.year
 
-      switch (lhsReleaseDate, rhsReleaseDate) {
-      case (nil, nil):
-        return compareTitle(lhs, rhs)
-      case (nil, _):
+      switch (lhsSortYear, rhsSortYear) {
+      case (let lhsYear?, let rhsYear?) where lhsYear != rhsYear:
+        return sortAscending ? lhsYear < rhsYear : lhsYear > rhsYear
+      case (nil, _?):
         return false
-      case (_, nil):
+      case (_?, nil):
         return true
-      case (let lhsDate?, let rhsDate?):
-        if lhsDate == rhsDate {
-          return compareTitle(lhs, rhs)
-        }
-        return sortAscending ? lhsDate < rhsDate : lhsDate > rhsDate
+      default:
+        break
       }
+
+      if let lhsReleaseDate, let rhsReleaseDate, lhsReleaseDate != rhsReleaseDate {
+        return sortAscending ? lhsReleaseDate < rhsReleaseDate : lhsReleaseDate > rhsReleaseDate
+      }
+
+      return compareTitle(lhs, rhs)
     }
   }
 
@@ -132,10 +137,6 @@ struct TVListView: View {
                   .font(.footnote)
                   .foregroundColor(.secondary)
               }
-            } else if status == "plantowatch" {
-              Text("Release Date: " + releaseDateLabel(show.release_date, year: show.year))
-                .font(.footnote)
-                .foregroundColor(.secondary)
             } else {
               if let isoString = show.added_to_watchlist_at,
                 let addedDate = Self.isoFormatter.date(from: isoString)

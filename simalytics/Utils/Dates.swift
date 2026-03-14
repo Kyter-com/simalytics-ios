@@ -47,35 +47,3 @@ func normalizeReleaseDateString(_ rawDate: String?) -> String? {
 
   return nil
 }
-
-func formatReleaseDateForDisplay(_ rawDate: String?) -> String? {
-  guard let normalizedDate = normalizeReleaseDateString(rawDate) else {
-    return nil
-  }
-
-  let dayFormatter = DateFormatter()
-  dayFormatter.locale = Locale(identifier: "en_US_POSIX")
-  dayFormatter.dateFormat = "yyyy-MM-dd"
-
-  guard let date = dayFormatter.date(from: normalizedDate) else {
-    return nil
-  }
-
-  let displayFormatter = DateFormatter()
-  displayFormatter.dateStyle = .medium
-  displayFormatter.timeStyle = .none
-  return displayFormatter.string(from: date)
-}
-
-func releaseDateLabel(_ rawDate: String?, year: Int?) -> String {
-  if let formattedDate = formatReleaseDateForDisplay(rawDate) {
-    return formattedDate
-  }
-
-  if let year {
-    let currentYear = Calendar.current.component(.year, from: Date())
-    return year > currentYear ? "TBA" : "Unknown"
-  }
-
-  return "TBA"
-}
