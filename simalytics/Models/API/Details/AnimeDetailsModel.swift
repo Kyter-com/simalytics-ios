@@ -13,6 +13,7 @@ struct AnimeDetailsModel: Codable {
   let poster: String?
   let genres: [String]?
   let overview: String?
+  let first_aired: String?
   let year_start_end: String?
   let users_recommendations: [RecommendationModel]?
   let total_episodes: Int?

@@ -66,3 +66,16 @@ func formatReleaseDateForDisplay(_ rawDate: String?) -> String? {
   displayFormatter.timeStyle = .none
   return displayFormatter.string(from: date)
 }
+
+func releaseDateLabel(_ rawDate: String?, year: Int?) -> String {
+  if let formattedDate = formatReleaseDateForDisplay(rawDate) {
+    return formattedDate
+  }
+
+  if let year {
+    let currentYear = Calendar.current.component(.year, from: Date())
+    return year > currentYear ? "TBA" : "Unknown"
+  }
+
+  return "TBA"
+}

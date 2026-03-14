@@ -133,7 +133,7 @@ struct MovieListView: View {
                   .foregroundColor(.secondary)
               }
             } else if status == "plantowatch" {
-              Text("Release Date: " + (formatReleaseDateForDisplay(movie.release_date) ?? "TBA"))
+              Text("Release Date: " + releaseDateLabel(movie.release_date, year: movie.year))
                 .font(.footnote)
                 .foregroundColor(.secondary)
             } else {

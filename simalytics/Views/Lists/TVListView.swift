@@ -133,7 +133,7 @@ struct TVListView: View {
                   .foregroundColor(.secondary)
               }
             } else if status == "plantowatch" {
-              Text("Release Date: " + (formatReleaseDateForDisplay(show.release_date) ?? "TBA"))
+              Text("Release Date: " + releaseDateLabel(show.release_date, year: show.year))
                 .font(.footnote)
                 .foregroundColor(.secondary)
             } else {

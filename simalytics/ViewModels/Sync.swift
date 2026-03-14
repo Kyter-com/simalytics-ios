@@ -110,6 +110,9 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
         await refreshStaleData(accessToken, context)
       }
     }
+
+    let releaseDateContext = ModelContext(modelContainer)
+    await backfillMissingPlanToWatchReleaseDates(releaseDateContext)
   } catch {
     SentrySDK.capture(error: error)
   }
@@ -798,6 +801,7 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
     for animeItem in animes {
       context.insert(animeItem.toSwiftData())
     }
+    await enrichAnimeReleaseDatesForPlanToWatch(animes, context, formatter)
 
     syncRecord!.anime_plantowatch = lastActivity
     try context.save()
@@ -1123,8 +1127,73 @@ func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _
 }
 
 private let releaseDateEnrichmentMaxItemsPerRun = 20
+private let releaseDateEnrichmentBackfillMaxItemsPerType = 8
+private let releaseDateEnrichmentBackfillCandidateFetchLimit = releaseDateEnrichmentBackfillMaxItemsPerType * 4
+private let releaseDateEnrichmentBackfillMinimumSeconds: TimeInterval = 6 * 60 * 60
 private let releaseDateEnrichmentMaxConcurrent = 3
 private let releaseDateEnrichmentRetryCount = 2
+
+private enum ReleaseDateFetchType: Sendable {
+  case movie
+  case show
+  case anime
+}
+
+private func backfillMissingPlanToWatchReleaseDates(_ context: ModelContext) async {
+  let formatter = ISO8601DateFormatter()
+  let earliestEligibleBackfillDate = Date().addingTimeInterval(-releaseDateEnrichmentBackfillMinimumSeconds)
+
+  do {
+    func shouldBackfill(lastSynced: String?) -> Bool {
+      guard let lastSynced else { return true }
+      guard let lastSyncedDate = formatter.date(from: lastSynced) else { return true }
+      return lastSyncedDate <= earliestEligibleBackfillDate
+    }
+
+    var moviesDescriptor = FetchDescriptor<V1.SDMovies>(
+      predicate: #Predicate { $0.status == "plantowatch" && $0.release_date == nil },
+      sortBy: [SortDescriptor(\.last_sd_synced_at, order: .forward)]
+    )
+    moviesDescriptor.fetchLimit = releaseDateEnrichmentBackfillCandidateFetchLimit
+    let movieIDs = Array(
+      try context.fetch(moviesDescriptor)
+        .filter { shouldBackfill(lastSynced: $0.last_sd_synced_at) }
+        .prefix(releaseDateEnrichmentBackfillMaxItemsPerType)
+        .map { $0.simkl }
+    )
+
+    var showsDescriptor = FetchDescriptor<V1.SDShows>(
+      predicate: #Predicate { $0.status == "plantowatch" && $0.release_date == nil },
+      sortBy: [SortDescriptor(\.last_sd_synced_at, order: .forward)]
+    )
+    showsDescriptor.fetchLimit = releaseDateEnrichmentBackfillCandidateFetchLimit
+    let showIDs = Array(
+      try context.fetch(showsDescriptor)
+        .filter { shouldBackfill(lastSynced: $0.last_sd_synced_at) }
+        .prefix(releaseDateEnrichmentBackfillMaxItemsPerType)
+        .map { $0.simkl }
+    )
+
+    var animesDescriptor = FetchDescriptor<V1.SDAnimes>(
+      predicate: #Predicate { $0.status == "plantowatch" && $0.release_date == nil },
+      sortBy: [SortDescriptor(\.last_sd_synced_at, order: .forward)]
+    )
+    animesDescriptor.fetchLimit = releaseDateEnrichmentBackfillCandidateFetchLimit
+    let animeIDs = Array(
+      try context.fetch(animesDescriptor)
+        .filter { shouldBackfill(lastSynced: $0.last_sd_synced_at) }
+        .prefix(releaseDateEnrichmentBackfillMaxItemsPerType)
+        .map { $0.simkl }
+    )
+
+    await enrichMovieReleaseDatesForSimklIDs(movieIDs, context, formatter)
+    await enrichShowReleaseDatesForSimklIDs(showIDs, context, formatter)
+    await enrichAnimeReleaseDatesForSimklIDs(animeIDs, context, formatter)
+    try context.save()
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
 
 private func enrichMovieReleaseDatesForPlanToWatch(
   _ movies: [MoviesModel_movie],
@@ -1135,11 +1204,43 @@ private func enrichMovieReleaseDatesForPlanToWatch(
     guard movieItem.status == "plantowatch" else { return nil }
     return movieItem.movie?.ids?.simkl
   }))
-  if uniqueMovieIDs.isEmpty { return }
+  await enrichMovieReleaseDatesForSimklIDs(uniqueMovieIDs, context, formatter)
+}
+
+private func enrichShowReleaseDatesForPlanToWatch(
+  _ shows: [TVModel_show],
+  _ context: ModelContext,
+  _ formatter: ISO8601DateFormatter
+) async {
+  let uniqueShowIDs: [Int] = Array(Set(shows.compactMap { showItem in
+    guard showItem.status == "plantowatch" else { return nil }
+    return showItem.show?.ids?.simkl
+  }))
+  await enrichShowReleaseDatesForSimklIDs(uniqueShowIDs, context, formatter)
+}
+
+private func enrichAnimeReleaseDatesForPlanToWatch(
+  _ animes: [AnimeModel_record],
+  _ context: ModelContext,
+  _ formatter: ISO8601DateFormatter
+) async {
+  let uniqueAnimeIDs: [Int] = Array(Set(animes.compactMap { animeItem in
+    guard animeItem.status == "plantowatch" else { return nil }
+    return animeItem.show?.ids.simkl
+  }))
+  await enrichAnimeReleaseDatesForSimklIDs(uniqueAnimeIDs, context, formatter)
+}
+
+private func enrichMovieReleaseDatesForSimklIDs(
+  _ simklIDs: [Int],
+  _ context: ModelContext,
+  _ formatter: ISO8601DateFormatter
+) async {
+  if simklIDs.isEmpty { return }
 
   var candidateIDs: [Int] = []
   do {
-    for simklID in uniqueMovieIDs {
+    for simklID in simklIDs {
       let currentSimklID = simklID
       let descriptor = FetchDescriptor<V1.SDMovies>(
         predicate: #Predicate<V1.SDMovies> { $0.simkl == currentSimklID }
@@ -1156,24 +1257,7 @@ private func enrichMovieReleaseDatesForPlanToWatch(
   let cappedCandidates = Array(candidateIDs.prefix(releaseDateEnrichmentMaxItemsPerRun))
   if cappedCandidates.isEmpty { return }
 
-  var releaseDateUpdates: [(simklID: Int, releaseDate: String?)] = []
-  for chunkStart in stride(from: 0, to: cappedCandidates.count, by: releaseDateEnrichmentMaxConcurrent) {
-    let chunkEnd = min(chunkStart + releaseDateEnrichmentMaxConcurrent, cappedCandidates.count)
-    let chunk = Array(cappedCandidates[chunkStart..<chunkEnd])
-
-    await withTaskGroup(of: (Int, String?).self) { group in
-      for simklID in chunk {
-        group.addTask {
-          let releaseDate = await fetchMovieReleaseDateWithRetry(simklID)
-          return (simklID, releaseDate)
-        }
-      }
-
-      for await update in group {
-        releaseDateUpdates.append(update)
-      }
-    }
-  }
+  let releaseDateUpdates = await chunkedReleaseDateUpdates(cappedCandidates, mediaType: .movie)
 
   let syncTimestamp = formatter.string(from: Date())
   do {
@@ -1192,20 +1276,16 @@ private func enrichMovieReleaseDatesForPlanToWatch(
   }
 }
 
-private func enrichShowReleaseDatesForPlanToWatch(
-  _ shows: [TVModel_show],
+private func enrichShowReleaseDatesForSimklIDs(
+  _ simklIDs: [Int],
   _ context: ModelContext,
   _ formatter: ISO8601DateFormatter
 ) async {
-  let uniqueShowIDs: [Int] = Array(Set(shows.compactMap { showItem in
-    guard showItem.status == "plantowatch" else { return nil }
-    return showItem.show?.ids?.simkl
-  }))
-  if uniqueShowIDs.isEmpty { return }
+  if simklIDs.isEmpty { return }
 
   var candidateIDs: [Int] = []
   do {
-    for simklID in uniqueShowIDs {
+    for simklID in simklIDs {
       let currentSimklID = simklID
       let descriptor = FetchDescriptor<V1.SDShows>(
         predicate: #Predicate<V1.SDShows> { $0.simkl == currentSimklID }
@@ -1222,24 +1302,7 @@ private func enrichShowReleaseDatesForPlanToWatch(
   let cappedCandidates = Array(candidateIDs.prefix(releaseDateEnrichmentMaxItemsPerRun))
   if cappedCandidates.isEmpty { return }
 
-  var releaseDateUpdates: [(simklID: Int, releaseDate: String?)] = []
-  for chunkStart in stride(from: 0, to: cappedCandidates.count, by: releaseDateEnrichmentMaxConcurrent) {
-    let chunkEnd = min(chunkStart + releaseDateEnrichmentMaxConcurrent, cappedCandidates.count)
-    let chunk = Array(cappedCandidates[chunkStart..<chunkEnd])
-
-    await withTaskGroup(of: (Int, String?).self) { group in
-      for simklID in chunk {
-        group.addTask {
-          let releaseDate = await fetchShowReleaseDateWithRetry(simklID)
-          return (simklID, releaseDate)
-        }
-      }
-
-      for await update in group {
-        releaseDateUpdates.append(update)
-      }
-    }
-  }
+  let releaseDateUpdates = await chunkedReleaseDateUpdates(cappedCandidates, mediaType: .show)
 
   let syncTimestamp = formatter.string(from: Date())
   do {
@@ -1258,12 +1321,109 @@ private func enrichShowReleaseDatesForPlanToWatch(
   }
 }
 
+private func enrichAnimeReleaseDatesForSimklIDs(
+  _ simklIDs: [Int],
+  _ context: ModelContext,
+  _ formatter: ISO8601DateFormatter
+) async {
+  if simklIDs.isEmpty { return }
+
+  var candidateIDs: [Int] = []
+  do {
+    for simklID in simklIDs {
+      let currentSimklID = simklID
+      let descriptor = FetchDescriptor<V1.SDAnimes>(
+        predicate: #Predicate<V1.SDAnimes> { $0.simkl == currentSimklID }
+      )
+      if let anime = try context.fetch(descriptor).first, anime.release_date == nil {
+        candidateIDs.append(simklID)
+      }
+    }
+  } catch {
+    SentrySDK.capture(error: error)
+    return
+  }
+
+  let cappedCandidates = Array(candidateIDs.prefix(releaseDateEnrichmentMaxItemsPerRun))
+  if cappedCandidates.isEmpty { return }
+
+  let releaseDateUpdates = await chunkedReleaseDateUpdates(cappedCandidates, mediaType: .anime)
+
+  let syncTimestamp = formatter.string(from: Date())
+  do {
+    for update in releaseDateUpdates {
+      let currentSimklID = update.simklID
+      let descriptor = FetchDescriptor<V1.SDAnimes>(
+        predicate: #Predicate<V1.SDAnimes> { $0.simkl == currentSimklID }
+      )
+      if let anime = try context.fetch(descriptor).first {
+        anime.release_date = update.releaseDate
+        anime.last_sd_synced_at = syncTimestamp
+      }
+    }
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+private func chunkedReleaseDateUpdates(
+  _ candidateIDs: [Int],
+  mediaType: ReleaseDateFetchType
+) async -> [(simklID: Int, releaseDate: String?)] {
+  var releaseDateUpdates: [(simklID: Int, releaseDate: String?)] = []
+
+  for chunkStart in stride(from: 0, to: candidateIDs.count, by: releaseDateEnrichmentMaxConcurrent) {
+    let chunkEnd = min(chunkStart + releaseDateEnrichmentMaxConcurrent, candidateIDs.count)
+    let chunk = Array(candidateIDs[chunkStart..<chunkEnd])
+
+    await withTaskGroup(of: (Int, String?).self) { group in
+      for simklID in chunk {
+        group.addTask {
+          let releaseDate: String?
+          switch mediaType {
+          case .movie:
+            releaseDate = await fetchMovieReleaseDateWithRetry(simklID)
+          case .show:
+            releaseDate = await fetchShowReleaseDateWithRetry(simklID)
+          case .anime:
+            releaseDate = await fetchAnimeReleaseDateWithRetry(simklID)
+          }
+          return (simklID, releaseDate)
+        }
+      }
+
+      for await update in group {
+        releaseDateUpdates.append(update)
+      }
+    }
+  }
+
+  return releaseDateUpdates
+}
+
 private func fetchMovieReleaseDateWithRetry(_ simklID: Int) async -> String? {
   var retryDelayNanoseconds: UInt64 = 500_000_000
 
   for attempt in 0...releaseDateEnrichmentRetryCount {
     if let details = await MovieDetailView.getMovieDetails(simklID) {
       return normalizeReleaseDateString(details.released)
+    }
+
+    if attempt < releaseDateEnrichmentRetryCount {
+      try? await Task.sleep(nanoseconds: retryDelayNanoseconds)
+      retryDelayNanoseconds *= 2
+    }
+  }
+
+  return nil
+}
+
+private func fetchAnimeReleaseDateWithRetry(_ simklID: Int) async -> String? {
+  var retryDelayNanoseconds: UInt64 = 500_000_000
+
+  for attempt in 0...releaseDateEnrichmentRetryCount {
+    if let details = await AnimeDetailView.getAnimeDetails(simklID) {
+      return normalizeReleaseDateString(details.first_aired)
     }
 
     if attempt < releaseDateEnrichmentRetryCount {

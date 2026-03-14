@@ -63,6 +63,14 @@ func refreshStaleData(_ accessToken: String, _ context: ModelContext) async {
     for show in try context.fetch(showsMissingReleaseDateDescriptor) {
       planToWatchItems.append((type: "show", simkl: show.simkl, lastSynced: show.last_sd_synced_at))
     }
+
+    var animesMissingReleaseDateDescriptor = FetchDescriptor<V1.SDAnimes>(
+      predicate: #Predicate { $0.status == "plantowatch" && $0.release_date == nil }
+    )
+    animesMissingReleaseDateDescriptor.fetchLimit = 10
+    for anime in try context.fetch(animesMissingReleaseDateDescriptor) {
+      planToWatchItems.append((type: "anime", simkl: anime.simkl, lastSynced: anime.last_sd_synced_at))
+    }
     planToWatchItems = deduplicatedItems(planToWatchItems)
 
     // First: get plantowatch items that have NEVER been synced (nil last_sd_synced_at)
@@ -311,6 +319,7 @@ private func refreshAnime(_ simkl: Int, _ context: ModelContext, _ formatter: IS
       anime.title = details.title
       anime.poster = details.poster
       anime.year = details.year
+      anime.release_date = normalizeReleaseDateString(details.first_aired)
       anime.total_episodes_count = details.total_episodes
       anime.anime_type = details.anime_type
       anime.last_sd_synced_at = formatter.string(from: Date())
