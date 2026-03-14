@@ -28,6 +28,7 @@ class Auth: ObservableObject {
 struct SimalyticsApp: App {
   @StateObject private var auth = Auth()
   @State private var globalLoadingIndicator = GlobalLoadingIndicator()
+  private static let sentryFallbackDSN = "https://2f19a4a9e212e5ee432f16fa2e22780d@o507828.ingest.us.sentry.io/4508956076605440"
 
   private static var sentryReleaseName: String? {
     guard let infoDictionary = Bundle.main.infoDictionary,
@@ -56,17 +57,14 @@ struct SimalyticsApp: App {
 
   init() {
     SentrySDK.start { options in
-      if let dsn = (Bundle.main.infoDictionary?["SENTRY_DSN"] as? String)?
+      if let configuredDSN = (Bundle.main.infoDictionary?["SENTRY_DSN"] as? String)?
         .trimmingCharacters(in: .whitespacesAndNewlines),
-        !dsn.isEmpty
+        !configuredDSN.isEmpty
       {
-        options.dsn = dsn
+        options.dsn = configuredDSN
       } else {
-#if DEBUG
-        assertionFailure("Missing SENTRY_DSN in Info.plist")
-#endif
-        print("warning: Missing SENTRY_DSN in Info.plist. Sentry is disabled.")
-        return
+        options.dsn = Self.sentryFallbackDSN
+        print("warning: Missing SENTRY_DSN in Info.plist. Using fallback DSN.")
       }
 
       if let environment = (Bundle.main.infoDictionary?["SENTRY_ENVIRONMENT"] as? String)?

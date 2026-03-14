@@ -162,6 +162,7 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
     for movieItem in movies {
       context.insert(movieItem.toSwiftData())
     }
+    await enrichMovieReleaseDatesForPlanToWatch(movies, context, formatter)
 
     syncRecord!.movies_plantowatch = lastActivity
     try context.save()
@@ -427,6 +428,7 @@ func fetchAndStoreTVPlanToWatch(_ accessToken: String, _ lastActivity: String?, 
     for showItem in shows {
       context.insert(showItem.toSwiftData())
     }
+    await enrichShowReleaseDatesForPlanToWatch(shows, context, formatter)
 
     syncRecord!.tv_plantowatch = lastActivity
     try context.save()
@@ -1118,6 +1120,176 @@ func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _
   } catch {
     SentrySDK.capture(error: error)
   }
+}
+
+private let releaseDateEnrichmentMaxItemsPerRun = 20
+private let releaseDateEnrichmentMaxConcurrent = 3
+private let releaseDateEnrichmentRetryCount = 2
+
+private func enrichMovieReleaseDatesForPlanToWatch(
+  _ movies: [MoviesModel_movie],
+  _ context: ModelContext,
+  _ formatter: ISO8601DateFormatter
+) async {
+  let uniqueMovieIDs: [Int] = Array(Set(movies.compactMap { movieItem in
+    guard movieItem.status == "plantowatch" else { return nil }
+    return movieItem.movie?.ids?.simkl
+  }))
+  if uniqueMovieIDs.isEmpty { return }
+
+  var candidateIDs: [Int] = []
+  do {
+    for simklID in uniqueMovieIDs {
+      let currentSimklID = simklID
+      let descriptor = FetchDescriptor<V1.SDMovies>(
+        predicate: #Predicate<V1.SDMovies> { $0.simkl == currentSimklID }
+      )
+      if let movie = try context.fetch(descriptor).first, movie.release_date == nil {
+        candidateIDs.append(simklID)
+      }
+    }
+  } catch {
+    SentrySDK.capture(error: error)
+    return
+  }
+
+  let cappedCandidates = Array(candidateIDs.prefix(releaseDateEnrichmentMaxItemsPerRun))
+  if cappedCandidates.isEmpty { return }
+
+  var releaseDateUpdates: [(simklID: Int, releaseDate: String?)] = []
+  for chunkStart in stride(from: 0, to: cappedCandidates.count, by: releaseDateEnrichmentMaxConcurrent) {
+    let chunkEnd = min(chunkStart + releaseDateEnrichmentMaxConcurrent, cappedCandidates.count)
+    let chunk = Array(cappedCandidates[chunkStart..<chunkEnd])
+
+    await withTaskGroup(of: (Int, String?).self) { group in
+      for simklID in chunk {
+        group.addTask {
+          let releaseDate = await fetchMovieReleaseDateWithRetry(simklID)
+          return (simklID, releaseDate)
+        }
+      }
+
+      for await update in group {
+        releaseDateUpdates.append(update)
+      }
+    }
+  }
+
+  let syncTimestamp = formatter.string(from: Date())
+  do {
+    for update in releaseDateUpdates {
+      let currentSimklID = update.simklID
+      let descriptor = FetchDescriptor<V1.SDMovies>(
+        predicate: #Predicate<V1.SDMovies> { $0.simkl == currentSimklID }
+      )
+      if let movie = try context.fetch(descriptor).first {
+        movie.release_date = update.releaseDate
+        movie.last_sd_synced_at = syncTimestamp
+      }
+    }
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+private func enrichShowReleaseDatesForPlanToWatch(
+  _ shows: [TVModel_show],
+  _ context: ModelContext,
+  _ formatter: ISO8601DateFormatter
+) async {
+  let uniqueShowIDs: [Int] = Array(Set(shows.compactMap { showItem in
+    guard showItem.status == "plantowatch" else { return nil }
+    return showItem.show?.ids?.simkl
+  }))
+  if uniqueShowIDs.isEmpty { return }
+
+  var candidateIDs: [Int] = []
+  do {
+    for simklID in uniqueShowIDs {
+      let currentSimklID = simklID
+      let descriptor = FetchDescriptor<V1.SDShows>(
+        predicate: #Predicate<V1.SDShows> { $0.simkl == currentSimklID }
+      )
+      if let show = try context.fetch(descriptor).first, show.release_date == nil {
+        candidateIDs.append(simklID)
+      }
+    }
+  } catch {
+    SentrySDK.capture(error: error)
+    return
+  }
+
+  let cappedCandidates = Array(candidateIDs.prefix(releaseDateEnrichmentMaxItemsPerRun))
+  if cappedCandidates.isEmpty { return }
+
+  var releaseDateUpdates: [(simklID: Int, releaseDate: String?)] = []
+  for chunkStart in stride(from: 0, to: cappedCandidates.count, by: releaseDateEnrichmentMaxConcurrent) {
+    let chunkEnd = min(chunkStart + releaseDateEnrichmentMaxConcurrent, cappedCandidates.count)
+    let chunk = Array(cappedCandidates[chunkStart..<chunkEnd])
+
+    await withTaskGroup(of: (Int, String?).self) { group in
+      for simklID in chunk {
+        group.addTask {
+          let releaseDate = await fetchShowReleaseDateWithRetry(simklID)
+          return (simklID, releaseDate)
+        }
+      }
+
+      for await update in group {
+        releaseDateUpdates.append(update)
+      }
+    }
+  }
+
+  let syncTimestamp = formatter.string(from: Date())
+  do {
+    for update in releaseDateUpdates {
+      let currentSimklID = update.simklID
+      let descriptor = FetchDescriptor<V1.SDShows>(
+        predicate: #Predicate<V1.SDShows> { $0.simkl == currentSimklID }
+      )
+      if let show = try context.fetch(descriptor).first {
+        show.release_date = update.releaseDate
+        show.last_sd_synced_at = syncTimestamp
+      }
+    }
+  } catch {
+    SentrySDK.capture(error: error)
+  }
+}
+
+private func fetchMovieReleaseDateWithRetry(_ simklID: Int) async -> String? {
+  var retryDelayNanoseconds: UInt64 = 500_000_000
+
+  for attempt in 0...releaseDateEnrichmentRetryCount {
+    if let details = await MovieDetailView.getMovieDetails(simklID) {
+      return normalizeReleaseDateString(details.released)
+    }
+
+    if attempt < releaseDateEnrichmentRetryCount {
+      try? await Task.sleep(nanoseconds: retryDelayNanoseconds)
+      retryDelayNanoseconds *= 2
+    }
+  }
+
+  return nil
+}
+
+private func fetchShowReleaseDateWithRetry(_ simklID: Int) async -> String? {
+  var retryDelayNanoseconds: UInt64 = 500_000_000
+
+  for attempt in 0...releaseDateEnrichmentRetryCount {
+    if let details = await ShowDetailView.getShowDetails(simklID) {
+      return normalizeReleaseDateString(details.first_aired)
+    }
+
+    if attempt < releaseDateEnrichmentRetryCount {
+      try? await Task.sleep(nanoseconds: retryDelayNanoseconds)
+      retryDelayNanoseconds *= 2
+    }
+  }
+
+  return nil
 }
 
 func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {

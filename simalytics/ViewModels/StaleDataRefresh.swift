@@ -35,9 +35,35 @@ func refreshStaleData(_ accessToken: String, _ context: ModelContext) async {
 
     print("Starting stale data refresh...")
 
+    func deduplicatedItems(_ items: [(type: String, simkl: Int, lastSynced: String?)]) -> [(type: String, simkl: Int, lastSynced: String?)] {
+      var seen = Set<String>()
+      return items.filter { item in
+        let key = "\(item.type)-\(item.simkl)"
+        return seen.insert(key).inserted
+      }
+    }
+
     // Get plantowatch items, prioritizing those never synced (nil) then oldest synced
     // Fetch items with nil last_sd_synced_at first, then items with oldest timestamps
     var planToWatchItems: [(type: String, simkl: Int, lastSynced: String?)] = []
+
+    // Prioritize plan-to-watch movies/shows missing release dates for Issue #3 backfill
+    var moviesMissingReleaseDateDescriptor = FetchDescriptor<V1.SDMovies>(
+      predicate: #Predicate { $0.status == "plantowatch" && $0.release_date == nil }
+    )
+    moviesMissingReleaseDateDescriptor.fetchLimit = 10
+    for movie in try context.fetch(moviesMissingReleaseDateDescriptor) {
+      planToWatchItems.append((type: "movie", simkl: movie.simkl, lastSynced: movie.last_sd_synced_at))
+    }
+
+    var showsMissingReleaseDateDescriptor = FetchDescriptor<V1.SDShows>(
+      predicate: #Predicate { $0.status == "plantowatch" && $0.release_date == nil }
+    )
+    showsMissingReleaseDateDescriptor.fetchLimit = 10
+    for show in try context.fetch(showsMissingReleaseDateDescriptor) {
+      planToWatchItems.append((type: "show", simkl: show.simkl, lastSynced: show.last_sd_synced_at))
+    }
+    planToWatchItems = deduplicatedItems(planToWatchItems)
 
     // First: get plantowatch items that have NEVER been synced (nil last_sd_synced_at)
     var moviesNeverSyncedDescriptor = FetchDescriptor<V1.SDMovies>(
@@ -96,15 +122,15 @@ func refreshStaleData(_ accessToken: String, _ context: ModelContext) async {
       }
 
       // Sort the synced items by oldest first and take what we need
-      let neverSyncedCount = planToWatchItems.filter { $0.lastSynced == nil }.count
       let syncedItems = planToWatchItems.filter { $0.lastSynced != nil }
         .sorted { $0.lastSynced! < $1.lastSynced! }
         .prefix(remaining)
       planToWatchItems = planToWatchItems.filter { $0.lastSynced == nil } + Array(syncedItems)
+      planToWatchItems = deduplicatedItems(planToWatchItems)
     }
 
     // Take up to 10 plantowatch items
-    var itemsToRefresh = Array(planToWatchItems.prefix(10))
+    var itemsToRefresh = Array(deduplicatedItems(planToWatchItems).prefix(10))
 
     // If we need more items, get from other statuses (same nil-first logic)
     if itemsToRefresh.count < 10 {
@@ -230,6 +256,7 @@ private func refreshMovie(_ simkl: Int, _ context: ModelContext, _ formatter: IS
       movie.title = details.title
       movie.poster = details.poster
       movie.year = details.year
+      movie.release_date = normalizeReleaseDateString(details.released)
       movie.last_sd_synced_at = formatter.string(from: Date())
 
       print("Refreshed movie: \(details.title)")
@@ -256,6 +283,7 @@ private func refreshShow(_ simkl: Int, _ context: ModelContext, _ formatter: ISO
       show.title = details.title
       show.poster = details.poster
       show.year = details.year
+      show.release_date = normalizeReleaseDateString(details.first_aired)
       show.total_episodes_count = details.total_episodes
       show.last_sd_synced_at = formatter.string(from: Date())
 

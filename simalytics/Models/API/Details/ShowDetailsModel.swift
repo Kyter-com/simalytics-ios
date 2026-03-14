@@ -12,6 +12,7 @@ struct ShowDetailsModel: Codable {
   let poster: String?
   let fanart: String?
   let year: Int?
+  let first_aired: String?
   let ratings: Ratings?
   let year_start_end: String?
   let runtime: Int?

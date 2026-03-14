@@ -107,6 +107,7 @@ enum V1: VersionedSchema {
     @Attribute(.unique) var simkl: Int
     var title: String?
     var added_to_watchlist_at: String?
+    var release_date: String?
     var last_watched_at: String?
     var user_rated_at: String?
     var status: String?
@@ -128,6 +129,7 @@ enum V1: VersionedSchema {
       simkl: Int,
       title: String? = nil,
       added_to_watchlist_at: String? = nil,
+      release_date: String? = nil,
       last_watched_at: String? = nil,
       user_rated_at: String? = nil,
       status: String? = nil,
@@ -149,6 +151,7 @@ enum V1: VersionedSchema {
       self.simkl = simkl
       self.title = title
       self.added_to_watchlist_at = added_to_watchlist_at
+      self.release_date = release_date
       self.last_watched_at = last_watched_at
       self.user_rated_at = user_rated_at
       self.status = status
@@ -173,6 +176,7 @@ enum V1: VersionedSchema {
   class SDShows {
     @Attribute(.unique) var simkl: Int
     var added_to_watchlist_at: String?
+    var release_date: String?
     var last_watched_at: String?
     var user_rated_at: String?
     var user_rating: Int?
@@ -205,6 +209,7 @@ enum V1: VersionedSchema {
     init(
       simkl: Int,
       added_to_watchlist_at: String? = nil,
+      release_date: String? = nil,
       last_watched_at: String? = nil,
       user_rated_at: String? = nil,
       user_rating: Int? = nil,
@@ -237,6 +242,7 @@ enum V1: VersionedSchema {
     ) {
       self.simkl = simkl
       self.added_to_watchlist_at = added_to_watchlist_at
+      self.release_date = release_date
       self.last_watched_at = last_watched_at
       self.user_rated_at = user_rated_at
       self.user_rating = user_rating

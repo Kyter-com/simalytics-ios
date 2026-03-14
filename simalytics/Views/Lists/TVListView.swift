@@ -25,6 +25,8 @@ struct TVListView: View {
   private var resolvedSortDescriptor: SortDescriptor<V1.SDShows> {
     if sortField == "title" {
       return SortDescriptor(\V1.SDShows.title, order: sortAscending ? .forward : .reverse)
+    } else if sortField == "release_date" && status == "plantowatch" {
+      return SortDescriptor(\V1.SDShows.title, order: .forward)
     } else if sortField == "added_at" && status != "completed" {
       return SortDescriptor(\V1.SDShows.added_to_watchlist_at, order: sortAscending ? .forward : .reverse)
     } else if sortField == "added_at" && status == "completed" {
@@ -56,8 +58,50 @@ struct TVListView: View {
     }
   }
 
+  private var sortedShows: [V1.SDShows] {
+    let filtered = filteredShows
+    guard status == "plantowatch" && sortField == "release_date" else {
+      return filtered
+    }
+
+    return filtered.sorted { lhs, rhs in
+      let lhsReleaseDate = normalizeReleaseDateString(lhs.release_date)
+      let rhsReleaseDate = normalizeReleaseDateString(rhs.release_date)
+
+      switch (lhsReleaseDate, rhsReleaseDate) {
+      case (nil, nil):
+        return compareTitle(lhs, rhs)
+      case (nil, _):
+        return false
+      case (_, nil):
+        return true
+      case (let lhsDate?, let rhsDate?):
+        if lhsDate == rhsDate {
+          return compareTitle(lhs, rhs)
+        }
+        return sortAscending ? lhsDate < rhsDate : lhsDate > rhsDate
+      }
+    }
+  }
+
+  private func compareTitle(_ lhs: V1.SDShows, _ rhs: V1.SDShows) -> Bool {
+    let lhsTitle = lhs.title ?? ""
+    let rhsTitle = rhs.title ?? ""
+    let comparison = lhsTitle.localizedCaseInsensitiveCompare(rhsTitle)
+
+    if comparison == .orderedSame {
+      return lhs.simkl < rhs.simkl
+    }
+
+    if sortAscending {
+      return comparison == .orderedAscending
+    }
+
+    return comparison == .orderedDescending
+  }
+
   var body: some View {
-    List(filteredShows, id: \.self) { show in
+    List(sortedShows, id: \.self) { show in
       NavigationLink(destination: ShowDetailView(simkl_id: show.simkl)) {
         HStack {
           CustomKFImage(
@@ -88,6 +132,10 @@ struct TVListView: View {
                   .font(.footnote)
                   .foregroundColor(.secondary)
               }
+            } else if status == "plantowatch" {
+              Text("Release Date: " + (formatReleaseDateForDisplay(show.release_date) ?? "TBA"))
+                .font(.footnote)
+                .foregroundColor(.secondary)
             } else {
               if let isoString = show.added_to_watchlist_at,
                 let addedDate = Self.isoFormatter.date(from: isoString)
@@ -149,6 +197,9 @@ struct TVListView: View {
           Picker("Sort by", selection: $sortField) {
             Text("Title").tag("title")
             Text("Year").tag("year")
+            if status == "plantowatch" {
+              Text("Release Date").tag("release_date")
+            }
             if status == "completed" {
               Text("Completed").tag("added_at")
             } else {

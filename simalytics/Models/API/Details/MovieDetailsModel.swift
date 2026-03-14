@@ -10,6 +10,7 @@ import Foundation
 struct MovieDetailsModel: Codable {
   let title: String
   let year: Int?
+  let released: String?
   let poster: String?
   let runtime: Int?
   let fanart: String?

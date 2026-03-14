@@ -14,3 +14,55 @@ extension Date {
     return formatter.localizedString(for: self, relativeTo: Date())
   }
 }
+
+func normalizeReleaseDateString(_ rawDate: String?) -> String? {
+  guard let trimmed = rawDate?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+    return nil
+  }
+
+  let dayFormatter = DateFormatter()
+  dayFormatter.locale = Locale(identifier: "en_US_POSIX")
+  dayFormatter.dateFormat = "yyyy-MM-dd"
+
+  if let date = dayFormatter.date(from: trimmed) {
+    return dayFormatter.string(from: date)
+  }
+
+  let isoFormatter = ISO8601DateFormatter()
+  if let date = isoFormatter.date(from: trimmed) {
+    return dayFormatter.string(from: date)
+  }
+
+  isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+  if let date = isoFormatter.date(from: trimmed) {
+    return dayFormatter.string(from: date)
+  }
+
+  if trimmed.count >= 10 {
+    let prefix = String(trimmed.prefix(10))
+    if dayFormatter.date(from: prefix) != nil {
+      return prefix
+    }
+  }
+
+  return nil
+}
+
+func formatReleaseDateForDisplay(_ rawDate: String?) -> String? {
+  guard let normalizedDate = normalizeReleaseDateString(rawDate) else {
+    return nil
+  }
+
+  let dayFormatter = DateFormatter()
+  dayFormatter.locale = Locale(identifier: "en_US_POSIX")
+  dayFormatter.dateFormat = "yyyy-MM-dd"
+
+  guard let date = dayFormatter.date(from: normalizedDate) else {
+    return nil
+  }
+
+  let displayFormatter = DateFormatter()
+  displayFormatter.dateStyle = .medium
+  displayFormatter.timeStyle = .none
+  return displayFormatter.string(from: date)
+}
