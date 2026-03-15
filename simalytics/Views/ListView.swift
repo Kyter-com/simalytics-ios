@@ -13,8 +13,8 @@ struct ListView: View {
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
   @AppStorage("hideAnime") private var hideAnime = false
-  @State private var moviesPlanToWatchCount: Int = 0
   @State private var moviesDroppedCount: Int = 0
+  @State private var moviesPlanToWatchCount: Int = 0
   @State private var moviesCompletedCount: Int = 0
   @State private var showsPlanToWatchCount: Int = 0
   @State private var showsCompletedCount: Int = 0
