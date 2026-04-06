@@ -21,13 +21,13 @@ enum SimklMutationError: Error {
   }
 }
 
-func performSimklMutationRequest(_ request: URLRequest, retryCount: Int = 2) async throws {
+func performSimklRequest(_ request: URLRequest, retryCount: Int = 2) async throws -> (Data, HTTPURLResponse) {
   var attempt = 0
   var retryDelayNanoseconds: UInt64 = 500_000_000
 
   while true {
     do {
-      let (_, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.data(for: request)
       guard let httpResponse = response as? HTTPURLResponse else {
         throw SimklMutationError.invalidResponse
       }
@@ -36,7 +36,7 @@ func performSimklMutationRequest(_ request: URLRequest, retryCount: Int = 2) asy
         throw SimklMutationError.httpStatusCode(httpResponse.statusCode)
       }
 
-      return
+      return (data, httpResponse)
     } catch {
       if attempt >= retryCount || !shouldRetrySimklMutation(error) {
         throw error
@@ -47,6 +47,10 @@ func performSimklMutationRequest(_ request: URLRequest, retryCount: Int = 2) asy
       attempt += 1
     }
   }
+}
+
+func performSimklMutationRequest(_ request: URLRequest, retryCount: Int = 2) async throws {
+  _ = try await performSimklRequest(request, retryCount: retryCount)
 }
 
 func simklMutationUserMessage(for error: Error) -> String {

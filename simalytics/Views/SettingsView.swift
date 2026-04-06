@@ -97,14 +97,7 @@ struct SettingsView: View {
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     let body: [String: String] = ["code": token]
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)
-                    let (data, response) = try await URLSession.shared.data(for: request)
-
-                    guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200
-                    else {
-                      showErrorAlert = true
-                      return
-                    }
+                    let (data, _) = try await performSimklRequest(request)
 
                     struct AccessTokenResponse: Decodable {
                       let access_token: String
