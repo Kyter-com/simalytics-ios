@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Sentry
 
 enum SimklMutationError: Error {
   case invalidResponse
