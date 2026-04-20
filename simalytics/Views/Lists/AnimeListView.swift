@@ -127,7 +127,7 @@ struct AnimeListView: View {
             if let year = anime.year {
               Text(String(year))
                 .font(.footnote)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             }
 
             // If the anime is completed, display when it was completed instead of when it was added to list
@@ -137,7 +137,7 @@ struct AnimeListView: View {
               {
                 Text("Completed: " + completedDate.timeAgoDisplay())
                   .font(.footnote)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             } else {
               if let isoString = anime.added_to_watchlist_at,
@@ -145,7 +145,7 @@ struct AnimeListView: View {
               {
                 Text("Added: " + addedDate.timeAgoDisplay())
                   .font(.footnote)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             }
           }

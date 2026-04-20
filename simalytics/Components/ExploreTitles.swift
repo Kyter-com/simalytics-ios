@@ -45,7 +45,7 @@ struct YearOverlayTitle: View {
           }
         ).opacity(0.8)
       )
-      .cornerRadius(6)
+      .clipShape(.rect(cornerRadius: 6))
       .padding([.leading, .bottom], 6)
   }
 }

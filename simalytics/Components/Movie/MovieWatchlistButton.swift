@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MovieWatchlistButton: View {
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
   @ScaledMetric(relativeTo: .body) private var buttonPadding: CGFloat = 15
@@ -50,12 +50,12 @@ struct MovieWatchlistButton: View {
           .multilineTextAlignment(.center)
           .frame(maxWidth: .infinity)
       }
-      .foregroundColor(foregroundColor(status))
+      .foregroundStyle(foregroundColor(status))
       .bold()
       .padding(.horizontal, buttonPadding)
       .padding(.vertical, buttonPadding)
       .background(mapStatusToColor(status))
-      .cornerRadius(8)
+      .clipShape(.rect(cornerRadius: 8))
     }
     .onChange(of: status ?? "nil") { oldValue, newValue in
       if isRollingBackStatus {

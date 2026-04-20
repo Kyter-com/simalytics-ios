@@ -6,7 +6,7 @@ struct MemoView: View {
   @Binding var privacySelection: String
   @FocusState private var isTextEditorFocused: Bool
   @Environment(\.dismiss) var dismiss
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @Environment(\.modelContext) private var modelContext
 
   var simkl_id: Int
@@ -49,7 +49,7 @@ struct MemoView: View {
             Spacer()
             Text(characterCountText)
               .font(.caption)
-              .foregroundColor(.secondary)
+              .foregroundStyle(.secondary)
               .padding(.top, 4)
           }
           .accessibilityLabel("Character count: \(characterCountText)")
@@ -61,12 +61,12 @@ struct MemoView: View {
       .navigationTitle("Write Memo")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .topBarLeading) {
           Button("Cancel") {
             dismiss()
           }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .topBarTrailing) {
           Button("Done") {
             Task {
               if simkl_type == "movie" {

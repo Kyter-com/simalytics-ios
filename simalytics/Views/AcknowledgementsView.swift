@@ -50,18 +50,18 @@ struct AcknowledgementsView: View {
               VStack(alignment: .leading, spacing: 4) {
                 Text(dependency.name)
                   .font(.headline)
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Text(dependency.author)
                   .font(.subheadline)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
                 Text(dependency.license)
                   .font(.caption)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
               Spacer()
               Image(systemName: "arrow.up.forward")
                 .font(.footnote)
-                .foregroundColor(Color(UIColor.tertiaryLabel))
+                .foregroundStyle(Color(UIColor.tertiaryLabel))
             }
           }
         }

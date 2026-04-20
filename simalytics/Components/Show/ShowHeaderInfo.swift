@@ -16,32 +16,32 @@ struct ShowHeaderInfo: View {
       LabeledContent {
         Text(String(year).replacingOccurrences(of: " - ", with: "-"))
           .fontDesign(.monospaced)
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       } label: {
         Label("Year", systemImage: "calendar")
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       }
     }
     if let runtime = showDetails?.runtime {
       LabeledContent {
         Text("\(String(runtime)) Min")
           .fontDesign(.monospaced)
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       } label: {
         Label("Ep. Runtime", systemImage: "clock")
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       }
     }
     if let total_episodes = showDetails?.total_episodes {
       LabeledContent {
         Text(String(total_episodes))
           .fontDesign(.monospaced)
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       } label: {
         Label(
           "Total Episodes", systemImage: "checkmark.arrow.trianglehead.counterclockwise"
         )
-        .foregroundColor(.secondary)
+        .foregroundStyle(.secondary)
       }
     }
     let watched = showWatchlist?.episodes_watched ?? 0
@@ -50,19 +50,19 @@ struct ShowHeaderInfo: View {
     LabeledContent {
       Text("\(percentage)%")
         .fontDesign(.monospaced)
-        .foregroundColor(.secondary)
+        .foregroundStyle(.secondary)
     } label: {
       Label("Watched", systemImage: "percent")
-        .foregroundColor(.secondary)
+        .foregroundStyle(.secondary)
     }
     if let simklRating = showDetails?.ratings?.simkl?.rating {
       LabeledContent {
         Text(String(simklRating))
           .fontDesign(.monospaced)
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       } label: {
         Label("SIMKL Rating", systemImage: "trophy")
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       }
     }
   }

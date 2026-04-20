@@ -15,7 +15,7 @@ struct SearchResultsView: View {
   @AppStorage("hideAnime") private var hideAnime = false
   @Environment(\.modelContext) private var context
   @State private var searchResults: [SearchResultModel] = []
-  @State private var debounceWorkItem: DispatchWorkItem?
+  @State private var searchTask: Task<Void, Never>?
 
   var body: some View {
     ScrollView {
@@ -84,7 +84,7 @@ struct SearchResultsView: View {
       SearchResultsView.debounceSearch(
         query: newValue,
         searchCategory: searchCategory,
-        debounceWorkItem: &debounceWorkItem
+        previousTask: &searchTask
       ) { results in
         searchResults = results
       }
@@ -93,7 +93,7 @@ struct SearchResultsView: View {
       SearchResultsView.debounceSearch(
         query: searchText,
         searchCategory: newValue,
-        debounceWorkItem: &debounceWorkItem
+        previousTask: &searchTask
       ) { results in
         searchResults = results
       }

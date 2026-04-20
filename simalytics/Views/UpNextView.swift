@@ -27,7 +27,7 @@ extension V1.SDAnimes: UpNextMedia {
 }
 
 struct UpNextView: View {
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @AppStorage("hideAnime") private var hideAnime = false
   @State private var searchText: String = ""
   @Environment(\.modelContext) private var context
@@ -91,12 +91,12 @@ struct UpNextView: View {
                 if let season = mediaItem.next_to_watch_info_season {
                   Text("Season \(season)")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 }
                 if let episode = mediaItem.next_to_watch_info_episode {
                   Text("Episode \(episode)")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 }
                 Spacer()
               }
@@ -200,7 +200,7 @@ struct UpNextPreviewCard: View {
           Text(mediaItem.type == "anime" ? "Anime" : "TV Show")
         }
         .font(.subheadline)
-        .foregroundColor(.secondary)
+        .foregroundStyle(.secondary)
 
         if let episodeTitle = mediaItem.next_to_watch_info_title {
           Text(episodeTitle)
@@ -211,11 +211,11 @@ struct UpNextPreviewCard: View {
         if let nextEp = nextEpisodeText {
           HStack(spacing: 4) {
             Image(systemName: "play.circle")
-              .foregroundColor(.blue)
+              .foregroundStyle(.blue)
             Text("Next: \(nextEp)")
           }
           .font(.subheadline)
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
         }
 
         Text("Watching")

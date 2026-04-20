@@ -10,7 +10,7 @@ import SwiftData
 import SwiftUI
 
 struct ShowDetailView: View {
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
@@ -59,46 +59,42 @@ struct ShowDetailView: View {
   var body: some View {
     if isLoading {
       ProgressView("Loading...")
-        .onAppear {
-          Task {
-            showDetails = await ShowDetailView.getShowDetails(simkl_id)
-            showWatchlist = await ShowDetailView.getShowWatchlist(
-              simkl_id, auth.simklAccessToken)
-            watchlistStatus = showWatchlist?.list
-            showEpisodes = await ShowDetailView.getShowEpisodes(simkl_id)
+        .task {
+          showDetails = await ShowDetailView.getShowDetails(simkl_id)
+          showWatchlist = await ShowDetailView.getShowWatchlist(
+            simkl_id, auth.simklAccessToken)
+          watchlistStatus = showWatchlist?.list
+          showEpisodes = await ShowDetailView.getShowEpisodes(simkl_id)
 
-            if let fanart = showDetails?.fanart {
-              let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
-              KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
-            }
-
-            if let smallestSeason = showEpisodes.filter({ $0.season ?? 0 > 0 }).map({ $0.season ?? 0 }).min() {
-              filteredEpisodes = showEpisodes.filter({ $0.season == smallestSeason })
-              selectedSeason = "Season \(smallestSeason)"
-            } else if !showEpisodes.filter({ $0.type == "special" }).isEmpty {
-              filteredEpisodes = showEpisodes.filter({ $0.type == "special" })
-              selectedSeason = "Specials"
-            } else {
-              filteredEpisodes = []
-            }
-
-            isLoading = false
-
-            Task { @MainActor [modelContext, simkl_id] in
-              do {
-                let shows = try modelContext.fetch(
-                  FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.simkl == simkl_id })
-                )
-                if let show = shows.first {
-                  let simklRating = Double(show.user_rating ?? 0)
-                  self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
-                  self.originalRating = self.localRating
-                  self.memoText = show.memo_text ?? ""
-                  self.privacySelection = show.memo_is_private ?? true ? "Private" : "Public"
-                }
-              } catch {}
-            }
+          if let fanart = showDetails?.fanart {
+            let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
+            KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
           }
+
+          if let smallestSeason = showEpisodes.filter({ $0.season ?? 0 > 0 }).map({ $0.season ?? 0 }).min() {
+            filteredEpisodes = showEpisodes.filter({ $0.season == smallestSeason })
+            selectedSeason = "Season \(smallestSeason)"
+          } else if !showEpisodes.filter({ $0.type == "special" }).isEmpty {
+            filteredEpisodes = showEpisodes.filter({ $0.type == "special" })
+            selectedSeason = "Specials"
+          } else {
+            filteredEpisodes = []
+          }
+
+          do {
+            let shows = try modelContext.fetch(
+              FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.simkl == simkl_id })
+            )
+            if let show = shows.first {
+              let simklRating = Double(show.user_rating ?? 0)
+              self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
+              self.originalRating = self.localRating
+              self.memoText = show.memo_text ?? ""
+              self.privacySelection = show.memo_is_private ?? true ? "Private" : "Public"
+            }
+          } catch {}
+
+          isLoading = false
         }
     } else {
       ScrollView {
@@ -151,7 +147,7 @@ struct ShowDetailView: View {
         if let genres = showDetails?.genres {
           Text(genres.joined(separator: " • "))
             .font(.footnote)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
@@ -222,12 +218,12 @@ struct ShowDetailView: View {
                   Text(selectedSeason ?? "")
                   Image(systemName: "chevron.up.chevron.down")
                 }
-                .foregroundColor(.accentColor)
+                .foregroundStyle(Color.accentColor)
                 .bold()
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
+                .clipShape(.rect(cornerRadius: 8))
               }
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding([.leading, .trailing])
@@ -250,18 +246,18 @@ struct ShowDetailView: View {
                         .fill(Color.clear)
                         .frame(width: 125, height: 70.42)
                         .background(BlurView(style: .regular))
-                        .cornerRadius(8)
+                        .clipShape(.rect(cornerRadius: 8))
                     }
                   }
                   if hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1) {
                     Image(systemName: "checkmark.circle")
                       .resizable()
                       .scaledToFit()
-                      .foregroundColor(colorScheme == .dark ? Color.green.darker() : Color.green)
+                      .foregroundStyle(colorScheme == .dark ? Color.green.darker() : Color.green)
                       .frame(width: 14, height: 14)
                       .padding(4)
                       .background(colorScheme == .dark ? Color.black : Color.white)
-                      .cornerRadius(8)
+                      .clipShape(.rect(cornerRadius: 8))
                       .offset(x: -2, y: -2)
                   }
                 }

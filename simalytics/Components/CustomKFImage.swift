@@ -48,7 +48,7 @@ struct CustomKFImage: View {
           .overlay(
             Image(systemName: "photo.badge.exclamationmark")
               .font(.system(size: min(width, height) * 0.4))
-              .foregroundColor(.secondary)
+              .foregroundStyle(.secondary)
           )
       }
     }

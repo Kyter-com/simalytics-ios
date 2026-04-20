@@ -60,20 +60,17 @@ extension SearchResultsView {
   static func debounceSearch(
     query: String,
     searchCategory: SearchCategory,
-    debounceWorkItem: inout DispatchWorkItem?,
-    completion: @escaping ([SearchResultModel]) -> Void
+    previousTask: inout Task<Void, Never>?,
+    completion: @escaping @MainActor ([SearchResultModel]) -> Void
   ) {
-    debounceWorkItem?.cancel()
-
-    let workItem = DispatchWorkItem {
-      Task {
-        let results = await SearchResultsView.getSearchResults(
-          searchText: query, searchType: searchCategory.rawValue.lowercased())
-        completion(results)
-      }
+    previousTask?.cancel()
+    previousTask = Task {
+      try? await Task.sleep(for: .seconds(1))
+      guard !Task.isCancelled else { return }
+      let results = await SearchResultsView.getSearchResults(
+        searchText: query, searchType: searchCategory.rawValue.lowercased())
+      guard !Task.isCancelled else { return }
+      await MainActor.run { completion(results) }
     }
-
-    debounceWorkItem = workItem
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: workItem)
   }
 }

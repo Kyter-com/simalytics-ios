@@ -9,7 +9,18 @@ import Foundation
 import Sentry
 import SwiftData
 
+private func ensureLastSyncRecord(_ container: ModelContainer) {
+  let context = ModelContext(container)
+  let existing = (try? context.fetch(
+    FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+  ))?.first
+  guard existing == nil else { return }
+  context.insert(V1.SDLastSync(id: 1))
+  try? context.save()
+}
+
 func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer) async {
+  ensureLastSyncRecord(modelContainer)
   do {
     let urlComponents = URLComponents(string: "https://api.simkl.com/sync/activities")!
     var request = URLRequest(url: urlComponents.url!)

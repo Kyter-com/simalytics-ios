@@ -125,7 +125,7 @@ struct TVListView: View {
             if let year = show.year {
               Text(String(year))
                 .font(.footnote)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             }
 
             // If the show is completed, display when it was completed instead of when it was added to list
@@ -135,7 +135,7 @@ struct TVListView: View {
               {
                 Text("Completed: " + completedDate.timeAgoDisplay())
                   .font(.footnote)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             } else {
               if let isoString = show.added_to_watchlist_at,
@@ -143,7 +143,7 @@ struct TVListView: View {
               {
                 Text("Added: " + addedDate.timeAgoDisplay())
                   .font(.footnote)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             }
           }

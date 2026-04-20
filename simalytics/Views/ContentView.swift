@@ -33,9 +33,6 @@ struct ContentView: View {
         }
         .tag(3)
     }
-    .onChange(of: selectedTab) {
-      let generator = UIImpactFeedbackGenerator(style: .light)
-      generator.impactOccurred()
-    }
+    .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
   }
 }

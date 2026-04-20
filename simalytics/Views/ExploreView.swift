@@ -10,7 +10,7 @@ import SwiftData
 import SwiftUI
 
 struct ExploreView: View {
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var context
   @AppStorage("hideAnime") private var hideAnime = false
@@ -49,7 +49,7 @@ struct ExploreView: View {
               VStack(alignment: .leading) {
                 Group {
                   ExploreGroupTitle(title: "Trending Shows")
-                  ScrollView(.horizontal, showsIndicators: true) {
+                  ScrollView(.horizontal) {
                     HStack(spacing: 16) {
                       ForEach(sdTrendingShows, id: \.simkl) { showItem in
                         NavigationLink(
@@ -94,7 +94,7 @@ struct ExploreView: View {
 
                 Group {
                   ExploreGroupTitle(title: "Trending Movies")
-                  ScrollView(.horizontal, showsIndicators: true) {
+                  ScrollView(.horizontal) {
                     HStack(spacing: 16) {
                       ForEach(sdTrendingMovies, id: \.simkl) { movieItem in
                         NavigationLink(
@@ -140,7 +140,7 @@ struct ExploreView: View {
                 if !hideAnime {
                   Group {
                     ExploreGroupTitle(title: "Trending Animes")
-                    ScrollView(.horizontal, showsIndicators: true) {
+                    ScrollView(.horizontal) {
                       HStack(spacing: 16) {
                         ForEach(sdTrendingAnimes, id: \.simkl) { animeItem in
                           NavigationLink(

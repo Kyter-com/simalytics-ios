@@ -95,7 +95,7 @@ struct PreviewCard: View {
         if let year = year {
           Text(String(year))
             .font(.subheadline)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
 
         if let mediaTypeText = mediaTypeText, let mediaTypeIcon = mediaTypeIcon {
@@ -104,13 +104,13 @@ struct PreviewCard: View {
             Text(mediaTypeText)
           }
           .font(.subheadline)
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
         }
 
         if userRating != nil && userRating! > 0 {
           HStack(spacing: 4) {
             Image(systemName: "star.fill")
-              .foregroundColor(.yellow)
+              .foregroundStyle(.yellow)
             Text(displayRating)
               .fontWeight(.medium)
           }
@@ -120,11 +120,11 @@ struct PreviewCard: View {
         if let episodeProgress = episodeProgressText {
           HStack(spacing: 4) {
             Image(systemName: "play.circle")
-              .foregroundColor(.blue)
+              .foregroundStyle(.blue)
             Text(episodeProgress)
           }
           .font(.subheadline)
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
         }
 
         if let statusText = statusText {

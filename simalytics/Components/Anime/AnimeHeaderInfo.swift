@@ -17,10 +17,10 @@ struct AnimeHeaderInfo: View {
         LabeledContent {
           Text(String(year))
             .fontDesign(.monospaced)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         } label: {
           Label("Released", systemImage: "calendar")
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
       }
     } else {
@@ -28,10 +28,10 @@ struct AnimeHeaderInfo: View {
         LabeledContent {
           Text(String(year).replacingOccurrences(of: " - ", with: "-"))
             .fontDesign(.monospaced)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         } label: {
           Label("Year", systemImage: "calendar")
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
       }
     }
@@ -41,10 +41,10 @@ struct AnimeHeaderInfo: View {
         LabeledContent {
           Text("\(String(runtime)) Min")
             .fontDesign(.monospaced)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         } label: {
           Label("Runtime", systemImage: "clock")
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
       }
     } else {
@@ -52,10 +52,10 @@ struct AnimeHeaderInfo: View {
         LabeledContent {
           Text("\(String(runtime)) Min")
             .fontDesign(.monospaced)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         } label: {
           Label("Ep. Runtime", systemImage: "clock")
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
       }
     }
@@ -65,10 +65,10 @@ struct AnimeHeaderInfo: View {
         LabeledContent {
           Text(certification)
             .fontDesign(.monospaced)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         } label: {
           Label("MPAA", systemImage: "figure.and.child.holdinghands")
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
       }
     } else {
@@ -76,12 +76,12 @@ struct AnimeHeaderInfo: View {
         LabeledContent {
           Text(String(total_episodes))
             .fontDesign(.monospaced)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         } label: {
           Label(
             "Total Episodes", systemImage: "checkmark.arrow.trianglehead.counterclockwise"
           )
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
         }
       }
     }
@@ -91,10 +91,10 @@ struct AnimeHeaderInfo: View {
         LabeledContent {
           Text(country)
             .fontDesign(.monospaced)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         } label: {
           Label("Country", systemImage: "flag")
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
       }
     } else {
@@ -104,10 +104,10 @@ struct AnimeHeaderInfo: View {
       LabeledContent {
         Text("\(percentage)%")
           .fontDesign(.monospaced)
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       } label: {
         Label("Watched", systemImage: "percent")
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       }
     }
 
@@ -115,10 +115,10 @@ struct AnimeHeaderInfo: View {
       LabeledContent {
         Text(String(simklRating))
           .fontDesign(.monospaced)
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       } label: {
         Label("SIMKL Rating", systemImage: "trophy")
-          .foregroundColor(.secondary)
+          .foregroundStyle(.secondary)
       }
     }
   }

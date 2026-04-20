@@ -72,7 +72,7 @@ struct FullscreenPosterView: View {
           } label: {
             Image(systemName: "square.and.arrow.down")
               .font(.title2)
-              .foregroundColor(.white)
+              .foregroundStyle(.white)
               .padding(12)
               .background(Circle().fill(Color.black.opacity(0.5)))
           }
@@ -83,15 +83,15 @@ struct FullscreenPosterView: View {
         } label: {
           Image(systemName: "xmark")
             .font(.title2)
-            .foregroundColor(.white)
+            .foregroundStyle(.white)
             .padding(12)
             .background(Circle().fill(Color.black.opacity(0.5)))
         }
       }
       .padding()
     }
-    .onAppear {
-      loadImage()
+    .task {
+      await loadImage()
     }
     .alert("Save Image", isPresented: $showingSaveAlert) {
       Button("OK", role: .cancel) {}
@@ -101,45 +101,40 @@ struct FullscreenPosterView: View {
     .statusBarHidden()
   }
 
-  private func loadImage() {
+  private func loadImage() async {
     guard let url = imageURL else {
       isLoading = false
       return
     }
 
-    KingfisherManager.shared.retrieveImage(with: url) { result in
-      DispatchQueue.main.async {
-        switch result {
-        case .success(let imageResult):
-          self.image = imageResult.image
-        case .failure:
-          self.image = nil
-        }
-        self.isLoading = false
-      }
+    do {
+      let result = try await KingfisherManager.shared.retrieveImage(with: url)
+      image = result.image
+    } catch {
+      image = nil
     }
+    isLoading = false
   }
 
   private func saveImageToPhotos() {
     guard let image = image else { return }
 
-    PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-      DispatchQueue.main.async {
-        switch status {
-        case .authorized, .limited:
-          UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-          saveAlertMessage = "Image saved to Photos"
-          showingSaveAlert = true
-        case .denied, .restricted:
-          saveAlertMessage = "Please allow photo access in Settings to save images"
-          showingSaveAlert = true
-        case .notDetermined:
-          saveAlertMessage = "Unable to save image"
-          showingSaveAlert = true
-        @unknown default:
-          saveAlertMessage = "Unable to save image"
-          showingSaveAlert = true
-        }
+    Task {
+      let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+      switch status {
+      case .authorized, .limited:
+        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+        saveAlertMessage = "Image saved to Photos"
+        showingSaveAlert = true
+      case .denied, .restricted:
+        saveAlertMessage = "Please allow photo access in Settings to save images"
+        showingSaveAlert = true
+      case .notDetermined:
+        saveAlertMessage = "Unable to save image"
+        showingSaveAlert = true
+      @unknown default:
+        saveAlertMessage = "Unable to save image"
+        showingSaveAlert = true
       }
     }
   }

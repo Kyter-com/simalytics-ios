@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct ListView: View {
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
   @AppStorage("hideAnime") private var hideAnime = false
@@ -37,7 +37,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "star")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.yellow : Color.yellow.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.yellow : Color.yellow.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -50,7 +50,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(moviesPlanToWatchCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -59,7 +59,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "checkmark.circle")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.green : Color.green.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.green : Color.green.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -72,7 +72,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(moviesCompletedCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -81,7 +81,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "hand.thumbsdown")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.red : Color.red.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -94,7 +94,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(moviesDroppedCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -105,7 +105,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "star")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.yellow : Color.yellow.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.yellow : Color.yellow.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -118,7 +118,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(showsPlanToWatchCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -127,7 +127,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "checkmark.circle")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.green : Color.green.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.green : Color.green.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -140,7 +140,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(showsCompletedCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -149,7 +149,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "pause")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.gray : Color.gray.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.gray : Color.gray.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -162,7 +162,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(showsHoldCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -171,7 +171,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "hand.thumbsdown")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.red : Color.red.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -184,7 +184,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(showsDroppedCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -193,7 +193,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "popcorn")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.purple : Color.purple.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.purple : Color.purple.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -206,7 +206,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(showsWatchingCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -220,7 +220,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "star")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.yellow : Color.yellow.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.yellow : Color.yellow.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -233,7 +233,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(animePlanToWatchCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -242,7 +242,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "checkmark.circle")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.green : Color.green.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.green : Color.green.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -255,7 +255,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(animeCompletedCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -264,7 +264,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "pause")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.gray : Color.gray.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.gray : Color.gray.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -277,7 +277,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(animeHoldCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -286,7 +286,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "hand.thumbsdown")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.red : Color.red.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.red : Color.red.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -299,7 +299,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(animeDroppedCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -308,7 +308,7 @@ struct ListView: View {
             HStack {
               Image(systemName: "popcorn")
                 .bold()
-                .foregroundColor(colorScheme == .dark ? Color.purple : Color.purple.darker())
+                .foregroundStyle(colorScheme == .dark ? Color.purple : Color.purple.darker())
                 .frame(width: 30, height: 30)
                 .background(
                   RoundedRectangle(cornerRadius: 8)
@@ -321,7 +321,7 @@ struct ListView: View {
               Spacer()
 
               Text("\(animeWatchingCount)")
-                .foregroundColor(.gray)
+                .foregroundStyle(.gray)
                 .font(.subheadline)
             }
           }
@@ -332,24 +332,18 @@ struct ListView: View {
       .listStyle(.insetGrouped)
       .navigationTitle("Lists")
       .onAppear {
-        Task {
-          getCounts()
-        }
+        getCounts()
       }
       .onChange(of: globalLoadingIndicator.isSyncing) {
-        Task {
-          getCounts()
-        }
+        getCounts()
       }
       .refreshable {
-        Task {
-          if !auth.simklAccessToken.isEmpty {
-            globalLoadingIndicator.startSync()
-            await syncLatestActivities(
-              auth.simklAccessToken, modelContainer: modelContext.container)
-            getCounts()
-            globalLoadingIndicator.stopSync()
-          }
+        if !auth.simklAccessToken.isEmpty {
+          globalLoadingIndicator.startSync()
+          await syncLatestActivities(
+            auth.simklAccessToken, modelContainer: modelContext.container)
+          getCounts()
+          globalLoadingIndicator.stopSync()
         }
       }
       .toolbar {

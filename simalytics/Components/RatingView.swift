@@ -58,13 +58,14 @@ struct RatingView: View {
     HStack {
       ForEach(1...maxRating, id: \.self) { index in
         starImageView(index: index)
-          .foregroundColor(starColor)
+          .foregroundStyle(starColor)
           .onTapGesture {
             rating.wrappedValue = Double(index)
             withAnimation(.easeInOut(duration: 0.5)) {
               selectedStar = index
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            Task {
+              try? await Task.sleep(for: .milliseconds(500))
               selectedStar = nil
             }
           }

@@ -10,7 +10,7 @@ import SwiftData
 import SwiftUI
 
 struct MovieDetailView: View {
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
@@ -32,34 +32,30 @@ struct MovieDetailView: View {
   var body: some View {
     if isLoading {
       ProgressView("Loading...")
-        .onAppear {
-          Task {
-            movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
-            movieWatchlist = await MovieDetailView.getMovieWatchlist(simkl_id, auth.simklAccessToken)
-            watchlistStatus = movieWatchlist?.list
+        .task {
+          movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
+          movieWatchlist = await MovieDetailView.getMovieWatchlist(simkl_id, auth.simklAccessToken)
+          watchlistStatus = movieWatchlist?.list
 
-            if let fanart = movieDetails?.fanart {
-              let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
-              KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
-            }
-
-            isLoading = false
-
-            Task { @MainActor [modelContext, simkl_id] in
-              do {
-                let movies = try modelContext.fetch(
-                  FetchDescriptor<V1.SDMovies>(predicate: #Predicate { $0.simkl == simkl_id })
-                )
-                if let movie = movies.first {
-                  let simklRating = Double(movie.user_rating ?? 0)
-                  self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
-                  self.originalRating = self.localRating
-                  self.memoText = movie.memo_text ?? ""
-                  self.privacySelection = movie.memo_is_private ?? true ? "Private" : "Public"
-                }
-              } catch {}
-            }
+          if let fanart = movieDetails?.fanart {
+            let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
+            KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
           }
+
+          do {
+            let movies = try modelContext.fetch(
+              FetchDescriptor<V1.SDMovies>(predicate: #Predicate { $0.simkl == simkl_id })
+            )
+            if let movie = movies.first {
+              let simklRating = Double(movie.user_rating ?? 0)
+              self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
+              self.originalRating = self.localRating
+              self.memoText = movie.memo_text ?? ""
+              self.privacySelection = movie.memo_is_private ?? true ? "Private" : "Public"
+            }
+          } catch {}
+
+          isLoading = false
         }
     } else {
       ScrollView {
@@ -92,50 +88,50 @@ struct MovieDetailView: View {
               LabeledContent {
                 Text(String(year))
                   .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               } label: {
                 Label("Released", systemImage: "calendar")
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             }
             if let runtime = movieDetails?.runtime {
               LabeledContent {
                 Text("\(String(runtime)) Min")
                   .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               } label: {
                 Label("Runtime", systemImage: "clock")
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             }
             if let certification = movieDetails?.certification {
               LabeledContent {
                 Text(certification)
                   .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               } label: {
                 Label("MPAA", systemImage: "figure.and.child.holdinghands")
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             }
             if let language = movieDetails?.language {
               LabeledContent {
                 Text(language)
                   .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               } label: {
                 Label("Language", systemImage: "globe")
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             }
             if let simklRating = movieDetails?.ratings?.simkl?.rating {
               LabeledContent {
                 Text(String(simklRating))
                   .fontDesign(.monospaced)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               } label: {
                 Label("SIMKL Rating", systemImage: "trophy")
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             }
             Spacer()
@@ -163,7 +159,7 @@ struct MovieDetailView: View {
         if let genres = movieDetails?.genres {
           Text(genres.joined(separator: " • "))
             .font(.footnote)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }

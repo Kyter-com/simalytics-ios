@@ -11,8 +11,9 @@ import SimpleKeychain
 import SwiftData
 import SwiftUI
 
-class Auth: ObservableObject {
-  @Published var simklAccessToken: String
+@Observable @MainActor
+class Auth {
+  var simklAccessToken: String
   init() {
     let simpleKeychain = SimpleKeychain()
     do {
@@ -26,7 +27,7 @@ class Auth: ObservableObject {
 
 @main
 struct SimalyticsApp: App {
-  @StateObject private var auth = Auth()
+  @State private var auth = Auth()
   @State private var globalLoadingIndicator = GlobalLoadingIndicator()
   private static let sentryFallbackDSN = "https://2f19a4a9e212e5ee432f16fa2e22780d@o507828.ingest.us.sentry.io/4508956076605440"
 
@@ -49,7 +50,11 @@ struct SimalyticsApp: App {
         V1.TrendingAnimes.self,
       ])
       let configuration = ModelConfiguration(schema: schema)
-      return try ModelContainer(for: schema, configurations: configuration)
+      return try ModelContainer(
+        for: schema,
+        migrationPlan: SimalyticsMigrationPlan.self,
+        configurations: configuration
+      )
     } catch {
       fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
     }
@@ -103,7 +108,7 @@ struct SimalyticsApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
-        .environmentObject(auth)
+        .environment(auth)
         .environment(globalLoadingIndicator)
         .modelContainer(modelContainer)
         .task {

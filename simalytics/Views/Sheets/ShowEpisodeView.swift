@@ -10,7 +10,7 @@ import SwiftUI
 struct ShowEpisodeView: View {
   @Environment(\.dismiss) var dismiss
   @Environment(\.colorScheme) var colorScheme
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @Environment(\.modelContext) private var context
   @Binding var episode: ShowEpisodeModel?
   @Binding var showEpisodes: [ShowEpisodeModel]
@@ -88,10 +88,10 @@ struct ShowEpisodeView: View {
             .padding()
             .bold()
             .background(hasWatched ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
-            .foregroundColor(
+            .foregroundStyle(
               hasWatched ? colorScheme == .dark ? Color.green : Color.green.darker() : colorScheme == .dark ? Color.gray : Color.gray.darker()
             )
-            .cornerRadius(8)
+            .clipShape(.rect(cornerRadius: 8))
         }
       }
 

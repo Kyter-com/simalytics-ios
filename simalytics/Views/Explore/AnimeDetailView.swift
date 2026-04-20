@@ -10,7 +10,7 @@ import SwiftData
 import SwiftUI
 
 struct AnimeDetailView: View {
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
@@ -59,47 +59,43 @@ struct AnimeDetailView: View {
   var body: some View {
     if isLoading {
       ProgressView("Loading...")
-        .onAppear {
-          Task {
-            animeDetails = await AnimeDetailView.getAnimeDetails(simkl_id)
-            animeWatchlist = await AnimeDetailView.getAnimeWatchlist(
-              simkl_id, auth.simklAccessToken)
-            watchlistStatus = animeWatchlist?.list
-            animeEpisodes = await AnimeDetailView.getAnimeEpisodes(simkl_id, countSeasons: true)
+        .task {
+          animeDetails = await AnimeDetailView.getAnimeDetails(simkl_id)
+          animeWatchlist = await AnimeDetailView.getAnimeWatchlist(
+            simkl_id, auth.simklAccessToken)
+          watchlistStatus = animeWatchlist?.list
+          animeEpisodes = await AnimeDetailView.getAnimeEpisodes(simkl_id, countSeasons: true)
 
-            if let fanart = animeDetails?.fanart {
-              let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
-              KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
-            }
-
-            // Setup initial filteredShows to Season 1 or Specials if nothing is aired yet
-            if !animeEpisodes.filter({ $0.season! == 1 }).isEmpty {
-              filteredEpisodes = animeEpisodes.filter({ $0.season == 1 })
-              selectedSeason = "Season 1"
-            } else if !animeEpisodes.filter({ $0.type == "special" }).isEmpty {
-              filteredEpisodes = animeEpisodes.filter({ $0.type == "special" })
-              selectedSeason = "Specials"
-            } else {
-              filteredEpisodes = []
-            }
-
-            isLoading = false
-
-            Task { @MainActor [modelContext, simkl_id] in
-              do {
-                let animes = try modelContext.fetch(
-                  FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.simkl == simkl_id })
-                )
-                if let anime = animes.first {
-                  let simklRating = Double(anime.user_rating ?? 0)
-                  self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
-                  self.originalRating = self.localRating
-                  self.memoText = anime.memo_text ?? ""
-                  self.privacySelection = anime.memo_is_private ?? true ? "Private" : "Public"
-                }
-              } catch {}
-            }
+          if let fanart = animeDetails?.fanart {
+            let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
+            KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
           }
+
+          // Setup initial filteredShows to Season 1 or Specials if nothing is aired yet
+          if !animeEpisodes.filter({ $0.season! == 1 }).isEmpty {
+            filteredEpisodes = animeEpisodes.filter({ $0.season == 1 })
+            selectedSeason = "Season 1"
+          } else if !animeEpisodes.filter({ $0.type == "special" }).isEmpty {
+            filteredEpisodes = animeEpisodes.filter({ $0.type == "special" })
+            selectedSeason = "Specials"
+          } else {
+            filteredEpisodes = []
+          }
+
+          do {
+            let animes = try modelContext.fetch(
+              FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.simkl == simkl_id })
+            )
+            if let anime = animes.first {
+              let simklRating = Double(anime.user_rating ?? 0)
+              self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
+              self.originalRating = self.localRating
+              self.memoText = anime.memo_text ?? ""
+              self.privacySelection = anime.memo_is_private ?? true ? "Private" : "Public"
+            }
+          } catch {}
+
+          isLoading = false
         }
     } else {
       ScrollView {
@@ -152,7 +148,7 @@ struct AnimeDetailView: View {
         if let genres = animeDetails?.genres {
           Text(genres.joined(separator: " • "))
             .font(.footnote)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
@@ -223,12 +219,12 @@ struct AnimeDetailView: View {
                     Text(selectedSeason ?? "")
                     Image(systemName: "chevron.up.chevron.down")
                   }
-                  .foregroundColor(.accentColor)
+                  .foregroundStyle(Color.accentColor)
                   .bold()
                   .padding(.horizontal, 10)
                   .padding(.vertical, 8)
                   .background(Color.gray.opacity(0.1))
-                  .cornerRadius(8)
+                  .clipShape(.rect(cornerRadius: 8))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding([.leading, .trailing])
@@ -250,7 +246,7 @@ struct AnimeDetailView: View {
                           .fill(Color.clear)
                           .frame(width: 125, height: 70.42)
                           .background(BlurView(style: .regular))
-                          .cornerRadius(8)
+                          .clipShape(.rect(cornerRadius: 8))
                       }
                     }
                     if hasWatchedEpisode(
@@ -259,11 +255,11 @@ struct AnimeDetailView: View {
                       Image(systemName: "checkmark.circle")
                         .resizable()
                         .scaledToFit()
-                        .foregroundColor(colorScheme == .dark ? Color.green.darker() : Color.green)
+                        .foregroundStyle(colorScheme == .dark ? Color.green.darker() : Color.green)
                         .frame(width: 14, height: 14)
                         .padding(4)
                         .background(colorScheme == .dark ? Color.black : Color.white)
-                        .cornerRadius(8)
+                        .clipShape(.rect(cornerRadius: 8))
                         .offset(x: -2, y: -2)
                     }
                   }

@@ -12,7 +12,7 @@ import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
   @AppStorage("blurEpisodeImages") private var blurImages = false
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
@@ -42,20 +42,20 @@ struct SettingsView: View {
   }
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       VStack {
         Form {
           Section {
             HStack {
               Image(systemName: "link.circle.fill")
                 .font(.title2)
-                .foregroundColor(.blue)
+                .foregroundStyle(.blue)
                 .frame(width: 28, height: 28)
 
               Text("Simkl Status")
               Spacer()
               Text(auth.simklAccessToken.isEmpty ? "Not Connected" : "Connected")
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
               PulseCircle(active: !auth.simklAccessToken.isEmpty)
             }
             if auth.simklAccessToken.isEmpty {
@@ -135,7 +135,7 @@ struct SettingsView: View {
                   clearLocalSwiftData()
                 }
               }
-              .foregroundColor(.red)
+              .foregroundStyle(.red)
               .frame(maxWidth: .infinity, alignment: .center)
             }
           } header: {
@@ -146,7 +146,7 @@ struct SettingsView: View {
             HStack {
               Image(systemName: "photo.circle.fill")
                 .font(.title2)
-                .foregroundColor(.purple)
+                .foregroundStyle(.purple)
                 .frame(width: 28, height: 28)
 
               Text("Blur Episode Images")
@@ -156,7 +156,7 @@ struct SettingsView: View {
             HStack {
               Image(systemName: "star.circle.fill")
                 .font(.title2)
-                .foregroundColor(.yellow)
+                .foregroundStyle(.yellow)
                 .frame(width: 28, height: 28)
 
               Text("Use 5-Star Ratings")
@@ -166,7 +166,7 @@ struct SettingsView: View {
             HStack {
               Image(systemName: "eye.slash.circle.fill")
                 .font(.title2)
-                .foregroundColor(.orange)
+                .foregroundStyle(.orange)
                 .frame(width: 28, height: 28)
 
               Text("Hide Anime")
@@ -188,11 +188,11 @@ struct SettingsView: View {
                   .frame(width: 28, height: 28)
 
                 Text("GitHub")
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.forward")
                   .font(.footnote)
-                  .foregroundColor(Color(UIColor.tertiaryLabel))
+                  .foregroundStyle(Color(UIColor.tertiaryLabel))
               }
             }
             Button(action: {
@@ -208,16 +208,16 @@ struct SettingsView: View {
               HStack {
                 Image(systemName: "envelope.circle.fill")
                   .font(.title2)
-                  .foregroundColor(.blue)
+                  .foregroundStyle(.blue)
                   .frame(width: 28, height: 28)
 
                 Text("Send Feedback")
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "chevron.right")
                   .font(.footnote)
                   .fontWeight(.semibold)
-                  .foregroundColor(Color(UIColor.tertiaryLabel))
+                  .foregroundStyle(Color(UIColor.tertiaryLabel))
               }
             }
           }
@@ -233,15 +233,15 @@ struct SettingsView: View {
               HStack {
                 Image(systemName: "lock.circle.fill")
                   .font(.title2)
-                  .foregroundColor(.indigo)
+                  .foregroundStyle(.indigo)
                   .frame(width: 28, height: 28)
 
                 Text("Simkl Privacy Policy")
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.forward")
                   .font(.footnote)
-                  .foregroundColor(Color(UIColor.tertiaryLabel))
+                  .foregroundStyle(Color(UIColor.tertiaryLabel))
               }
             }
             Button(action: {
@@ -254,15 +254,15 @@ struct SettingsView: View {
               HStack {
                 Image(systemName: "doc.circle.fill")
                   .font(.title2)
-                  .foregroundColor(.teal)
+                  .foregroundStyle(.teal)
                   .frame(width: 28, height: 28)
 
                 Text("Simkl Terms of Service")
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.forward")
                   .font(.footnote)
-                  .foregroundColor(Color(UIColor.tertiaryLabel))
+                  .foregroundStyle(Color(UIColor.tertiaryLabel))
               }
             }
             Button(action: {
@@ -275,15 +275,15 @@ struct SettingsView: View {
               HStack {
                 Image(systemName: "tv.circle.fill")
                   .font(.title2)
-                  .foregroundColor(.green)
+                  .foregroundStyle(.green)
                   .frame(width: 28, height: 28)
 
                 Text("TMDB Terms of Use")
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.forward")
                   .font(.footnote)
-                  .foregroundColor(Color(UIColor.tertiaryLabel))
+                  .foregroundStyle(Color(UIColor.tertiaryLabel))
               }
             }
           }
@@ -299,15 +299,15 @@ struct SettingsView: View {
               HStack {
                 Image(systemName: "doc.circle.fill")
                   .font(.title2)
-                  .foregroundColor(.gray)
+                  .foregroundStyle(.gray)
                   .frame(width: 28, height: 28)
 
                 Text("End User License Agreement")
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.forward")
                   .font(.footnote)
-                  .foregroundColor(Color(UIColor.tertiaryLabel))
+                  .foregroundStyle(Color(UIColor.tertiaryLabel))
               }
             }
 
@@ -321,15 +321,15 @@ struct SettingsView: View {
               HStack {
                 Image(systemName: "hand.raised.circle.fill")
                   .font(.title2)
-                  .foregroundColor(.blue)
+                  .foregroundStyle(.blue)
                   .frame(width: 28, height: 28)
 
                 Text("Privacy Policy")
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.forward")
                   .font(.footnote)
-                  .foregroundColor(Color(UIColor.tertiaryLabel))
+                  .foregroundStyle(Color(UIColor.tertiaryLabel))
               }
             }
 
@@ -343,15 +343,15 @@ struct SettingsView: View {
               HStack {
                 Image(systemName: "checkmark.circle.fill")
                   .font(.title2)
-                  .foregroundColor(.mint)
+                  .foregroundStyle(.mint)
                   .frame(width: 28, height: 28)
 
                 Text("Terms & Conditions")
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.forward")
                   .font(.footnote)
-                  .foregroundColor(Color(UIColor.tertiaryLabel))
+                  .foregroundStyle(Color(UIColor.tertiaryLabel))
               }
             }
           }
@@ -361,11 +361,11 @@ struct SettingsView: View {
               HStack {
                 Image(systemName: "heart.circle.fill")
                   .font(.title2)
-                  .foregroundColor(.pink)
+                  .foregroundStyle(.pink)
                   .frame(width: 28, height: 28)
 
                 Text("Acknowledgements")
-                  .foregroundColor(.primary)
+                  .foregroundStyle(.primary)
                 Spacer()
               }
             }
@@ -384,11 +384,11 @@ struct SettingsView: View {
                 HStack {
                   Image(systemName: "trash.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
                     .frame(width: 28, height: 28)
 
                   Text("Clear Locally Stored Data")
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
                   Spacer()
                 }
               }
@@ -403,15 +403,15 @@ struct SettingsView: View {
                 HStack {
                   Image(systemName: "xmark.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
                     .frame(width: 28, height: 28)
 
                   Text("Delete Account")
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
                   Spacer()
                   Image(systemName: "arrow.up.forward")
                     .font(.footnote)
-                    .foregroundColor(Color(UIColor.tertiaryLabel))
+                    .foregroundStyle(Color(UIColor.tertiaryLabel))
                 }
               }
             }
@@ -423,7 +423,7 @@ struct SettingsView: View {
               Spacer()
               Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))")
                 .font(.footnote)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
               Spacer()
             }
             .padding(.vertical, 24)

@@ -125,7 +125,7 @@ struct MovieListView: View {
             if let year = movie.year {
               Text(String(year))
                 .font(.footnote)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             }
 
             // If the movie is completed, display when it was completed instead of when it was added to list
@@ -135,7 +135,7 @@ struct MovieListView: View {
               {
                 Text("Completed: " + completedDate.timeAgoDisplay())
                   .font(.footnote)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             } else {
               if let isoString = movie.added_to_watchlist_at,
@@ -143,7 +143,7 @@ struct MovieListView: View {
               {
                 Text("Added: " + addedDate.timeAgoDisplay())
                   .font(.footnote)
-                  .foregroundColor(.secondary)
+                  .foregroundStyle(.secondary)
               }
             }
           }

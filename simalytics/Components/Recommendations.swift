@@ -19,7 +19,7 @@ struct Recommendations: View {
         Group {
           ExploreGroupTitle(title: "Users Also Watched")
 
-          ScrollView(.horizontal, showsIndicators: true) {
+          ScrollView(.horizontal) {
             HStack(spacing: 16) {
               ForEach(
                 recommendations, id: \.ids.simkl

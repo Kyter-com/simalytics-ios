@@ -10,7 +10,7 @@ import SwiftUI
 
 struct JustWatchView: View {
   @Environment(\.dismiss) var dismiss
-  @EnvironmentObject private var auth: Auth
+  @Environment(Auth.self) private var auth
   @State private var justWatchListings: JustWatchListings?
   @State private var isLoading = false
   var tmdbId: String?
@@ -36,7 +36,7 @@ struct JustWatchView: View {
               .font(.headline)
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding(.leading)
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
               HStack(spacing: 16) {
                 ForEach(free, id: \.provider_id) { option in
                   Button(action: {
@@ -56,6 +56,7 @@ struct JustWatchView: View {
               }
               .padding([.leading, .trailing, .bottom])
             }
+            .scrollIndicators(.hidden)
           }
 
           if let ads = justWatchListings?.ads, !ads.isEmpty {
@@ -63,7 +64,7 @@ struct JustWatchView: View {
               .font(.headline)
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding(.leading)
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
               HStack(spacing: 16) {
                 ForEach(ads, id: \.provider_id) { option in
                   Button(action: {
@@ -83,6 +84,7 @@ struct JustWatchView: View {
               }
               .padding([.leading, .trailing, .bottom])
             }
+            .scrollIndicators(.hidden)
           }
 
           if let flatrate = justWatchListings?.flatrate, !flatrate.isEmpty {
@@ -90,7 +92,7 @@ struct JustWatchView: View {
               .font(.headline)
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding(.leading)
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
               HStack(spacing: 16) {
                 ForEach(flatrate, id: \.provider_id) { option in
                   Button(action: {
@@ -110,6 +112,7 @@ struct JustWatchView: View {
               }
               .padding([.leading, .trailing, .bottom])
             }
+            .scrollIndicators(.hidden)
           }
 
           if let rent = justWatchListings?.rent, !rent.isEmpty {
@@ -117,7 +120,7 @@ struct JustWatchView: View {
               .font(.headline)
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding(.leading)
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
               HStack(spacing: 16) {
                 ForEach(rent, id: \.provider_id) { option in
                   Button(action: {
@@ -137,6 +140,7 @@ struct JustWatchView: View {
               }
               .padding([.leading, .trailing, .bottom])
             }
+            .scrollIndicators(.hidden)
           }
 
           if let buy = justWatchListings?.buy, !buy.isEmpty {
@@ -144,7 +148,7 @@ struct JustWatchView: View {
               .font(.headline)
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding(.leading)
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
               HStack(spacing: 16) {
                 ForEach(buy, id: \.provider_id) { option in
                   Button(action: {
@@ -164,6 +168,7 @@ struct JustWatchView: View {
               }
               .padding([.leading, .trailing, .bottom])
             }
+            .scrollIndicators(.hidden)
           }
         }
 
@@ -190,7 +195,7 @@ struct JustWatchView: View {
       .navigationTitle("Where to Watch")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .topBarTrailing) {
           Button("Done") {
             dismiss()
           }
