@@ -25,7 +25,7 @@ extension AnimeDetailView {
 
       return try JSONDecoder().decode(AnimeDetailsModel.self, from: data)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return nil
     }
   }
@@ -62,7 +62,7 @@ extension AnimeDetailView {
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
     }
   }
 
@@ -83,7 +83,7 @@ extension AnimeDetailView {
 
       return try JSONDecoder().decode([AnimeWatchlistModel].self, from: data).first
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return nil
     }
   }
@@ -109,7 +109,7 @@ extension AnimeDetailView {
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
     }
   }
 
@@ -148,7 +148,7 @@ extension AnimeDetailView {
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
     }
   }
 
@@ -198,7 +198,7 @@ extension AnimeDetailView {
         return processedEpisodes
       }
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return []
     }
   }
@@ -254,7 +254,7 @@ extension AnimeWatchlistButton {
       if isSimklCancellationError(error) {
         return nil
       }
-      SentrySDK.capture(error: error)
+      reportError(error)
       return simklMutationUserMessage(for: error)
     }
   }

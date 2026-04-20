@@ -36,7 +36,7 @@ extension SearchResultsView {
 
       return try JSONDecoder().decode([SearchResultModel].self, from: data)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return []
     }
   }

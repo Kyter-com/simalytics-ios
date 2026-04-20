@@ -98,6 +98,14 @@ func isSimklCancellationError(_ error: Error) -> Bool {
   return false
 }
 
+/// Reports an error to Sentry unless it's a user-initiated cancellation.
+/// Cancellations happen routinely during navigation (users tapping away
+/// before a fetch completes) and are not real errors.
+func reportError(_ error: Error) {
+  if isSimklCancellationError(error) { return }
+  SentrySDK.capture(error: error)
+}
+
 private func shouldRetrySimklMutation(_ error: Error) -> Bool {
   if let simklError = error as? SimklMutationError {
     return simklError.isRetryable

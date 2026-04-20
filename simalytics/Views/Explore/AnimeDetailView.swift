@@ -59,7 +59,7 @@ struct AnimeDetailView: View {
   var body: some View {
     if isLoading {
       ProgressView("Loading...")
-        .task {
+        .task(id: simkl_id) {
           animeDetails = await AnimeDetailView.getAnimeDetails(simkl_id)
           animeWatchlist = await AnimeDetailView.getAnimeWatchlist(
             simkl_id, auth.simklAccessToken)

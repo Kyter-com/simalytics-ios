@@ -25,7 +25,7 @@ extension MovieDetailView {
 
       return try JSONDecoder().decode(MovieDetailsModel.self, from: data)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return nil
     }
   }
@@ -49,7 +49,7 @@ extension MovieDetailView {
 
       return try JSONDecoder().decode([MovieWatchlistModel].self, from: data).first
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return nil
     }
   }
@@ -75,7 +75,7 @@ extension MovieDetailView {
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
     }
   }
 }
@@ -130,7 +130,7 @@ extension MovieWatchlistButton {
       if isSimklCancellationError(error) {
         return nil
       }
-      SentrySDK.capture(error: error)
+      reportError(error)
       return simklMutationUserMessage(for: error)
     }
   }

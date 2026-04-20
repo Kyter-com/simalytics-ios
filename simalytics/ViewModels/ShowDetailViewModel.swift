@@ -25,7 +25,7 @@ extension ShowDetailView {
 
       return try JSONDecoder().decode(ShowDetailsModel.self, from: data)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return nil
     }
   }
@@ -46,7 +46,7 @@ extension ShowDetailView {
 
       return try JSONDecoder().decode([ShowWatchlistModel].self, from: data).first
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return nil
     }
   }
@@ -83,7 +83,7 @@ extension ShowDetailView {
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
     }
   }
 
@@ -122,7 +122,7 @@ extension ShowDetailView {
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
     }
   }
 
@@ -144,7 +144,7 @@ extension ShowDetailView {
 
       return try JSONDecoder().decode([ShowEpisodeModel].self, from: data)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return []
     }
   }
@@ -170,7 +170,7 @@ extension ShowDetailView {
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       _ = try await URLSession.shared.data(for: request)
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
     }
   }
 }
@@ -225,7 +225,7 @@ extension ShowWatchlistButton {
       if isSimklCancellationError(error) {
         return nil
       }
-      SentrySDK.capture(error: error)
+      reportError(error)
       return simklMutationUserMessage(for: error)
     }
   }

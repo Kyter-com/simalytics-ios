@@ -32,7 +32,7 @@ struct MovieDetailView: View {
   var body: some View {
     if isLoading {
       ProgressView("Loading...")
-        .task {
+        .task(id: simkl_id) {
           movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
           movieWatchlist = await MovieDetailView.getMovieWatchlist(simkl_id, auth.simklAccessToken)
           watchlistStatus = movieWatchlist?.list

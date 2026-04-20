@@ -59,7 +59,7 @@ struct ShowDetailView: View {
   var body: some View {
     if isLoading {
       ProgressView("Loading...")
-        .task {
+        .task(id: simkl_id) {
           showDetails = await ShowDetailView.getShowDetails(simkl_id)
           showWatchlist = await ShowDetailView.getShowWatchlist(
             simkl_id, auth.simklAccessToken)
