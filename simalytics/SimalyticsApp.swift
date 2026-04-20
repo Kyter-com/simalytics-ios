@@ -29,7 +29,7 @@ class Auth {
 struct SimalyticsApp: App {
   @State private var auth = Auth()
   @State private var globalLoadingIndicator = GlobalLoadingIndicator()
-  private static let sentryFallbackDSN = "https://2f19a4a9e212e5ee432f16fa2e22780d@o507828.ingest.us.sentry.io/4508956076605440"
+  private static let sentryFallbackDSN = "https://94a93419c81edfd551d0956b8cf216c9@o1393466.ingest.us.sentry.io/4511253519466496"
 
   private static var sentryReleaseName: String? {
     guard let infoDictionary = Bundle.main.infoDictionary,

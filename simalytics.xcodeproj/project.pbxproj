@@ -147,7 +147,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script uploads debug symbols and source context for Sentry.\nif ! command -v sentry-cli >/dev/null 2>&1; then\nif command -v brew >/dev/null 2>&1; then\nbrew install sentry-cli || echo \"warning: failed to install sentry-cli via Homebrew\"\nfi\nfi\n\nif ! command -v sentry-cli >/dev/null 2>&1; then\necho \"warning: sentry-cli not installed, download from https://github.com/getsentry/sentry-cli/releases\"\nexit 0\nfi\n\nexport SENTRY_ORG=kyterdev\nexport SENTRY_PROJECT=simalytics\n\nERROR_OUTPUT=$(sentry-cli debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH\" 2>&1)\nEXIT_CODE=$?\nif [ $EXIT_CODE -ne 0 ]; then\necho \"warning: sentry-cli - $ERROR_OUTPUT\"\nfi\n";
+			shellScript = "# This script is responsible for uploading debug symbols and source context for Sentry.
+if [[ \"$(uname -m)\" == arm64 ]]; then
+  export PATH=\"/opt/homebrew/bin:$PATH\"
+fi
+
+if which sentry-cli >/dev/null; then
+  export SENTRY_ORG=kyter
+  export SENTRY_PROJECT=simalytics-ios
+  ERROR=$(sentry-cli debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH\" 2>&1 >/dev/null)
+  if [ ! $? -eq 0 ]; then
+    echo \"warning: sentry-cli - $ERROR\"
+  fi
+else
+  echo \"warning: sentry-cli not installed, download from https://github.com/getsentry/sentry-cli/releases\"
+fi
+";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -304,14 +319,14 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = "NO";
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Simalytics;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save poster images to your photo library";
-				INFOPLIST_KEY_SENTRY_DSN = "https://2f19a4a9e212e5ee432f16fa2e22780d@o507828.ingest.us.sentry.io/4508956076605440";
+				INFOPLIST_KEY_SENTRY_DSN = "https://94a93419c81edfd551d0956b8cf216c9@o1393466.ingest.us.sentry.io/4511253519466496";
 				INFOPLIST_KEY_SENTRY_ENVIRONMENT = debug;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -355,14 +370,14 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = "NO";
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Simalytics;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save poster images to your photo library";
-				INFOPLIST_KEY_SENTRY_DSN = "https://2f19a4a9e212e5ee432f16fa2e22780d@o507828.ingest.us.sentry.io/4508956076605440";
+				INFOPLIST_KEY_SENTRY_DSN = "https://94a93419c81edfd551d0956b8cf216c9@o1393466.ingest.us.sentry.io/4511253519466496";
 				INFOPLIST_KEY_SENTRY_ENVIRONMENT = production;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
