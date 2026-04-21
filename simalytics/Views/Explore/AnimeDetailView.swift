@@ -97,6 +97,12 @@ struct AnimeDetailView: View {
 
           isLoading = false
         }
+    } else if animeDetails == nil {
+      ContentUnavailableView {
+        Label("Anime unavailable", systemImage: "sparkles.tv")
+      } description: {
+        Text("Simkl didn't return details for this anime.")
+      }
     } else {
       ScrollView {
         ParallaxBackgroundImage(fanart: animeDetails?.fanart)

@@ -23,6 +23,10 @@ extension AnimeDetailView {
       let (data, response) = try await URLSession.shared.data(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
+      if String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) == "[]" {
+        return nil
+      }
+
       return try JSONDecoder().decode(AnimeDetailsModel.self, from: data)
     } catch {
       reportError(error)

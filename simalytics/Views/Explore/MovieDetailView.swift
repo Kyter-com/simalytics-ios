@@ -57,6 +57,12 @@ struct MovieDetailView: View {
 
           isLoading = false
         }
+    } else if movieDetails == nil {
+      ContentUnavailableView {
+        Label("Movie unavailable", systemImage: "film")
+      } description: {
+        Text("Simkl didn't return details for this movie.")
+      }
     } else {
       ScrollView {
         ParallaxBackgroundImage(fanart: movieDetails?.fanart)

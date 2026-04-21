@@ -96,6 +96,12 @@ struct ShowDetailView: View {
 
           isLoading = false
         }
+    } else if showDetails == nil {
+      ContentUnavailableView {
+        Label("Show unavailable", systemImage: "tv")
+      } description: {
+        Text("Simkl didn't return details for this show.")
+      }
     } else {
       ScrollView {
         ParallaxBackgroundImage(fanart: showDetails?.fanart)
