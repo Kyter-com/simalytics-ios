@@ -200,7 +200,7 @@ struct ShowDetailView: View {
         Spacer()
 
         if !filteredEpisodes.isEmpty {
-          VStack(alignment: .leading) {
+          LazyVStack(alignment: .leading) {
             HStack {
               Menu {
                 ForEach(seasons, id: \.self) { season in

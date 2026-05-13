@@ -201,7 +201,7 @@ struct AnimeDetailView: View {
 
         if animeDetails?.anime_type == "tv" {
           if !filteredEpisodes.isEmpty {
-            VStack(alignment: .leading) {
+            LazyVStack(alignment: .leading) {
               HStack {
                 Menu {
                   ForEach(seasons, id: \.self) { season in

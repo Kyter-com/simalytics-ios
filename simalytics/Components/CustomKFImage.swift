@@ -23,9 +23,8 @@ struct CustomKFImage: View {
             ProgressView()
           }
           .resizable()
-          .serialize(as: .JPEG)
+          .setProcessor(DownsamplingImageProcessor(size: CGSize(width: width, height: height)))
           .cacheMemoryOnly(memoryCacheOnly)
-          .fromMemoryCacheOrRefresh(true)
           .memoryCacheExpiration(.days(7))
           .diskCacheExpiration(.days(30))
           .cancelOnDisappear(true)

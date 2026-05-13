@@ -6,6 +6,7 @@
 //
 // swift-format lint ./Documents/GitHub/simalytics-ios/ -r
 
+import Kingfisher
 import Sentry
 import SimpleKeychain
 import SwiftData
@@ -61,6 +62,8 @@ struct SimalyticsApp: App {
   }()
 
   init() {
+    ImageCache.default.diskStorage.config.sizeLimit = 500 * 1024 * 1024
+
     SentrySDK.start { options in
       if let configuredDSN = (Bundle.main.infoDictionary?["SENTRY_DSN"] as? String)?
         .trimmingCharacters(in: .whitespacesAndNewlines),
