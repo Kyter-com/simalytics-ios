@@ -17,13 +17,15 @@ struct CustomKFImage: View {
   var body: some View {
     Group {
       if let imageUrlString = imageUrlString, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
+        let processorSize = CGSize(width: max(width, 1), height: max(height, 1))
         KFImage(url)
           .fade(duration: 0.33)
           .placeholder {
             ProgressView()
           }
           .resizable()
-          .setProcessor(DownsamplingImageProcessor(size: CGSize(width: width, height: height)))
+          .setProcessor(DownsamplingImageProcessor(size: processorSize))
+          .cacheOriginalImage()
           .cacheMemoryOnly(memoryCacheOnly)
           .memoryCacheExpiration(.days(7))
           .diskCacheExpiration(.days(30))

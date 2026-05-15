@@ -32,6 +32,9 @@ struct SimalyticsApp: App {
   @State private var globalLoadingIndicator = GlobalLoadingIndicator()
   private static let sentryFallbackDSN = "https://94a93419c81edfd551d0956b8cf216c9@o1393466.ingest.us.sentry.io/4511253519466496"
 
+  // Cap the Kingfisher disk cache so it LRU-evicts instead of growing without bound.
+  private static let imageDiskCacheSizeLimit: UInt = 500 * 1024 * 1024
+
   private static var sentryReleaseName: String? {
     guard let infoDictionary = Bundle.main.infoDictionary,
       let version = infoDictionary["CFBundleShortVersionString"] as? String,
@@ -62,7 +65,7 @@ struct SimalyticsApp: App {
   }()
 
   init() {
-    ImageCache.default.diskStorage.config.sizeLimit = 500 * 1024 * 1024
+    ImageCache.default.diskStorage.config.sizeLimit = Self.imageDiskCacheSizeLimit
 
     SentrySDK.start { options in
       if let configuredDSN = (Bundle.main.infoDictionary?["SENTRY_DSN"] as? String)?
