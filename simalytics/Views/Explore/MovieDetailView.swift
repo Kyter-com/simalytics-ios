@@ -16,6 +16,7 @@ struct MovieDetailView: View {
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @State private var movieDetails: MovieDetailsModel?
   @State private var movieWatchlist: MovieWatchlistModel?
+  @State private var cast: [TMDBCastMember] = []
   @State private var isLoading = true
   @State private var watchlistStatus: String?
   @State private var localRating: Double = 0
@@ -36,6 +37,8 @@ struct MovieDetailView: View {
           movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
           movieWatchlist = await MovieDetailView.getMovieWatchlist(simkl_id, auth.simklAccessToken)
           watchlistStatus = movieWatchlist?.list
+
+          cast = await getCast(auth.simklAccessToken, movieDetails?.ids?.tmdb, mediaType: "movie")
 
           if let fanart = movieDetails?.fanart {
             let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
@@ -209,6 +212,8 @@ struct MovieDetailView: View {
         }
 
         Spacer()
+
+        CastRow(cast: cast)
 
         Recommendations(recommendations: movieDetails?.users_recommendations)
       }

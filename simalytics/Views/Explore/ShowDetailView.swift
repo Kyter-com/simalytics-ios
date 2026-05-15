@@ -17,6 +17,7 @@ struct ShowDetailView: View {
   @State private var showDetails: ShowDetailsModel?
   @State private var showWatchlist: ShowWatchlistModel?
   @State private var showEpisodes: [ShowEpisodeModel] = []
+  @State private var cast: [TMDBCastMember] = []
   @State private var isLoading = true
   @State private var watchlistStatus: String?
   @State private var filteredEpisodes: [ShowEpisodeModel] = []
@@ -65,6 +66,8 @@ struct ShowDetailView: View {
             simkl_id, auth.simklAccessToken)
           watchlistStatus = showWatchlist?.list
           showEpisodes = await ShowDetailView.getShowEpisodes(simkl_id)
+
+          cast = await getCast(auth.simklAccessToken, showDetails?.ids?.tmdb, mediaType: "tv")
 
           if let fanart = showDetails?.fanart {
             let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
@@ -292,6 +295,8 @@ struct ShowDetailView: View {
           }
           .padding(.top)
         }
+
+        CastRow(cast: cast)
 
         Recommendations(recommendations: showDetails?.users_recommendations)
       }
