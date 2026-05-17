@@ -28,17 +28,7 @@ extension ActorDetailView {
   }
 
   static func filmographyItems(from details: TMDBPersonDetails) async -> [ActorFilmographyItem] {
-    let cast = details.combined_credits?.cast ?? []
-    let crew = details.combined_credits?.crew ?? []
-    let credits = deduplicatedCredits(cast + crew)
-      .filter { $0.media_type == "movie" || $0.media_type == "tv" }
-      .sorted { lhs, rhs in
-        let lhsDate = lhs.date ?? ""
-        let rhsDate = rhs.date ?? ""
-        if lhsDate != rhsDate { return lhsDate > rhsDate }
-        return (lhs.popularity ?? 0) > (rhs.popularity ?? 0)
-      }
-
+    let credits = details.sortedFilmographyCredits
     return await withTaskGroup(of: (Int, ActorFilmographyItem).self) { group in
       for (index, credit) in credits.prefix(80).enumerated() {
         group.addTask {
@@ -56,20 +46,6 @@ extension ActorDetailView {
         .sorted { $0.0 < $1.0 }
         .map(\.1)
     }
-  }
-
-  private static func deduplicatedCredits(_ credits: [TMDBPersonCredit]) -> [TMDBPersonCredit] {
-    var seen = Set<String>()
-    var result: [TMDBPersonCredit] = []
-
-    for credit in credits {
-      let key = "\(credit.media_type)-\(credit.id)"
-      guard !seen.contains(key) else { continue }
-      seen.insert(key)
-      result.append(credit)
-    }
-
-    return result
   }
 
   private static func resolveDestination(for credit: TMDBPersonCredit) async -> MediaDestination? {

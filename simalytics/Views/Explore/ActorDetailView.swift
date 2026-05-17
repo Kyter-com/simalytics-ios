@@ -13,8 +13,10 @@ struct ActorDetailView: View {
   let personID: Int
 
   @State private var details: TMDBPersonDetails?
+  @State private var rawCredits: [TMDBPersonCredit] = []
   @State private var filmography: [ActorFilmographyItem] = []
   @State private var isLoading = true
+  @State private var isResolvingFilmography = false
 
   private var visibleFilmography: [ActorFilmographyItem] {
     filmography.filter { item in
@@ -22,11 +24,13 @@ struct ActorDetailView: View {
     }
   }
 
+  private var visibleRawCredits: [TMDBPersonCredit] {
+    rawCredits
+  }
+
   var body: some View {
     Group {
-      if isLoading {
-        ProgressView("Loading...")
-      } else if let details {
+      if let details {
         ScrollView {
           VStack(alignment: .leading, spacing: 20) {
             ActorHeader(details: details)
@@ -42,12 +46,18 @@ struct ActorDetailView: View {
               .padding(.horizontal)
             }
 
-            ActorFilmographySection(items: visibleFilmography)
+            ActorFilmographySection(
+              items: visibleFilmography,
+              placeholderCredits: visibleRawCredits,
+              isResolving: isResolvingFilmography
+            )
           }
           .padding(.bottom)
         }
         .navigationTitle(details.name)
         .navigationBarTitleDisplayMode(.inline)
+      } else if isLoading {
+        ActorDetailSkeleton()
       } else {
         ContentUnavailableView {
           Label("Actor unavailable", systemImage: "person.crop.rectangle")
@@ -58,14 +68,20 @@ struct ActorDetailView: View {
     }
     .task(id: personID) {
       isLoading = true
+      isResolvingFilmography = false
       let loadedDetails = await ActorDetailView.getActorDetails(auth.simklAccessToken, personID: personID)
       details = loadedDetails
       if let loadedDetails {
+        rawCredits = Array(loadedDetails.sortedFilmographyCredits.prefix(80))
+        isLoading = false
+        isResolvingFilmography = true
         filmography = await ActorDetailView.filmographyItems(from: loadedDetails)
       } else {
+        rawCredits = []
         filmography = []
+        isLoading = false
       }
-      isLoading = false
+      isResolvingFilmography = false
     }
   }
 }
@@ -79,7 +95,7 @@ private struct ActorHeader: View {
   }
 
   var body: some View {
-    HStack(alignment: .bottom, spacing: 16) {
+    HStack(alignment: .top, spacing: 16) {
       CustomKFImage(
         imageUrlString: imageUrl,
         memoryCacheOnly: false,
@@ -124,6 +140,8 @@ private struct ActorHeader: View {
 
 private struct ActorFilmographySection: View {
   let items: [ActorFilmographyItem]
+  let placeholderCredits: [TMDBPersonCredit]
+  let isResolving: Bool
 
   private var movies: [ActorFilmographyItem] {
     items.filter { $0.credit.media_type == "movie" }
@@ -133,17 +151,29 @@ private struct ActorFilmographySection: View {
     items.filter { $0.credit.media_type == "tv" }
   }
 
+  private var placeholderMovies: [TMDBPersonCredit] {
+    placeholderCredits.filter { $0.media_type == "movie" }
+  }
+
+  private var placeholderShows: [TMDBPersonCredit] {
+    placeholderCredits.filter { $0.media_type == "tv" }
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      if !movies.isEmpty {
+      if isResolving && movies.isEmpty && !placeholderMovies.isEmpty {
+        ActorCreditPlaceholderShelf(title: "Movies", credits: placeholderMovies)
+      } else if !movies.isEmpty {
         ActorCreditShelf(title: "Movies", items: movies)
       }
 
-      if !shows.isEmpty {
+      if isResolving && shows.isEmpty && !placeholderShows.isEmpty {
+        ActorCreditPlaceholderShelf(title: "Shows", credits: placeholderShows)
+      } else if !shows.isEmpty {
         ActorCreditShelf(title: "Shows", items: shows)
       }
 
-      if movies.isEmpty && shows.isEmpty {
+      if !isResolving && movies.isEmpty && shows.isEmpty {
         ContentUnavailableView {
           Label("No credits", systemImage: "film.stack")
         } description: {
@@ -152,6 +182,65 @@ private struct ActorFilmographySection: View {
         .padding(.horizontal)
       }
     }
+  }
+}
+
+private struct ActorCreditPlaceholderShelf: View {
+  let title: String
+  let credits: [TMDBPersonCredit]
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(spacing: 8) {
+        Text(title)
+          .font(.headline)
+        ProgressView()
+          .controlSize(.small)
+      }
+      .padding(.horizontal)
+
+      ScrollView(.horizontal) {
+        HStack(alignment: .top, spacing: 12) {
+          ForEach(credits.prefix(12), id: \.stableID) { credit in
+            ActorCreditPlaceholderCard(credit: credit)
+          }
+        }
+        .padding(.horizontal)
+      }
+      .scrollIndicators(.hidden)
+    }
+  }
+}
+
+private struct ActorCreditPlaceholderCard: View {
+  let credit: TMDBPersonCredit
+
+  private var posterUrl: String? {
+    guard let posterPath = credit.poster_path?.nilIfEmpty else { return nil }
+    return "https://media.themoviedb.org/t/p/w342\(posterPath)"
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 5) {
+      CustomKFImage(
+        imageUrlString: posterUrl,
+        memoryCacheOnly: false,
+        height: 147,
+        width: 100
+      )
+
+      Text(credit.displayTitle)
+        .font(.caption)
+        .lineLimit(2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Text(credit.year ?? "Resolving")
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+    }
+    .frame(width: 100)
+    .redacted(reason: .placeholder)
+    .allowsHitTesting(false)
   }
 }
 
@@ -169,6 +258,92 @@ private struct ActorCreditShelf: View {
         HStack(alignment: .top, spacing: 12) {
           ForEach(items) { item in
             ActorCreditCard(item: item)
+          }
+        }
+        .padding(.horizontal)
+      }
+      .scrollIndicators(.hidden)
+    }
+  }
+}
+
+private struct ActorDetailSkeleton: View {
+  var body: some View {
+    ScrollView {
+      VStack(alignment: .leading, spacing: 20) {
+        HStack(alignment: .top, spacing: 16) {
+          RoundedRectangle(cornerRadius: 8)
+            .fill(.secondary.opacity(0.25))
+            .frame(width: 140, height: 210)
+
+          VStack(alignment: .leading, spacing: 12) {
+            RoundedRectangle(cornerRadius: 4)
+              .fill(.secondary.opacity(0.25))
+              .frame(width: 160, height: 24)
+            RoundedRectangle(cornerRadius: 4)
+              .fill(.secondary.opacity(0.25))
+              .frame(width: 110, height: 16)
+            RoundedRectangle(cornerRadius: 4)
+              .fill(.secondary.opacity(0.25))
+              .frame(width: 130, height: 16)
+          }
+
+          Spacer(minLength: 0)
+        }
+        .padding(.horizontal)
+        .padding(.top)
+
+        VStack(alignment: .leading, spacing: 8) {
+          RoundedRectangle(cornerRadius: 4)
+            .fill(.secondary.opacity(0.25))
+            .frame(width: 90, height: 18)
+          RoundedRectangle(cornerRadius: 4)
+            .fill(.secondary.opacity(0.25))
+            .frame(height: 14)
+          RoundedRectangle(cornerRadius: 4)
+            .fill(.secondary.opacity(0.25))
+            .frame(height: 14)
+          RoundedRectangle(cornerRadius: 4)
+            .fill(.secondary.opacity(0.25))
+            .frame(width: 220, height: 14)
+        }
+        .padding(.horizontal)
+
+        ActorStaticPlaceholderShelf(title: "Movies")
+        ActorStaticPlaceholderShelf(title: "Shows")
+      }
+      .padding(.bottom)
+      .redacted(reason: .placeholder)
+    }
+    .navigationTitle("Actor")
+    .navigationBarTitleDisplayMode(.inline)
+  }
+}
+
+private struct ActorStaticPlaceholderShelf: View {
+  let title: String
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text(title)
+        .font(.headline)
+        .padding(.horizontal)
+
+      ScrollView(.horizontal) {
+        HStack(alignment: .top, spacing: 12) {
+          ForEach(0..<5, id: \.self) { index in
+            VStack(alignment: .leading, spacing: 5) {
+              RoundedRectangle(cornerRadius: 8)
+                .fill(.secondary.opacity(0.25))
+                .frame(width: 100, height: 147)
+              RoundedRectangle(cornerRadius: 4)
+                .fill(.secondary.opacity(0.25))
+                .frame(width: index.isMultiple(of: 2) ? 88 : 70, height: 12)
+              RoundedRectangle(cornerRadius: 4)
+                .fill(.secondary.opacity(0.25))
+                .frame(width: 44, height: 10)
+            }
+            .frame(width: 100)
           }
         }
         .padding(.horizontal)
