@@ -8,6 +8,10 @@
 import Foundation
 
 extension String {
+  var nilIfEmpty: String? {
+    isEmpty ? nil : self
+  }
+
   var stripHTML: String {
     var strippedText = self
     let replacements: [String: String] = [

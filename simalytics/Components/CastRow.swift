@@ -58,7 +58,10 @@ struct CastRow: View {
         ScrollView(.horizontal) {
           HStack(alignment: .top, spacing: 12) {
             ForEach(cast.prefix(20)) { member in
-              CastCard(member: member)
+              NavigationLink(destination: ActorDetailView(personID: member.id)) {
+                CastCard(member: member)
+              }
+              .buttonStyle(.plain)
             }
           }
           .padding(.horizontal)
