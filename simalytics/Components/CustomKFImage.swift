@@ -14,10 +14,12 @@ struct CustomKFImage: View {
   let height: CGFloat
   let width: CGFloat
 
+  @Environment(\.displayScale) private var displayScale
+
   var body: some View {
     Group {
       if let imageUrlString = imageUrlString, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
-        let processorSize = CGSize(width: max(width, 1), height: max(height, 1))
+        let processorSize = CGSize(width: max(width * displayScale, 1), height: max(height * displayScale, 1))
         KFImage(url)
           .fade(duration: 0.33)
           .placeholder {

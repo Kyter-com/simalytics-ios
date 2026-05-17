@@ -12,7 +12,7 @@ struct CastCard: View {
 
   private var imageUrl: String? {
     guard let path = member.profile_path, !path.isEmpty else { return nil }
-    return "https://media.themoviedb.org/t/p/w185\(path)"
+    return "https://media.themoviedb.org/t/p/w342\(path)"
   }
 
   var body: some View {
