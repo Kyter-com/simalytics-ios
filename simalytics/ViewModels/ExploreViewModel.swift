@@ -8,74 +8,34 @@
 import Foundation
 import Sentry
 
-func getTrendingMovies() async -> [TrendingMovieModel] {
-  do {
-    var urlComponents = URLComponents(string: "https://api.simkl.com/movies/trending/today")!
-    urlComponents.queryItems = [
-      URLQueryItem(name: "extended", value: "overview,theater,metadata,tmdb,genres"),
-      URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
-    ]
-    print(urlComponents.url!)
+// Trending data is served from the CDN host data.simkl.in per the current
+// Simkl docs. Each file ships title/poster/ids and is cached for ~1h.
+private let SIMKL_TRENDING_BASE = "https://data.simkl.in/discover/trending"
 
-    var request = URLRequest(url: urlComponents.url!)
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+private func fetchTrendingArray<T: Decodable>(_ type: String) async -> [T] {
+  guard let url = URL(string: "\(SIMKL_TRENDING_BASE)/\(type)/today_100.json") else { return [] }
+  do {
+    var request = URLRequest(url: url)
+    request.setValue("application/json", forHTTPHeaderField: "Accept")
 
     let (data, response) = try await URLSession.shared.data(for: request)
-    guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-      return []
-    }
+    guard (response as? HTTPURLResponse)?.statusCode == 200 else { return [] }
 
-    return try JSONDecoder().decode([TrendingMovieModel].self, from: data)
+    return try JSONDecoder().decode([T].self, from: data)
   } catch {
     SentrySDK.capture(error: error)
     return []
   }
+}
+
+func getTrendingMovies() async -> [TrendingMovieModel] {
+  await fetchTrendingArray("movies")
 }
 
 func getTrendingAnimes() async -> [TrendingAnimeModel] {
-  do {
-    var urlComponents = URLComponents(string: "https://api.simkl.com/anime/trending/today")!
-    urlComponents.queryItems = [
-      URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres"),
-      URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
-    ]
-    print(urlComponents.url!)
-
-    var request = URLRequest(url: urlComponents.url!)
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-    let (data, response) = try await URLSession.shared.data(for: request)
-    guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-      return []
-    }
-
-    return try JSONDecoder().decode([TrendingAnimeModel].self, from: data)
-  } catch {
-    SentrySDK.capture(error: error)
-    return []
-  }
+  await fetchTrendingArray("anime")
 }
 
 func getTrendingShows() async -> [TrendingShowModel] {
-  do {
-    var urlComponents = URLComponents(string: "https://api.simkl.com/tv/trending/today")!
-    urlComponents.queryItems = [
-      URLQueryItem(name: "extended", value: "overview,metadata,tmdb,genres"),
-      URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
-    ]
-    print(urlComponents.url!)
-
-    var request = URLRequest(url: urlComponents.url!)
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-    let (data, response) = try await URLSession.shared.data(for: request)
-    guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-      return []
-    }
-
-    return try JSONDecoder().decode([TrendingShowModel].self, from: data)
-  } catch {
-    SentrySDK.capture(error: error)
-    return []
-  }
+  await fetchTrendingArray("tv")
 }

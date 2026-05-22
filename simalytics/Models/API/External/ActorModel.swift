@@ -101,12 +101,3 @@ struct ActorFilmographyItem: Identifiable, Hashable {
     return true
   }
 }
-
-struct SimklIDLookupResponse: Codable {
-  let type: String?
-  let ids: SimklIDLookupIDs?
-}
-
-struct SimklIDLookupIDs: Codable {
-  let simkl: Int?
-}

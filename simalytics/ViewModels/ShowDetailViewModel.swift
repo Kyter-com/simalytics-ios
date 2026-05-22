@@ -34,9 +34,40 @@ extension ShowDetailView {
     }
   }
 
+  // Batched variant for callers (e.g. up-next sync) that need watched data
+  // for many shows at once. Simkl caps /sync/watched at 100 items per request
+  // when extended=episodes is set, so we chunk.
+  static func getShowWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async -> [ShowWatchlistModel] {
+    guard !simklIDs.isEmpty else { return [] }
+    let chunkSize = 100
+    let chunks = stride(from: 0, to: simklIDs.count, by: chunkSize).map {
+      Array(simklIDs[$0..<min($0 + chunkSize, simklIDs.count)])
+    }
+    var combined: [ShowWatchlistModel] = []
+    for chunk in chunks {
+      do {
+        let url = URL(string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let body: [[String: Any]] = chunk.map { ["simkl": $0, "type": "tv"] }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { continue }
+        combined.append(contentsOf: try JSONDecoder().decode([ShowWatchlistModel].self, from: data))
+      } catch {
+        reportError(error)
+      }
+    }
+    return combined
+  }
+
   static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async -> ShowWatchlistModel? {
     do {
-      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=specials")!
+      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")

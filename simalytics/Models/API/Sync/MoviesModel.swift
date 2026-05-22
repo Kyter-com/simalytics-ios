@@ -31,12 +31,11 @@ struct MoviesModel_movie_item: Codable {
 struct MoviesModel_movie_item_ids: Codable {
   let simkl: Int
   let slug: String?
-  let tvdbmslug: String?
+  let tvdbslug: String?
+  let tvdb: String?
   let imdb: String?
-  let offen: String?
-  let traktslug: String?
+  let traktmslug: String?
   let letterslug: String?
-  let jwslug: String?
   let tmdb: String?
 }
 
@@ -60,12 +59,12 @@ extension MoviesModel_movie {
       poster: movie?.poster,
       year: movie?.year,
       id_slug: movie?.ids?.slug,
-      id_tvdbmslug: movie?.ids?.tvdbmslug,
+      id_tvdbmslug: movie?.ids?.tvdbslug,
       id_imdb: movie?.ids?.imdb,
-      id_offen: movie?.ids?.offen,
-      id_traktslug: movie?.ids?.traktslug,
+      id_offen: nil,
+      id_traktslug: movie?.ids?.traktmslug,
       id_letterslug: movie?.ids?.letterslug,
-      id_jwslug: movie?.ids?.jwslug,
+      id_jwslug: nil,
       id_tmdb: movie?.ids?.tmdb,
       memo_text: memo?.text,
       memo_is_private: memo?.is_private

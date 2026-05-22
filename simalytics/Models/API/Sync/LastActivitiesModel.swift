@@ -18,6 +18,7 @@ struct LastActivitiesModel: Codable {
 struct LastActivitiesAnimeModel: Codable {
   let all: String?
   let rated_at: String?
+  let playback: String?
   let plantowatch: String?
   let watching: String?
   let completed: String?
@@ -29,6 +30,7 @@ struct LastActivitiesAnimeModel: Codable {
 struct LastActivitiesMovieModel: Codable {
   let all: String?
   let rated_at: String?
+  let playback: String?
   let plantowatch: String?
   let completed: String?
   let dropped: String?
@@ -38,6 +40,7 @@ struct LastActivitiesMovieModel: Codable {
 struct LastActivitiesTVModel: Codable {
   let all: String?
   let rated_at: String?
+  let playback: String?
   let plantowatch: String?
   let watching: String?
   let completed: String?

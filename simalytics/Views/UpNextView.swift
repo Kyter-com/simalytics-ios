@@ -115,13 +115,23 @@ struct UpNextView: View {
                   // SwiftData update the episode text in-place (S7E1 → S7E2).
                   invalidateUpNextCache(modelContainer: context.container)
 
-                  await ShowDetailView.markEpisodeWatched(
-                    auth.simklAccessToken,
-                    mediaItem.title ?? "",
-                    mediaItem.simkl,
-                    postSeason,
-                    postEpisode
-                  )
+                  if isAnime {
+                    await AnimeDetailView.markEpisodeWatched(
+                      auth.simklAccessToken,
+                      mediaItem.title ?? "",
+                      mediaItem.simkl,
+                      postSeason,
+                      postEpisode
+                    )
+                  } else {
+                    await ShowDetailView.markEpisodeWatched(
+                      auth.simklAccessToken,
+                      mediaItem.title ?? "",
+                      mediaItem.simkl,
+                      postSeason,
+                      postEpisode
+                    )
+                  }
                   await syncLatestActivities(
                     auth.simklAccessToken,
                     modelContainer: context.container,

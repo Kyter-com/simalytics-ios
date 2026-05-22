@@ -45,7 +45,7 @@ extension AnimeDetailView {
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
       let body: [String: Any] = [
-        "shows": [
+        "anime": [
           [
             "title": title,
             "ids": [
@@ -74,9 +74,40 @@ extension AnimeDetailView {
     }
   }
 
+  // Batched variant for callers (e.g. up-next sync) that need watched data
+  // for many anime at once. Chunked to stay under Simkl's 100-item cap when
+  // extended=episodes is set.
+  static func getAnimeWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async -> [AnimeWatchlistModel] {
+    guard !simklIDs.isEmpty else { return [] }
+    let chunkSize = 100
+    let chunks = stride(from: 0, to: simklIDs.count, by: chunkSize).map {
+      Array(simklIDs[$0..<min($0 + chunkSize, simklIDs.count)])
+    }
+    var combined: [AnimeWatchlistModel] = []
+    for chunk in chunks {
+      do {
+        let url = URL(string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let body: [[String: Any]] = chunk.map { ["simkl": $0, "type": "anime"] }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { continue }
+        combined.append(contentsOf: try JSONDecoder().decode([AnimeWatchlistModel].self, from: data))
+      } catch {
+        reportError(error)
+      }
+    }
+    return combined
+  }
+
   static func getAnimeWatchlist(_ simkl_id: Int, _ accessToken: String) async -> AnimeWatchlistModel? {
     do {
-      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=specials")!
+      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
 
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"
@@ -105,7 +136,7 @@ extension AnimeDetailView {
       request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
       let body: [String: Any] = [
-        "shows": [
+        "anime": [
           [
             "rating": rating,
             "ids": [
@@ -134,7 +165,7 @@ extension AnimeDetailView {
       let formatter = ISO8601DateFormatter()
       let dateString = formatter.string(from: Date())
       let body: [String: Any] = [
-        "shows": [
+        "anime": [
           [
             "title": title,
             "ids": [
@@ -228,7 +259,7 @@ extension AnimeWatchlistButton {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
-          "shows": [
+          "anime": [
             [
               "ids": [
                 "simkl": simkl_id
@@ -248,7 +279,7 @@ extension AnimeWatchlistButton {
         request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         let body: [String: Any] = [
-          "shows": [
+          "anime": [
             [
               "to": list,
               "ids": [

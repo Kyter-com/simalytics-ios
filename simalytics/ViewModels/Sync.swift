@@ -35,96 +35,40 @@ func syncLatestActivities(
     let (data, _) = try await URLSession.shared.data(for: request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
 
-    // Phase 1: fetch every list in parallel. processUpNextEpisodes is
-    // intentionally NOT in this group — it reads SDShows/SDAnimes that
-    // these tasks are writing, so racing them produces empty results
-    // and stamps the 6h cache too early.
-    await withTaskGroup(of: Void.self) { group in
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesPlanToWatch(accessToken, result.movies?.plantowatch, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesDropped(accessToken, result.movies?.dropped, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesCompleted(accessToken, result.movies?.completed, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesRemovedFromList(accessToken, result.movies?.removed_from_list, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesRatedAt(accessToken, result.movies?.rated_at, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVPlanToWatch(accessToken, result.tv_shows?.plantowatch, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVCompleted(accessToken, result.tv_shows?.completed, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVHold(accessToken, result.tv_shows?.hold, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVDropped(accessToken, result.tv_shows?.dropped, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, context, forceRefresh: forceRefresh)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVRemovedFromList(accessToken, result.tv_shows?.removed_from_list, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVRatedAt(accessToken, result.tv_shows?.rated_at, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimePlanToWatch(accessToken, result.anime?.plantowatch, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeDropped(accessToken, result.anime?.dropped, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeCompleted(accessToken, result.anime?.completed, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeHold(accessToken, result.anime?.hold, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeRatedAt(accessToken, result.anime?.rated_at, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, context, forceRefresh: forceRefresh)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await syncLatestTrending(accessToken, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await refreshStaleData(accessToken, context)
-      }
-    }
+    // Trending (CDN) and refreshStaleData (per-id detail endpoints) are the
+    // only paths Simkl docs explicitly allow to run in parallel. /sync/*
+    // must be sequential per the documented rate-limit guidance, so we run
+    // those one at a time while trending/stale refresh run concurrently in
+    // the background. processUpNextEpisodes is intentionally NOT in this
+    // stage — it reads SDShows/SDAnimes that these tasks are writing.
+    //
+    // Each sync call gets a fresh ModelContext: SwiftData contexts aren't
+    // designed to outlive a single unit of work and shouldn't be reused
+    // across awaits that may resume on different threads.
+    async let trendingTask: Void = syncLatestTrending(accessToken, ModelContext(modelContainer))
+    async let staleTask: Void = refreshStaleData(accessToken, ModelContext(modelContainer))
+
+    await fetchAndStoreMoviesPlanToWatch(accessToken, result.movies?.plantowatch, ModelContext(modelContainer))
+    await fetchAndStoreMoviesDropped(accessToken, result.movies?.dropped, ModelContext(modelContainer))
+    await fetchAndStoreMoviesCompleted(accessToken, result.movies?.completed, ModelContext(modelContainer))
+    await fetchAndStoreMoviesRemovedFromList(accessToken, result.movies?.removed_from_list, ModelContext(modelContainer))
+    await fetchAndStoreMoviesRatedAt(accessToken, result.movies?.rated_at, ModelContext(modelContainer))
+    await fetchAndStoreTVPlanToWatch(accessToken, result.tv_shows?.plantowatch, ModelContext(modelContainer))
+    await fetchAndStoreTVCompleted(accessToken, result.tv_shows?.completed, ModelContext(modelContainer))
+    await fetchAndStoreTVHold(accessToken, result.tv_shows?.hold, ModelContext(modelContainer))
+    await fetchAndStoreTVDropped(accessToken, result.tv_shows?.dropped, ModelContext(modelContainer))
+    await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, ModelContext(modelContainer), forceRefresh: forceRefresh)
+    await fetchAndStoreTVRemovedFromList(accessToken, result.tv_shows?.removed_from_list, ModelContext(modelContainer))
+    await fetchAndStoreTVRatedAt(accessToken, result.tv_shows?.rated_at, ModelContext(modelContainer))
+    await fetchAndStoreAnimePlanToWatch(accessToken, result.anime?.plantowatch, ModelContext(modelContainer))
+    await fetchAndStoreAnimeDropped(accessToken, result.anime?.dropped, ModelContext(modelContainer))
+    await fetchAndStoreAnimeCompleted(accessToken, result.anime?.completed, ModelContext(modelContainer))
+    await fetchAndStoreAnimeHold(accessToken, result.anime?.hold, ModelContext(modelContainer))
+    await fetchAndStoreAnimeRatedAt(accessToken, result.anime?.rated_at, ModelContext(modelContainer))
+    await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, ModelContext(modelContainer))
+    await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, ModelContext(modelContainer), forceRefresh: forceRefresh)
+
+    _ = await (trendingTask, staleTask)
 
     // Phase 2: now that SDShows/SDAnimes are populated, compute up next.
     let upNextContext = ModelContext(modelContainer)
@@ -1589,8 +1533,21 @@ func processUpNextEpisodes(
     sdAnimesFD.propertiesToFetch = [\.simkl]
     let sdAnimesIds = try context.fetch(sdAnimesFD)
 
+    // Batch the /sync/watched lookups: docs warn against per-item calls when
+    // /sync/all-items is also in use. One request handles up to 100 shows.
+    // We index by simkl with a last-write-wins merge so an unexpected
+    // duplicate from the server can't crash the sync (uniqueKeysWithValues
+    // would).
+    let showWatchedBatch = await ShowDetailView.getShowWatchlistBatch(
+      sdShowsIds.map { $0.simkl }, accessToken
+    )
+    let showWatchedByID = Dictionary(
+      showWatchedBatch.map { ($0.simkl, $0) },
+      uniquingKeysWith: { _, last in last }
+    )
+
     for show in sdShowsIds {
-      let watchedEpisodes = await ShowDetailView.getShowWatchlist(show.simkl, accessToken)
+      let watchedEpisodes = showWatchedByID[show.simkl]
 
       guard
         let watched = watchedEpisodes,
@@ -1673,8 +1630,16 @@ func processUpNextEpisodes(
       }
     }
 
+    let animeWatchedBatch = await AnimeDetailView.getAnimeWatchlistBatch(
+      sdAnimesIds.map { $0.simkl }, accessToken
+    )
+    let animeWatchedByID = Dictionary(
+      animeWatchedBatch.map { ($0.simkl, $0) },
+      uniquingKeysWith: { _, last in last }
+    )
+
     for anime in sdAnimesIds {
-      let watchedEpisodes = await AnimeDetailView.getAnimeWatchlist(anime.simkl, accessToken)
+      let watchedEpisodes = animeWatchedByID[anime.simkl]
 
       guard
         let watched = watchedEpisodes,
