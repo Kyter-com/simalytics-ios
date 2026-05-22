@@ -108,33 +108,20 @@ struct UpNextView: View {
                   let postSeason = isAnime ? 1 : mediaItem.next_to_watch_info_season ?? 0
                   let postEpisode = mediaItem.next_to_watch_info_episode ?? 0
 
-                  // Optimistic local state: hide the row + bust the up-next cache
-                  // so the post-mark sync recomputes it.
-                  optimisticallyClearNextToWatch(
-                    simklId: mediaItem.simkl,
-                    season: postSeason,
-                    episode: postEpisode,
-                    kind: isAnime ? .anime : .tv,
-                    modelContainer: context.container
-                  )
+                  // No optimistic clear here: the user is looking at this row,
+                  // so nulling next_to_watch_info_title would drop it from the
+                  // @Query and the sync upsert would slide it back in — a
+                  // disappear/reappear flicker. Leaving the row in place lets
+                  // SwiftData update the episode text in-place (S7E1 → S7E2).
                   invalidateUpNextCache(modelContainer: context.container)
 
-                  let errorMessage = await ShowDetailView.markEpisodeWatched(
+                  await ShowDetailView.markEpisodeWatched(
                     auth.simklAccessToken,
                     mediaItem.title ?? "",
                     mediaItem.simkl,
                     postSeason,
                     postEpisode
                   )
-                  if errorMessage != nil {
-                    // Failure: full sync to restore truth from server.
-                    await syncLatestActivities(
-                      auth.simklAccessToken,
-                      modelContainer: context.container,
-                      forceRefresh: true
-                    )
-                    return
-                  }
                   await syncLatestActivities(
                     auth.simklAccessToken,
                     modelContainer: context.container,
