@@ -1539,12 +1539,13 @@ func processUpNextEpisodes(
     // /sync/all-items is also in use. One request handles up to 100 shows.
     // We index by simkl with a last-write-wins merge so an unexpected
     // duplicate from the server can't crash the sync (uniqueKeysWithValues
-    // would).
+    // would). `hadFailures` propagates so we can skip stamping the 6h cache
+    // when any chunk failed (otherwise stale rows stay stale for 6h).
     let showWatchedBatch = await ShowDetailView.getShowWatchlistBatch(
       sdShowsIds.map { $0.simkl }, accessToken
     )
     let showWatchedByID = Dictionary(
-      showWatchedBatch.map { ($0.simkl, $0) },
+      showWatchedBatch.items.map { ($0.simkl, $0) },
       uniquingKeysWith: { _, last in last }
     )
 
@@ -1636,7 +1637,7 @@ func processUpNextEpisodes(
       sdAnimesIds.map { $0.simkl }, accessToken
     )
     let animeWatchedByID = Dictionary(
-      animeWatchedBatch.map { ($0.simkl, $0) },
+      animeWatchedBatch.items.map { ($0.simkl, $0) },
       uniquingKeysWith: { _, last in last }
     )
 
@@ -1663,20 +1664,29 @@ func processUpNextEpisodes(
           .watched ?? false
       }
 
+      // Exclude specials (season 0 per getAnimeEpisodes mapping). SDAnimes
+      // doesn't persist next_to_watch_info_season, and the UpNext swipe
+      // path hardcodes season=1 for anime — so surfacing a special as
+      // "next" would POST to season 1 + the special's episode number and
+      // mark the wrong episode (or no-op). Until anime season is plumbed
+      // through SDAnimes + UpNext, restrict to main-run.
       let unwatched =
         allEpisodes
         .filter { $0.aired == true }
+        .filter { ($0.season ?? 1) != 0 }
         .filter { episode in
           guard let epNum = episode.episode else { return false }
           let seasonNum = episode.season ?? 1
           return !watchedLookup(seasonNum, epNum)
         }
 
-      let actuallyWatchedEpisodes = allEpisodes.filter { episode in
-        guard let epNum = episode.episode else { return false }
-        let seasonNum = episode.season ?? 1
-        return watchedLookup(seasonNum, epNum)
-      }
+      let actuallyWatchedEpisodes = allEpisodes
+        .filter { ($0.season ?? 1) != 0 }
+        .filter { episode in
+          guard let epNum = episode.episode else { return false }
+          let seasonNum = episode.season ?? 1
+          return watchedLookup(seasonNum, epNum)
+        }
 
       // Find the highest watched episode (latest)
       let highestWatched =
@@ -1715,7 +1725,13 @@ func processUpNextEpisodes(
       }
     }
 
-    syncRecord!.changes_api = now.ISO8601Format()
+    // Only stamp the 6h cache as fresh if every batch chunk succeeded.
+    // If a /sync/watched chunk failed (rate limit, auth, network), the
+    // affected shows/anime kept their previous next_to_watch_info — we
+    // need the next scheduled run to retry instead of skipping for 6h.
+    if !showWatchedBatch.hadFailures && !animeWatchedBatch.hadFailures {
+      syncRecord!.changes_api = now.ISO8601Format()
+    }
     try context.save()
   } catch {
     SentrySDK.capture(error: error)
