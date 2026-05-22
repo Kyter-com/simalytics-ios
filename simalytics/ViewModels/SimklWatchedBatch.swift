@@ -9,7 +9,6 @@
 //
 
 import Foundation
-import Sentry
 
 // Result of a batched /sync/watched lookup. `hadFailures` lets callers
 // decide whether the data is complete enough to stamp a "fresh" cache.
@@ -25,8 +24,7 @@ struct SimklWatchedBatch<T: Decodable & Sendable>: Sendable {
 func simklWatchedBatch<T: Decodable & Sendable>(
   simklIDs: [Int],
   type: String,
-  accessToken: String,
-  decode: T.Type
+  accessToken: String
 ) async -> SimklWatchedBatch<T> {
   guard !simklIDs.isEmpty else { return SimklWatchedBatch(items: [], hadFailures: false) }
   let chunkSize = 100

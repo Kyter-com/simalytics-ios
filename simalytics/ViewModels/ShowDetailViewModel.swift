@@ -38,9 +38,7 @@ extension ShowDetailView {
   // for many shows at once. Thin wrapper around the shared helper so the
   // call site stays clean and TV/anime behaviour can't drift apart.
   static func getShowWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async -> SimklWatchedBatch<ShowWatchlistModel> {
-    await simklWatchedBatch(
-      simklIDs: simklIDs, type: "tv", accessToken: accessToken, decode: ShowWatchlistModel.self
-    )
+    await simklWatchedBatch(simklIDs: simklIDs, type: "tv", accessToken: accessToken)
   }
 
   static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async -> ShowWatchlistModel? {
