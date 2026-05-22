@@ -56,7 +56,15 @@ extension ShowDetailView {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else { continue }
+        // A non-200 here drops watched state for up to 100 shows — surface
+        // it to Sentry so rate-limit / auth issues don't fail silently.
+        if let status = (response as? HTTPURLResponse)?.statusCode, status != 200 {
+          reportError(NSError(
+            domain: "Simkl", code: status,
+            userInfo: [NSLocalizedDescriptionKey: "Batched /sync/watched (tv) returned HTTP \(status) for \(chunk.count) ids"]
+          ))
+          continue
+        }
         combined.append(contentsOf: try JSONDecoder().decode([ShowWatchlistModel].self, from: data))
       } catch {
         reportError(error)

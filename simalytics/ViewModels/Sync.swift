@@ -35,19 +35,16 @@ func syncLatestActivities(
     let (data, _) = try await URLSession.shared.data(for: request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
 
-    // Trending (CDN) and refreshStaleData (per-id detail endpoints) are the
-    // only paths Simkl docs explicitly allow to run in parallel. /sync/*
-    // must be sequential per the documented rate-limit guidance, so we run
-    // those one at a time while trending/stale refresh run concurrently in
-    // the background. processUpNextEpisodes is intentionally NOT in this
-    // stage — it reads SDShows/SDAnimes that these tasks are writing.
+    // Phase 1: every task that mutates SDLastSync(id: 1) runs sequentially.
+    // Each function fetches the row, writes its own field, then saves the
+    // whole row — so concurrent contexts can clobber each other's field
+    // updates (last write wins on the entire row). The /sync/* endpoints
+    // also need to be sequential per Simkl's documented rate-limit
+    // guidance. Each call gets a fresh ModelContext so the context stays
+    // confined to a single unit of work.
     //
-    // Each sync call gets a fresh ModelContext: SwiftData contexts aren't
-    // designed to outlive a single unit of work and shouldn't be reused
-    // across awaits that may resume on different threads.
-    async let trendingTask: Void = syncLatestTrending(accessToken, ModelContext(modelContainer))
-    async let staleTask: Void = refreshStaleData(accessToken, ModelContext(modelContainer))
-
+    // processUpNextEpisodes is intentionally NOT in this stage — it reads
+    // SDShows/SDAnimes that these tasks are writing.
     await fetchAndStoreMoviesPlanToWatch(accessToken, result.movies?.plantowatch, ModelContext(modelContainer))
     await fetchAndStoreMoviesDropped(accessToken, result.movies?.dropped, ModelContext(modelContainer))
     await fetchAndStoreMoviesCompleted(accessToken, result.movies?.completed, ModelContext(modelContainer))
@@ -68,7 +65,12 @@ func syncLatestActivities(
     await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, ModelContext(modelContainer))
     await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, ModelContext(modelContainer), forceRefresh: forceRefresh)
 
-    _ = await (trendingTask, staleTask)
+    // Trending (CDN) and stale-data refresh (per-id detail endpoints) also
+    // write to SDLastSync, so they're sequenced here for the same
+    // last-write-wins reason. Their internal network work parallelizes
+    // independently — only the final SDLastSync writes need ordering.
+    await syncLatestTrending(accessToken, ModelContext(modelContainer))
+    await refreshStaleData(accessToken, ModelContext(modelContainer))
 
     // Phase 2: now that SDShows/SDAnimes are populated, compute up next.
     let upNextContext = ModelContext(modelContainer)

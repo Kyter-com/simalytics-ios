@@ -45,16 +45,27 @@ extension ActorDetailView {
   }
 
   static func filmographyItems(from details: TMDBPersonDetails) async -> [ActorFilmographyItem] {
-    let credits = details.sortedFilmographyCredits
+    let credits = Array(details.sortedFilmographyCredits.prefix(80))
+    // Bound concurrency so we don't burst 80 simultaneous /redirect calls
+    // through Simkl's 10 GET/sec/client_id ceiling. Detail endpoints are
+    // documented as parallel-allowed but /redirect isn't on the parallel
+    // allowlist, and a fallback to /search/{type} can fire from here too.
+    let maxConcurrent = 5
     return await withTaskGroup(of: (Int, ActorFilmographyItem).self) { group in
-      for (index, credit) in credits.prefix(80).enumerated() {
+      var indexedItems: [(Int, ActorFilmographyItem)] = []
+
+      for (index, credit) in credits.enumerated() {
+        if index >= maxConcurrent {
+          if let finished = await group.next() {
+            indexedItems.append(finished)
+          }
+        }
         group.addTask {
           let destination = await resolveDestination(for: credit)
           return (index, ActorFilmographyItem(credit: credit, destination: destination))
         }
       }
 
-      var indexedItems: [(Int, ActorFilmographyItem)] = []
       for await item in group {
         indexedItems.append(item)
       }
