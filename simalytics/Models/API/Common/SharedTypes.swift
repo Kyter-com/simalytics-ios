@@ -21,7 +21,7 @@ struct Ratings: Codable {
 
 // MARK: - Watchlist Structures
 
-struct WatchlistSeason: Codable {
+struct WatchlistSeason: Codable, Sendable {
   let number: Int?
   let episodes_total: Int?
   let episodes_aired: Int?
@@ -30,7 +30,7 @@ struct WatchlistSeason: Codable {
   var episodes: [WatchlistEpisode]?
 }
 
-struct WatchlistEpisode: Codable {
+struct WatchlistEpisode: Codable, Sendable {
   let number: Int?
   var watched: Bool?
   let aired: Bool?

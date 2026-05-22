@@ -43,27 +43,37 @@ func syncLatestActivities(
     // guidance. Each call gets a fresh ModelContext so the context stays
     // confined to a single unit of work.
     //
-    // processUpNextEpisodes is intentionally NOT in this stage — it reads
-    // SDShows/SDAnimes that these tasks are writing.
-    await fetchAndStoreMoviesPlanToWatch(accessToken, result.movies?.plantowatch, ModelContext(modelContainer))
-    await fetchAndStoreMoviesDropped(accessToken, result.movies?.dropped, ModelContext(modelContainer))
-    await fetchAndStoreMoviesCompleted(accessToken, result.movies?.completed, ModelContext(modelContainer))
-    await fetchAndStoreMoviesRemovedFromList(accessToken, result.movies?.removed_from_list, ModelContext(modelContainer))
-    await fetchAndStoreMoviesRatedAt(accessToken, result.movies?.rated_at, ModelContext(modelContainer))
-    await fetchAndStoreTVPlanToWatch(accessToken, result.tv_shows?.plantowatch, ModelContext(modelContainer))
-    await fetchAndStoreTVCompleted(accessToken, result.tv_shows?.completed, ModelContext(modelContainer))
-    await fetchAndStoreTVHold(accessToken, result.tv_shows?.hold, ModelContext(modelContainer))
-    await fetchAndStoreTVDropped(accessToken, result.tv_shows?.dropped, ModelContext(modelContainer))
-    await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, ModelContext(modelContainer), forceRefresh: forceRefresh)
-    await fetchAndStoreTVRemovedFromList(accessToken, result.tv_shows?.removed_from_list, ModelContext(modelContainer))
-    await fetchAndStoreTVRatedAt(accessToken, result.tv_shows?.rated_at, ModelContext(modelContainer))
-    await fetchAndStoreAnimePlanToWatch(accessToken, result.anime?.plantowatch, ModelContext(modelContainer))
-    await fetchAndStoreAnimeDropped(accessToken, result.anime?.dropped, ModelContext(modelContainer))
-    await fetchAndStoreAnimeCompleted(accessToken, result.anime?.completed, ModelContext(modelContainer))
-    await fetchAndStoreAnimeHold(accessToken, result.anime?.hold, ModelContext(modelContainer))
-    await fetchAndStoreAnimeRatedAt(accessToken, result.anime?.rated_at, ModelContext(modelContainer))
-    await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, ModelContext(modelContainer))
-    await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, ModelContext(modelContainer), forceRefresh: forceRefresh)
+    // The `step` helper folds the repeated `accessToken + new context`
+    // boilerplate so future edits only have to touch the per-bucket list
+    // below. processUpNextEpisodes is intentionally NOT in this stage —
+    // it reads SDShows/SDAnimes that these tasks are writing.
+    func step(_ activity: String?, _ handler: (String, String?, ModelContext) async -> Void) async {
+      await handler(accessToken, activity, ModelContext(modelContainer))
+    }
+
+    await step(result.movies?.plantowatch, fetchAndStoreMoviesPlanToWatch)
+    await step(result.movies?.dropped, fetchAndStoreMoviesDropped)
+    await step(result.movies?.completed, fetchAndStoreMoviesCompleted)
+    await step(result.movies?.removed_from_list, fetchAndStoreMoviesRemovedFromList)
+    await step(result.movies?.rated_at, fetchAndStoreMoviesRatedAt)
+    await step(result.tv_shows?.plantowatch, fetchAndStoreTVPlanToWatch)
+    await step(result.tv_shows?.completed, fetchAndStoreTVCompleted)
+    await step(result.tv_shows?.hold, fetchAndStoreTVHold)
+    await step(result.tv_shows?.dropped, fetchAndStoreTVDropped)
+    await step(result.tv_shows?.watching) { token, activity, ctx in
+      await fetchAndStoreTVWatching(token, activity, ctx, forceRefresh: forceRefresh)
+    }
+    await step(result.tv_shows?.removed_from_list, fetchAndStoreTVRemovedFromList)
+    await step(result.tv_shows?.rated_at, fetchAndStoreTVRatedAt)
+    await step(result.anime?.plantowatch, fetchAndStoreAnimePlanToWatch)
+    await step(result.anime?.dropped, fetchAndStoreAnimeDropped)
+    await step(result.anime?.completed, fetchAndStoreAnimeCompleted)
+    await step(result.anime?.hold, fetchAndStoreAnimeHold)
+    await step(result.anime?.rated_at, fetchAndStoreAnimeRatedAt)
+    await step(result.anime?.removed_from_list, fetchAndStoreAnimeRemovedFromList)
+    await step(result.anime?.watching) { token, activity, ctx in
+      await fetchAndStoreAnimeWatching(token, activity, ctx, forceRefresh: forceRefresh)
+    }
 
     // Trending (CDN) and stale-data refresh (per-id detail endpoints) also
     // write to SDLastSync, so they're sequenced here for the same

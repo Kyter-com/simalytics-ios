@@ -35,51 +35,12 @@ extension ShowDetailView {
   }
 
   // Batched variant for callers (e.g. up-next sync) that need watched data
-  // for many shows at once. Simkl caps /sync/watched at 100 items per request
-  // when extended=episodes is set, so we chunk. `hadFailures` lets the
-  // caller skip stamping a "fresh" cache when partial data came back.
-  struct WatchlistBatch {
-    let items: [ShowWatchlistModel]
-    let hadFailures: Bool
-  }
-
-  static func getShowWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async -> WatchlistBatch {
-    guard !simklIDs.isEmpty else { return WatchlistBatch(items: [], hadFailures: false) }
-    let chunkSize = 100
-    let chunks = stride(from: 0, to: simklIDs.count, by: chunkSize).map {
-      Array(simklIDs[$0..<min($0 + chunkSize, simklIDs.count)])
-    }
-    var combined: [ShowWatchlistModel] = []
-    var hadFailures = false
-    for chunk in chunks {
-      do {
-        let url = URL(string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        let body: [[String: Any]] = chunk.map { ["simkl": $0, "type": "tv"] }
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        // A non-200 here drops watched state for up to 100 shows — surface
-        // it to Sentry so rate-limit / auth issues don't fail silently.
-        if let status = (response as? HTTPURLResponse)?.statusCode, status != 200 {
-          reportError(NSError(
-            domain: "Simkl", code: status,
-            userInfo: [NSLocalizedDescriptionKey: "Batched /sync/watched (tv) returned HTTP \(status) for \(chunk.count) ids"]
-          ))
-          hadFailures = true
-          continue
-        }
-        combined.append(contentsOf: try JSONDecoder().decode([ShowWatchlistModel].self, from: data))
-      } catch {
-        reportError(error)
-        hadFailures = true
-      }
-    }
-    return WatchlistBatch(items: combined, hadFailures: hadFailures)
+  // for many shows at once. Thin wrapper around the shared helper so the
+  // call site stays clean and TV/anime behaviour can't drift apart.
+  static func getShowWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async -> SimklWatchedBatch<ShowWatchlistModel> {
+    await simklWatchedBatch(
+      simklIDs: simklIDs, type: "tv", accessToken: accessToken, decode: ShowWatchlistModel.self
+    )
   }
 
   static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async -> ShowWatchlistModel? {
