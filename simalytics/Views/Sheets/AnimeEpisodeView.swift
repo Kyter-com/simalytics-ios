@@ -49,38 +49,53 @@ struct AnimeEpisodeView: View {
       if episode?.episode != nil && episode?.season != nil && episode?.season != 0 {
         Button(action: {
           Task {
-            if !hasWatched {
-              await AnimeDetailView.markEpisodeWatched(
-                auth.simklAccessToken,
-                animeDetails?.title ?? "",
-                simklId,
-                episode?.type == "special" ? 0 : 1,
-                episode?.episode ?? 0
-              )
-              if let episode = episode {
-                if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == (episode.type == "special" ? 0 : 1) }) {
-                  if let episodeIndex = animeWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
-                    animeWatchlist?.seasons?[index].episodes?[episodeIndex].watched = true
-                  }
-                }
-              }
-            } else {
-              await AnimeDetailView.markEpisodeUnwatched(
-                auth.simklAccessToken,
-                animeDetails?.title ?? "",
-                simklId,
-                episode?.type == "special" ? 0 : 1,
-                episode?.episode ?? 0
-              )
-              if let episode = episode {
-                if let index = animeWatchlist?.seasons?.firstIndex(where: { $0.number == (episode.type == "special" ? 0 : 1) }) {
-                  if let episodeIndex = animeWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
-                    animeWatchlist?.seasons?[index].episodes?[episodeIndex].watched = false
-                  }
-                }
-              }
+            guard let ep = episode, let epNum = ep.episode else { return }
+            let seasonNum = ep.type == "special" ? 0 : 1
+            let willMarkWatched = !hasWatched
+
+            applyOptimisticAnimeWatchlistUpdate(
+              season: seasonNum, episode: epNum, watched: willMarkWatched)
+
+            if willMarkWatched {
+              optimisticallyClearNextToWatch(
+                simklId: simklId, season: seasonNum, episode: epNum,
+                kind: .anime, modelContainer: context.container)
             }
-            await syncLatestActivities(auth.simklAccessToken, modelContainer: context.container)
+            invalidateUpNextCache(modelContainer: context.container)
+
+            let errorMessage: String?
+            if willMarkWatched {
+              errorMessage = await AnimeDetailView.markEpisodeWatched(
+                auth.simklAccessToken,
+                animeDetails?.title ?? "",
+                simklId,
+                seasonNum,
+                epNum
+              )
+            } else {
+              errorMessage = await AnimeDetailView.markEpisodeUnwatched(
+                auth.simklAccessToken,
+                animeDetails?.title ?? "",
+                simklId,
+                seasonNum,
+                epNum
+              )
+            }
+
+            if errorMessage != nil {
+              applyOptimisticAnimeWatchlistUpdate(
+                season: seasonNum, episode: epNum, watched: !willMarkWatched)
+            }
+
+            await syncLatestActivities(
+              auth.simklAccessToken,
+              modelContainer: context.container,
+              forceRefresh: true
+            )
+
+            if let refreshed = await AnimeDetailView.getAnimeWatchlist(simklId, auth.simklAccessToken) {
+              animeWatchlist = refreshed
+            }
           }
         }) {
           Text(hasWatched ? "Watched" : "Watch")
@@ -117,5 +132,35 @@ struct AnimeEpisodeView: View {
       }
     }
     return false
+  }
+
+  func applyOptimisticAnimeWatchlistUpdate(season targetSeason: Int, episode targetEpisode: Int, watched: Bool) {
+    guard animeWatchlist != nil else { return }
+    var working = animeWatchlist!
+    var seasons = working.seasons ?? []
+
+    if let seasonIdx = seasons.firstIndex(where: { $0.number == targetSeason }) {
+      var season = seasons[seasonIdx]
+      var episodes = season.episodes ?? []
+      if let epIdx = episodes.firstIndex(where: { $0.number == targetEpisode }) {
+        episodes[epIdx].watched = watched
+      } else {
+        episodes.append(
+          WatchlistEpisode(number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
+        )
+      }
+      season.episodes = episodes
+      seasons[seasonIdx] = season
+    } else {
+      let newEpisode = WatchlistEpisode(
+        number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
+      let newSeason = WatchlistSeason(
+        number: targetSeason, episodes_total: nil, episodes_aired: nil,
+        episodes_to_be_aired: nil, episodes_watched: nil, episodes: [newEpisode])
+      seasons.append(newSeason)
+    }
+
+    working.seasons = seasons
+    animeWatchlist = working
   }
 }

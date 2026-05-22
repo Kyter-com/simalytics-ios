@@ -9,10 +9,11 @@ import Foundation
 import Sentry
 
 extension UpNextView {
+  @discardableResult
   static func markAsWatched(
     show: UpNextShowModel_show,
     accessToken: String
-  ) async {
+  ) async -> String? {
     do {
       let url = URL(string: "https://api.simkl.com/sync/history")!
       var request = URLRequest(url: url)
@@ -45,9 +46,12 @@ extension UpNextView {
         ]
       ]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      _ = try await URLSession.shared.data(for: request)
+      try await performSimklMutationRequest(request)
+      return nil
     } catch {
-      SentrySDK.capture(error: error)
+      if isSimklCancellationError(error) { return nil }
+      reportError(error)
+      return simklMutationUserMessage(for: error)
     }
   }
 

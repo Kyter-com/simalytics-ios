@@ -55,7 +55,8 @@ extension ShowDetailView {
     }
   }
 
-  static func markEpisodeUnwatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async {
+  @discardableResult
+  static func markEpisodeUnwatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async -> String? {
     do {
       let url = URL(string: "https://api.simkl.com/sync/history/remove")!
       var request = URLRequest(url: url)
@@ -85,13 +86,17 @@ extension ShowDetailView {
         ]
       ]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      _ = try await URLSession.shared.data(for: request)
+      try await performSimklMutationRequest(request)
+      return nil
     } catch {
+      if isSimklCancellationError(error) { return nil }
       reportError(error)
+      return simklMutationUserMessage(for: error)
     }
   }
 
-  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async {
+  @discardableResult
+  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async -> String? {
     do {
       let url = URL(string: "https://api.simkl.com/sync/history")!
       var request = URLRequest(url: url)
@@ -124,9 +129,12 @@ extension ShowDetailView {
         ]
       ]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      _ = try await URLSession.shared.data(for: request)
+      try await performSimklMutationRequest(request)
+      return nil
     } catch {
+      if isSimklCancellationError(error) { return nil }
       reportError(error)
+      return simklMutationUserMessage(for: error)
     }
   }
 

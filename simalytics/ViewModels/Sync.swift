@@ -19,7 +19,11 @@ private func ensureLastSyncRecord(_ container: ModelContainer) {
   try? context.save()
 }
 
-func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer) async {
+func syncLatestActivities(
+  _ accessToken: String,
+  modelContainer: ModelContainer,
+  forceRefresh: Bool = false
+) async {
   ensureLastSyncRecord(modelContainer)
   do {
     let urlComponents = URLComponents(string: "https://api.simkl.com/sync/activities")!
@@ -31,6 +35,10 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
     let (data, _) = try await URLSession.shared.data(for: request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
 
+    // Phase 1: fetch every list in parallel. processUpNextEpisodes is
+    // intentionally NOT in this group — it reads SDShows/SDAnimes that
+    // these tasks are writing, so racing them produces empty results
+    // and stamps the 6h cache too early.
     await withTaskGroup(of: Void.self) { group in
       group.addTask {
         let context = ModelContext(modelContainer)
@@ -70,7 +78,7 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
       }
       group.addTask {
         let context = ModelContext(modelContainer)
-        await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, context)
+        await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, context, forceRefresh: forceRefresh)
       }
       group.addTask {
         let context = ModelContext(modelContainer)
@@ -106,7 +114,7 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
       }
       group.addTask {
         let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, context)
+        await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, context, forceRefresh: forceRefresh)
       }
       group.addTask {
         let context = ModelContext(modelContainer)
@@ -114,13 +122,13 @@ func syncLatestActivities(_ accessToken: String, modelContainer: ModelContainer)
       }
       group.addTask {
         let context = ModelContext(modelContainer)
-        await processUpNextEpisodes(accessToken, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
         await refreshStaleData(accessToken, context)
       }
     }
+
+    // Phase 2: now that SDShows/SDAnimes are populated, compute up next.
+    let upNextContext = ModelContext(modelContainer)
+    await processUpNextEpisodes(accessToken, upNextContext, forceRefresh: forceRefresh)
 
     let releaseDateContext = ModelContext(modelContainer)
     await backfillMissingPlanToWatchReleaseDates(releaseDateContext)
@@ -610,7 +618,12 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
   }
 }
 
-func fetchAndStoreTVWatching(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreTVWatching(
+  _ accessToken: String,
+  _ lastActivity: String?,
+  _ context: ModelContext,
+  forceRefresh: Bool = false
+) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -621,14 +634,14 @@ func fetchAndStoreTVWatching(_ accessToken: String, _ lastActivity: String?, _ c
       context.insert(syncRecord!)
     }
 
-    if lastActivity == syncRecord!.tv_watching { return }
+    if !forceRefresh, lastActivity == syncRecord!.tv_watching { return }
 
     var endpoint = URLComponents(
       string: "https://api.simkl.com/sync/all-items/shows/watching?memos=yes&next_watch_info=yes")!
 
     let lastActivityDate = formatter.date(from: lastActivity)!
     if let previousSyncDate = syncRecord!.tv_watching.flatMap(formatter.date(from:)) {
-      if lastActivityDate > previousSyncDate {
+      if forceRefresh || lastActivityDate > previousSyncDate {
         let dateFrom = formatter.string(
           from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
         endpoint = URLComponents(
@@ -980,7 +993,12 @@ func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ co
   }
 }
 
-func fetchAndStoreAnimeWatching(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreAnimeWatching(
+  _ accessToken: String,
+  _ lastActivity: String?,
+  _ context: ModelContext,
+  forceRefresh: Bool = false
+) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -991,14 +1009,14 @@ func fetchAndStoreAnimeWatching(_ accessToken: String, _ lastActivity: String?, 
       context.insert(syncRecord!)
     }
 
-    if lastActivity == syncRecord!.anime_watching { return }
+    if !forceRefresh, lastActivity == syncRecord!.anime_watching { return }
 
     var endpoint = URLComponents(
       string: "https://api.simkl.com/sync/all-items/anime/watching?memos=yes&next_watch_info=yes")!
 
     let lastActivityDate = formatter.date(from: lastActivity)!
     if let previousSyncDate = syncRecord!.anime_watching.flatMap(formatter.date(from:)) {
-      if lastActivityDate > previousSyncDate {
+      if forceRefresh || lastActivityDate > previousSyncDate {
         let dateFrom = formatter.string(
           from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
         endpoint = URLComponents(
@@ -1534,7 +1552,11 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
   }
 }
 
-func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async {
+func processUpNextEpisodes(
+  _ accessToken: String,
+  _ context: ModelContext,
+  forceRefresh: Bool = false
+) async {
   let formatter = ISO8601DateFormatter()
   do {
     var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
@@ -1546,15 +1568,17 @@ func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async
     let now = Date()
     let sixHoursInSeconds: TimeInterval = 6 * 60 * 60
     let sixHoursAgo = now.addingTimeInterval(-sixHoursInSeconds)
-    var needsSync = false
-    if let lastSyncDateStr = syncRecord!.changes_api,
-      let lastSyncDate = formatter.date(from: lastSyncDateStr)
-    {
-      if lastSyncDate < sixHoursAgo {
+    var needsSync = forceRefresh
+    if !needsSync {
+      if let lastSyncDateStr = syncRecord!.changes_api,
+        let lastSyncDate = formatter.date(from: lastSyncDateStr)
+      {
+        if lastSyncDate < sixHoursAgo {
+          needsSync = true
+        }
+      } else {
         needsSync = true
       }
-    } else {
-      needsSync = true
     }
     if !needsSync { return }
     var sdShowsFD = FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.status == "watching" })
@@ -1660,45 +1684,37 @@ func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async
 
       let allEpisodes = await AnimeDetailView.getAnimeEpisodes(anime.simkl, countSeasons: false)
 
-      // All episodes that have aired but are not marked as watched
-      let unwatched =
-        allEpisodes
-        .filter { $0.aired == true }
-        .filter { episode in
-          guard
-            let seasonNum = episode.season,
-            let epNum = episode.episode
-          else { return false }
-
-          let isWatched =
-            seasons
-            .first(where: { $0.number == seasonNum })?
-            .episodes?
-            .first(where: { $0.number == epNum })?
-            .watched ?? false
-
-          return !isWatched
-        }
-
-      // All episodes that *have* been watched
-      let actuallyWatchedEpisodes = allEpisodes.filter { episode in
-        guard
-          let seasonNum = episode.season,
-          let epNum = episode.episode
-        else { return false }
-
-        return
-          seasons
+      // Anime: /anime/episodes returns episodes with season:nil. The
+      // /sync/watched response groups them under season 0 (specials) and
+      // season 1 (main run). getAnimeEpisodes(countSeasons: false) maps
+      // type=="special" -> 0 and everything else -> 1, so we can match.
+      let watchedLookup: (Int, Int) -> Bool = { seasonNum, epNum in
+        seasons
           .first(where: { $0.number == seasonNum })?
           .episodes?
           .first(where: { $0.number == epNum })?
           .watched ?? false
       }
 
+      let unwatched =
+        allEpisodes
+        .filter { $0.aired == true }
+        .filter { episode in
+          guard let epNum = episode.episode else { return false }
+          let seasonNum = episode.season ?? 1
+          return !watchedLookup(seasonNum, epNum)
+        }
+
+      let actuallyWatchedEpisodes = allEpisodes.filter { episode in
+        guard let epNum = episode.episode else { return false }
+        let seasonNum = episode.season ?? 1
+        return watchedLookup(seasonNum, epNum)
+      }
+
       // Find the highest watched episode (latest)
       let highestWatched =
         actuallyWatchedEpisodes
-        .sorted(by: { ($0.season ?? 0, $0.episode ?? 0) > ($1.season ?? 0, $1.episode ?? 0) })
+        .sorted(by: { ($0.season ?? 1, $0.episode ?? 0) > ($1.season ?? 1, $1.episode ?? 0) })
         .first
 
       // Find the first unwatched episode that comes *after* the highest watched
@@ -1706,11 +1722,11 @@ func processUpNextEpisodes(_ accessToken: String, _ context: ModelContext) async
         unwatched
         .filter { episode in
           guard let highest = highestWatched else { return true }  // no episodes watched yet
-          let current = (episode.season ?? 0, episode.episode ?? 0)
-          let highestSeen = (highest.season ?? 0, highest.episode ?? 0)
+          let current = (episode.season ?? 1, episode.episode ?? 0)
+          let highestSeen = (highest.season ?? 1, highest.episode ?? 0)
           return current > highestSeen
         }
-        .sorted(by: { ($0.season ?? 0, $0.episode ?? 0) < ($1.season ?? 0, $1.episode ?? 0) })  // get the next in order
+        .sorted(by: { ($0.season ?? 1, $0.episode ?? 0) < ($1.season ?? 1, $1.episode ?? 0) })  // get the next in order
         .first
 
       if let latest = nextUnwatched {

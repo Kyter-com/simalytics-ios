@@ -49,38 +49,61 @@ struct ShowEpisodeView: View {
       if episode?.episode != nil && episode?.season != nil {
         Button(action: {
           Task {
-            if !hasWatched {
-              await ShowDetailView.markEpisodeWatched(
-                auth.simklAccessToken,
-                showDetails?.title ?? "",
-                simklId,
-                episode?.season ?? 0,
-                episode?.episode ?? 0
-              )
-              if let episode = episode {
-                if let index = showWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {
-                  if let episodeIndex = showWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
-                    showWatchlist?.seasons?[index].episodes?[episodeIndex].watched = true
-                  }
-                }
-              }
-            } else {
-              await ShowDetailView.markEpisodeUnwatched(
-                auth.simklAccessToken,
-                showDetails?.title ?? "",
-                simklId,
-                episode?.season ?? 0,
-                episode?.episode ?? 0
-              )
-              if let episode = episode {
-                if let index = showWatchlist?.seasons?.firstIndex(where: { $0.number == episode.season }) {
-                  if let episodeIndex = showWatchlist?.seasons?[index].episodes?.firstIndex(where: { $0.number == episode.episode }) {
-                    showWatchlist?.seasons?[index].episodes?[episodeIndex].watched = false
-                  }
-                }
-              }
+            guard let ep = episode,
+              let epNum = ep.episode,
+              let seasonNum = ep.season
+            else { return }
+
+            let willMarkWatched = !hasWatched
+
+            // Optimistic local update to the in-memory watchlist so the
+            // button flips immediately without waiting on the round-trip.
+            applyOptimisticWatchlistUpdate(
+              season: seasonNum, episode: epNum, watched: willMarkWatched)
+
+            if willMarkWatched {
+              optimisticallyClearNextToWatch(
+                simklId: simklId, season: seasonNum, episode: epNum,
+                kind: .tv, modelContainer: context.container)
             }
-            await syncLatestActivities(auth.simklAccessToken, modelContainer: context.container)
+            invalidateUpNextCache(modelContainer: context.container)
+
+            let errorMessage: String?
+            if willMarkWatched {
+              errorMessage = await ShowDetailView.markEpisodeWatched(
+                auth.simklAccessToken,
+                showDetails?.title ?? "",
+                simklId,
+                seasonNum,
+                epNum
+              )
+            } else {
+              errorMessage = await ShowDetailView.markEpisodeUnwatched(
+                auth.simklAccessToken,
+                showDetails?.title ?? "",
+                simklId,
+                seasonNum,
+                epNum
+              )
+            }
+
+            if errorMessage != nil {
+              // Revert optimistic UI change and resync from server.
+              applyOptimisticWatchlistUpdate(
+                season: seasonNum, episode: epNum, watched: !willMarkWatched)
+            }
+
+            await syncLatestActivities(
+              auth.simklAccessToken,
+              modelContainer: context.container,
+              forceRefresh: true
+            )
+
+            // Pull fresh server-side watched state for this show so the
+            // sheet and detail view both reflect the new truth.
+            if let refreshed = await ShowDetailView.getShowWatchlist(simklId, auth.simklAccessToken) {
+              showWatchlist = refreshed
+            }
           }
         }) {
           Text(hasWatched ? "Watched" : "Watch")
@@ -117,5 +140,38 @@ struct ShowEpisodeView: View {
       }
     }
     return false
+  }
+
+  // Updates showWatchlist in place. Synthesizes the season / episode entry
+  // if it isn't already in the /sync/watched response (which happens on a
+  // show with no prior watched episodes — the original code silently no-op'd).
+  func applyOptimisticWatchlistUpdate(season targetSeason: Int, episode targetEpisode: Int, watched: Bool) {
+    guard showWatchlist != nil else { return }
+    var working = showWatchlist!
+    var seasons = working.seasons ?? []
+
+    if let seasonIdx = seasons.firstIndex(where: { $0.number == targetSeason }) {
+      var season = seasons[seasonIdx]
+      var episodes = season.episodes ?? []
+      if let epIdx = episodes.firstIndex(where: { $0.number == targetEpisode }) {
+        episodes[epIdx].watched = watched
+      } else {
+        episodes.append(
+          WatchlistEpisode(number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
+        )
+      }
+      season.episodes = episodes
+      seasons[seasonIdx] = season
+    } else {
+      let newEpisode = WatchlistEpisode(
+        number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
+      let newSeason = WatchlistSeason(
+        number: targetSeason, episodes_total: nil, episodes_aired: nil,
+        episodes_to_be_aired: nil, episodes_watched: nil, episodes: [newEpisode])
+      seasons.append(newSeason)
+    }
+
+    working.seasons = seasons
+    showWatchlist = working
   }
 }

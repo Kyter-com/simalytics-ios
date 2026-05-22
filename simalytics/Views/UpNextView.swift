@@ -104,14 +104,42 @@ struct UpNextView: View {
             .swipeActions(edge: .trailing) {
               Button {
                 Task {
-                  await ShowDetailView.markEpisodeWatched(
+                  let isAnime = mediaItem.type == "anime"
+                  let postSeason = isAnime ? 1 : mediaItem.next_to_watch_info_season ?? 0
+                  let postEpisode = mediaItem.next_to_watch_info_episode ?? 0
+
+                  // Optimistic local state: hide the row + bust the up-next cache
+                  // so the post-mark sync recomputes it.
+                  optimisticallyClearNextToWatch(
+                    simklId: mediaItem.simkl,
+                    season: postSeason,
+                    episode: postEpisode,
+                    kind: isAnime ? .anime : .tv,
+                    modelContainer: context.container
+                  )
+                  invalidateUpNextCache(modelContainer: context.container)
+
+                  let errorMessage = await ShowDetailView.markEpisodeWatched(
                     auth.simklAccessToken,
                     mediaItem.title ?? "",
                     mediaItem.simkl,
-                    mediaItem.type == "anime" ? 1 : mediaItem.next_to_watch_info_season ?? 0,
-                    mediaItem.next_to_watch_info_episode ?? 0,
+                    postSeason,
+                    postEpisode
                   )
-                  await syncLatestActivities(auth.simklAccessToken, modelContainer: context.container)
+                  if errorMessage != nil {
+                    // Failure: full sync to restore truth from server.
+                    await syncLatestActivities(
+                      auth.simklAccessToken,
+                      modelContainer: context.container,
+                      forceRefresh: true
+                    )
+                    return
+                  }
+                  await syncLatestActivities(
+                    auth.simklAccessToken,
+                    modelContainer: context.container,
+                    forceRefresh: true
+                  )
                 }
               } label: {
                 Label("Watched", systemImage: "checkmark.circle")
