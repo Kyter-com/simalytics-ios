@@ -99,7 +99,7 @@ func addMemoToAnime(accessToken: String, simkl: Int, memoText: String, isPrivate
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
     let body: [String: Any] = [
-      "shows": [
+      "anime": [
         [
           "status": status,
           "memo": [

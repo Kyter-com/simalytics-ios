@@ -35,96 +35,52 @@ func syncLatestActivities(
     let (data, _) = try await URLSession.shared.data(for: request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
 
-    // Phase 1: fetch every list in parallel. processUpNextEpisodes is
-    // intentionally NOT in this group — it reads SDShows/SDAnimes that
-    // these tasks are writing, so racing them produces empty results
-    // and stamps the 6h cache too early.
-    await withTaskGroup(of: Void.self) { group in
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesPlanToWatch(accessToken, result.movies?.plantowatch, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesDropped(accessToken, result.movies?.dropped, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesCompleted(accessToken, result.movies?.completed, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesRemovedFromList(accessToken, result.movies?.removed_from_list, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreMoviesRatedAt(accessToken, result.movies?.rated_at, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVPlanToWatch(accessToken, result.tv_shows?.plantowatch, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVCompleted(accessToken, result.tv_shows?.completed, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVHold(accessToken, result.tv_shows?.hold, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVDropped(accessToken, result.tv_shows?.dropped, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVWatching(accessToken, result.tv_shows?.watching, context, forceRefresh: forceRefresh)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVRemovedFromList(accessToken, result.tv_shows?.removed_from_list, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreTVRatedAt(accessToken, result.tv_shows?.rated_at, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimePlanToWatch(accessToken, result.anime?.plantowatch, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeDropped(accessToken, result.anime?.dropped, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeCompleted(accessToken, result.anime?.completed, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeHold(accessToken, result.anime?.hold, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeRatedAt(accessToken, result.anime?.rated_at, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeRemovedFromList(accessToken, result.anime?.removed_from_list, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await fetchAndStoreAnimeWatching(accessToken, result.anime?.watching, context, forceRefresh: forceRefresh)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await syncLatestTrending(accessToken, context)
-      }
-      group.addTask {
-        let context = ModelContext(modelContainer)
-        await refreshStaleData(accessToken, context)
-      }
+    // Phase 1: every task that mutates SDLastSync(id: 1) runs sequentially.
+    // Each function fetches the row, writes its own field, then saves the
+    // whole row — so concurrent contexts can clobber each other's field
+    // updates (last write wins on the entire row). The /sync/* endpoints
+    // also need to be sequential per Simkl's documented rate-limit
+    // guidance. Each call gets a fresh ModelContext so the context stays
+    // confined to a single unit of work.
+    //
+    // The `step` helper folds the repeated `accessToken + new context`
+    // boilerplate so future edits only have to touch the per-bucket list
+    // below. processUpNextEpisodes is intentionally NOT in this stage —
+    // it reads SDShows/SDAnimes that these tasks are writing.
+    func step(_ activity: String?, _ handler: (String, String?, ModelContext) async -> Void) async {
+      await handler(accessToken, activity, ModelContext(modelContainer))
     }
+
+    await step(result.movies?.plantowatch, fetchAndStoreMoviesPlanToWatch)
+    await step(result.movies?.dropped, fetchAndStoreMoviesDropped)
+    await step(result.movies?.completed, fetchAndStoreMoviesCompleted)
+    await step(result.movies?.removed_from_list, fetchAndStoreMoviesRemovedFromList)
+    await step(result.movies?.rated_at, fetchAndStoreMoviesRatedAt)
+    await step(result.tv_shows?.plantowatch, fetchAndStoreTVPlanToWatch)
+    await step(result.tv_shows?.completed, fetchAndStoreTVCompleted)
+    await step(result.tv_shows?.hold, fetchAndStoreTVHold)
+    await step(result.tv_shows?.dropped, fetchAndStoreTVDropped)
+    await step(result.tv_shows?.watching) { token, activity, ctx in
+      await fetchAndStoreTVWatching(token, activity, ctx, forceRefresh: forceRefresh)
+    }
+    await step(result.tv_shows?.removed_from_list, fetchAndStoreTVRemovedFromList)
+    await step(result.tv_shows?.rated_at, fetchAndStoreTVRatedAt)
+    await step(result.anime?.plantowatch, fetchAndStoreAnimePlanToWatch)
+    await step(result.anime?.dropped, fetchAndStoreAnimeDropped)
+    await step(result.anime?.completed, fetchAndStoreAnimeCompleted)
+    await step(result.anime?.hold, fetchAndStoreAnimeHold)
+    await step(result.anime?.rated_at, fetchAndStoreAnimeRatedAt)
+    await step(result.anime?.removed_from_list, fetchAndStoreAnimeRemovedFromList)
+    await step(result.anime?.watching) { token, activity, ctx in
+      await fetchAndStoreAnimeWatching(token, activity, ctx, forceRefresh: forceRefresh)
+    }
+
+    // Trending (CDN) and stale-data refresh (per-id detail endpoints) also
+    // write to SDLastSync, so they're sequenced here for the same
+    // last-write-wins reason. Their internal network work parallelizes
+    // independently — only the final SDLastSync writes need ordering.
+    await syncLatestTrending(accessToken, ModelContext(modelContainer))
+    await refreshStaleData(accessToken, ModelContext(modelContainer))
 
     // Phase 2: now that SDShows/SDAnimes are populated, compute up next.
     let upNextContext = ModelContext(modelContainer)
@@ -1589,8 +1545,22 @@ func processUpNextEpisodes(
     sdAnimesFD.propertiesToFetch = [\.simkl]
     let sdAnimesIds = try context.fetch(sdAnimesFD)
 
+    // Batch the /sync/watched lookups: docs warn against per-item calls when
+    // /sync/all-items is also in use. One request handles up to 100 shows.
+    // We index by simkl with a last-write-wins merge so an unexpected
+    // duplicate from the server can't crash the sync (uniqueKeysWithValues
+    // would). `hadFailures` propagates so we can skip stamping the 6h cache
+    // when any chunk failed (otherwise stale rows stay stale for 6h).
+    let showWatchedBatch = await ShowDetailView.getShowWatchlistBatch(
+      sdShowsIds.map { $0.simkl }, accessToken
+    )
+    let showWatchedByID = Dictionary(
+      showWatchedBatch.items.map { ($0.simkl, $0) },
+      uniquingKeysWith: { _, last in last }
+    )
+
     for show in sdShowsIds {
-      let watchedEpisodes = await ShowDetailView.getShowWatchlist(show.simkl, accessToken)
+      let watchedEpisodes = showWatchedByID[show.simkl]
 
       guard
         let watched = watchedEpisodes,
@@ -1673,8 +1643,16 @@ func processUpNextEpisodes(
       }
     }
 
+    let animeWatchedBatch = await AnimeDetailView.getAnimeWatchlistBatch(
+      sdAnimesIds.map { $0.simkl }, accessToken
+    )
+    let animeWatchedByID = Dictionary(
+      animeWatchedBatch.items.map { ($0.simkl, $0) },
+      uniquingKeysWith: { _, last in last }
+    )
+
     for anime in sdAnimesIds {
-      let watchedEpisodes = await AnimeDetailView.getAnimeWatchlist(anime.simkl, accessToken)
+      let watchedEpisodes = animeWatchedByID[anime.simkl]
 
       guard
         let watched = watchedEpisodes,
@@ -1696,20 +1674,29 @@ func processUpNextEpisodes(
           .watched ?? false
       }
 
+      // Exclude specials (season 0 per getAnimeEpisodes mapping). SDAnimes
+      // doesn't persist next_to_watch_info_season, and the UpNext swipe
+      // path hardcodes season=1 for anime — so surfacing a special as
+      // "next" would POST to season 1 + the special's episode number and
+      // mark the wrong episode (or no-op). Until anime season is plumbed
+      // through SDAnimes + UpNext, restrict to main-run.
       let unwatched =
         allEpisodes
         .filter { $0.aired == true }
+        .filter { ($0.season ?? 1) != 0 }
         .filter { episode in
           guard let epNum = episode.episode else { return false }
           let seasonNum = episode.season ?? 1
           return !watchedLookup(seasonNum, epNum)
         }
 
-      let actuallyWatchedEpisodes = allEpisodes.filter { episode in
-        guard let epNum = episode.episode else { return false }
-        let seasonNum = episode.season ?? 1
-        return watchedLookup(seasonNum, epNum)
-      }
+      let actuallyWatchedEpisodes = allEpisodes
+        .filter { ($0.season ?? 1) != 0 }
+        .filter { episode in
+          guard let epNum = episode.episode else { return false }
+          let seasonNum = episode.season ?? 1
+          return watchedLookup(seasonNum, epNum)
+        }
 
       // Find the highest watched episode (latest)
       let highestWatched =
@@ -1748,7 +1735,13 @@ func processUpNextEpisodes(
       }
     }
 
-    syncRecord!.changes_api = now.ISO8601Format()
+    // Only stamp the 6h cache as fresh if every batch chunk succeeded.
+    // If a /sync/watched chunk failed (rate limit, auth, network), the
+    // affected shows/anime kept their previous next_to_watch_info — we
+    // need the next scheduled run to retry instead of skipping for 6h.
+    if !showWatchedBatch.hadFailures && !animeWatchedBatch.hadFailures {
+      syncRecord!.changes_api = now.ISO8601Format()
+    }
     try context.save()
   } catch {
     SentrySDK.capture(error: error)

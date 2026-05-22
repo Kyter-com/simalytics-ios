@@ -45,7 +45,7 @@ extension AnimeDetailView {
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
       let body: [String: Any] = [
-        "shows": [
+        "anime": [
           [
             "title": title,
             "ids": [
@@ -74,9 +74,16 @@ extension AnimeDetailView {
     }
   }
 
+  // Batched variant for callers (e.g. up-next sync) that need watched data
+  // for many anime at once. Thin wrapper around the shared helper so the
+  // call site stays clean and TV/anime behaviour can't drift apart.
+  static func getAnimeWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async -> SimklWatchedBatch<AnimeWatchlistModel> {
+    await simklWatchedBatch(simklIDs: simklIDs, type: "anime", accessToken: accessToken)
+  }
+
   static func getAnimeWatchlist(_ simkl_id: Int, _ accessToken: String) async -> AnimeWatchlistModel? {
     do {
-      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=specials")!
+      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
 
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"
@@ -105,7 +112,7 @@ extension AnimeDetailView {
       request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
       let body: [String: Any] = [
-        "shows": [
+        "anime": [
           [
             "rating": rating,
             "ids": [
@@ -134,7 +141,7 @@ extension AnimeDetailView {
       let formatter = ISO8601DateFormatter()
       let dateString = formatter.string(from: Date())
       let body: [String: Any] = [
-        "shows": [
+        "anime": [
           [
             "title": title,
             "ids": [
@@ -228,7 +235,7 @@ extension AnimeWatchlistButton {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
-          "shows": [
+          "anime": [
             [
               "ids": [
                 "simkl": simkl_id
@@ -248,7 +255,7 @@ extension AnimeWatchlistButton {
         request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         let body: [String: Any] = [
-          "shows": [
+          "anime": [
             [
               "to": list,
               "ids": [

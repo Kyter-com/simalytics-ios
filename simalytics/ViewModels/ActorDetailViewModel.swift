@@ -7,6 +7,23 @@
 
 import Foundation
 
+// Stateless task delegate used to capture 3xx responses without following them.
+// Required for the /redirect endpoint, which encodes the simkl id in the
+// Location header rather than returning a JSON body.
+private final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
+  static let shared = NoRedirectDelegate()
+
+  func urlSession(
+    _ session: URLSession,
+    task: URLSessionTask,
+    willPerformHTTPRedirection response: HTTPURLResponse,
+    newRequest request: URLRequest,
+    completionHandler: @escaping (URLRequest?) -> Void
+  ) {
+    completionHandler(nil)
+  }
+}
+
 extension ActorDetailView {
   static func getActorDetails(_ accessToken: String, personID: Int) async -> TMDBPersonDetails? {
     do {
@@ -28,16 +45,27 @@ extension ActorDetailView {
   }
 
   static func filmographyItems(from details: TMDBPersonDetails) async -> [ActorFilmographyItem] {
-    let credits = details.sortedFilmographyCredits
+    let credits = Array(details.sortedFilmographyCredits.prefix(80))
+    // Bound concurrency so we don't burst 80 simultaneous /redirect calls
+    // through Simkl's 10 GET/sec/client_id ceiling. Detail endpoints are
+    // documented as parallel-allowed but /redirect isn't on the parallel
+    // allowlist, and a fallback to /search/{type} can fire from here too.
+    let maxConcurrent = 5
     return await withTaskGroup(of: (Int, ActorFilmographyItem).self) { group in
-      for (index, credit) in credits.prefix(80).enumerated() {
+      var indexedItems: [(Int, ActorFilmographyItem)] = []
+
+      for (index, credit) in credits.enumerated() {
+        if index >= maxConcurrent {
+          if let finished = await group.next() {
+            indexedItems.append(finished)
+          }
+        }
         group.addTask {
           let destination = await resolveDestination(for: credit)
           return (index, ActorFilmographyItem(credit: credit, destination: destination))
         }
       }
 
-      var indexedItems: [(Int, ActorFilmographyItem)] = []
       for await item in group {
         indexedItems.append(item)
       }
@@ -50,11 +78,12 @@ extension ActorDetailView {
 
   private static func resolveDestination(for credit: TMDBPersonCredit) async -> MediaDestination? {
     let lookupType = credit.media_type == "movie" ? "movie" : "show"
-    guard var urlComponents = URLComponents(string: "https://api.simkl.com/search/id") else {
+    guard var urlComponents = URLComponents(string: "https://api.simkl.com/redirect") else {
       return nil
     }
 
     urlComponents.queryItems = [
+      URLQueryItem(name: "to", value: "Simkl"),
       URLQueryItem(name: "tmdb", value: String(credit.id)),
       URLQueryItem(name: "type", value: lookupType),
       URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
@@ -62,22 +91,38 @@ extension ActorDetailView {
 
     do {
       guard let url = urlComponents.url else { return nil }
-      var request = URLRequest(url: url)
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      let request = URLRequest(url: url)
 
-      let (data, response) = try await URLSession.shared.data(for: request)
-      guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
-
-      let results = try JSONDecoder().decode([SimklIDLookupResponse].self, from: data)
-      guard let result = results.first, let simklID = result.ids?.simkl else {
+      // Simkl recommends /redirect over the legacy /search/id endpoint: it returns
+      // 301 with the simkl id in the Location URL — no JSON body to parse. We
+      // need to capture that 301 instead of letting URLSession follow it.
+      let (_, response) = try await URLSession.shared.data(for: request, delegate: NoRedirectDelegate.shared)
+      guard let http = response as? HTTPURLResponse,
+            http.statusCode == 301,
+            let location = http.value(forHTTPHeaderField: "Location"),
+            let parsed = parseSimklRedirectLocation(location) else {
         return await resolveDestinationByTitle(for: credit)
       }
 
-      return mediaDestination(type: result.type, simklID: simklID, fallbackMediaType: credit.media_type)
+      return mediaDestination(type: parsed.type, simklID: parsed.simklID, fallbackMediaType: credit.media_type)
     } catch {
       reportError(error)
       return await resolveDestinationByTitle(for: credit)
     }
+  }
+
+  // Parses the Location header from /redirect, which looks like
+  // "//simkl.com/{tv|movies|anime}/{simklID}/{slug}?client_id=…".
+  // Returns nil for the not-found case ("//simkl.com?client_id=…").
+  fileprivate static func parseSimklRedirectLocation(_ location: String) -> (type: String, simklID: Int)? {
+    let normalized = location.hasPrefix("//") ? "https:" + location : location
+    guard let url = URL(string: normalized) else { return nil }
+
+    let segments = url.pathComponents.filter { $0 != "/" }
+    guard segments.count >= 2 else { return nil }
+    let type = segments[0]
+    guard ["tv", "movies", "anime"].contains(type), let simklID = Int(segments[1]) else { return nil }
+    return (type: type, simklID: simklID)
   }
 
   private static func resolveDestinationByTitle(for credit: TMDBPersonCredit) async -> MediaDestination? {

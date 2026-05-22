@@ -38,25 +38,15 @@ struct AnimeModel_record_item: Codable {
 struct AnimeModel_record_item_ids: Codable {
   let simkl: Int
   let slug: String?
-  let offjp: String?
-  let ann: String?
   let mal: String?
-  let anfo: String?
-  let offen: String?
-  let wikien: String?
-  let wikijp: String?
-  let allcin: String?
   let imdb: String?
   let tmdb: String?
   let anilist: String?
-  let animeplanet: String?
-  let anisearch: String?
   let kitsu: String?
-  let livechart: String?
-  let traktslug: String?
-  let letterslug: String?
-  let jwslug: String?
   let anidb: String?
+  let tvdb: String?
+  let tvdbslug: String?
+  let trakttvslug: String?
 }
 
 struct AnimeModel_record_item_memo: Codable {
@@ -93,23 +83,24 @@ extension AnimeModel_record {
       memo_text: memo?.text,
       memo_is_private: memo?.is_private,
       id_slug: show?.ids.slug,
-      id_offjp: show?.ids.offjp,
-      id_ann: show?.ids.ann,
+      id_offjp: nil,
+      id_ann: nil,
       id_mal: show?.ids.mal,
-      id_anfo: show?.ids.anfo,
-      id_offen: show?.ids.offen,
-      id_wikien: show?.ids.wikien,
-      id_wikijp: show?.ids.wikijp,
-      id_allcin: show?.ids.allcin,
+      id_anfo: nil,
+      id_offen: nil,
+      id_wikien: nil,
+      id_wikijp: nil,
+      id_allcin: nil,
       id_imdb: show?.ids.imdb,
       id_tmdb: show?.ids.tmdb,
-      id_animeplanet: show?.ids.animeplanet,
-      id_anisearch: show?.ids.anisearch,
+      id_anilist: show?.ids.anilist,
+      id_animeplanet: nil,
+      id_anisearch: nil,
       id_kitsu: show?.ids.kitsu,
-      id_livechart: show?.ids.livechart,
-      id_traktslug: show?.ids.traktslug,
-      id_letterslug: show?.ids.letterslug,
-      id_jwslug: show?.ids.jwslug,
+      id_livechart: nil,
+      id_traktslug: show?.ids.trakttvslug,
+      id_letterslug: nil,
+      id_jwslug: nil,
       id_anidb: show?.ids.anidb,
       next_to_watch_info_title: next_to_watch_info?.title,
       next_to_watch_info_episode: next_to_watch_info?.episode,

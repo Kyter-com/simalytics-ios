@@ -37,14 +37,10 @@ struct TVModel_show_item: Codable {
 struct TVModel_show_item_ids: Codable {
   let simkl: Int
   let slug: String?
-  let offen: String?
   let tvdbslug: String?
-  let instagram: String?
-  let tw: String?
   let imdb: String?
   let tmdb: String?
-  let traktslug: String?
-  let jwslug: String?
+  let trakttvslug: String?
   let tvdb: String?
 }
 
@@ -82,14 +78,14 @@ extension TVModel_show {
       memo_text: memo?.text,
       memo_is_private: memo?.is_private,
       id_slug: show?.ids?.slug,
-      id_offen: show?.ids?.offen,
+      id_offen: nil,
       id_tvdbslug: show?.ids?.tvdbslug,
-      id_instagram: show?.ids?.instagram,
-      id_tw: show?.ids?.tw,
+      id_instagram: nil,
+      id_tw: nil,
       id_imdb: show?.ids?.imdb,
       id_tmdb: show?.ids?.tmdb,
-      id_traktslug: show?.ids?.traktslug,
-      id_jwslug: show?.ids?.jwslug,
+      id_traktslug: show?.ids?.trakttvslug,
+      id_jwslug: nil,
       id_tvdb: show?.ids?.tvdb,
       next_to_watch_info_title: next_to_watch_info?.title,
       next_to_watch_info_season: next_to_watch_info?.season,

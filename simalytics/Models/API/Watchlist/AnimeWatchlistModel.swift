@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct AnimeWatchlistModel: Codable {
+struct AnimeWatchlistModel: Codable, Sendable {
   let list: String?
   let last_watched_at: String?
   let simkl: Int

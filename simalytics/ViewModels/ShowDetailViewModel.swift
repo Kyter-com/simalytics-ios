@@ -34,9 +34,16 @@ extension ShowDetailView {
     }
   }
 
+  // Batched variant for callers (e.g. up-next sync) that need watched data
+  // for many shows at once. Thin wrapper around the shared helper so the
+  // call site stays clean and TV/anime behaviour can't drift apart.
+  static func getShowWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async -> SimklWatchedBatch<ShowWatchlistModel> {
+    await simklWatchedBatch(simklIDs: simklIDs, type: "tv", accessToken: accessToken)
+  }
+
   static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async -> ShowWatchlistModel? {
     do {
-      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=specials")!
+      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
