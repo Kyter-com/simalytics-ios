@@ -1437,6 +1437,21 @@ private func fetchShowReleaseDateWithRetry(_ simklID: Int) async -> String? {
   return nil
 }
 
+// Trending CDN returns release_date as "MM/DD/YYYY" — year is the last component.
+// Defensive parse handles unusual formats by returning nil if no sensible year is found.
+func yearFromTrendingReleaseDate(_ raw: String?) -> Int? {
+  guard let raw, !raw.isEmpty else { return nil }
+  let separator: Character = raw.contains("/") ? "/" : "-"
+  let parts = raw.split(separator: separator)
+  // Try the last component first (MM/DD/YYYY), then the first (YYYY-MM-DD).
+  for candidate in [parts.last, parts.first].compactMap({ $0 }) {
+    if let year = Int(candidate), year > 1800, year < 2200 {
+      return year
+    }
+  }
+  return nil
+}
+
 func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
   do {
     var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
@@ -1471,6 +1486,7 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
           title: movieItem.title,
           poster: movieItem.poster,
           order: index + 1,
+          year: yearFromTrendingReleaseDate(movieItem.release_date)
         )
       )
     }
@@ -1483,7 +1499,8 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
           simkl: showItem.ids.simkl_id,
           title: showItem.title,
           poster: showItem.poster,
-          order: index + 1
+          order: index + 1,
+          year: yearFromTrendingReleaseDate(showItem.release_date)
         )
       )
     }
@@ -1496,7 +1513,8 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
           simkl: animeItem.ids.simkl_id,
           title: animeItem.title,
           poster: animeItem.poster,
-          order: index + 1
+          order: index + 1,
+          year: yearFromTrendingReleaseDate(animeItem.release_date)
         )
       )
     }

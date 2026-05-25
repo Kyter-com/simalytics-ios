@@ -16,6 +16,7 @@ struct MovieListView: View {
   @State private var sortDescriptor: SortDescriptor<V1.SDMovies> = .init(\.title)
   @AppStorage("movieSortField") private var sortField: String = "title"
   @AppStorage("movieSortAscending") private var sortAscending: Bool = true
+  @AppStorage("movieListLayout") private var layout: ListLayout = .list
 
   private static let isoFormatter: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
@@ -105,76 +106,108 @@ struct MovieListView: View {
     return comparison == .orderedDescending
   }
 
-  var body: some View {
-    List(sortedMovies, id: \.self) { movie in
-      NavigationLink(destination: MovieDetailView(simkl_id: movie.simkl)) {
-        HStack {
-          CustomKFImage(
-            imageUrlString: movie.poster != nil
-              ? "\(SIMKL_CDN_URL)/posters/\(movie.poster!)_m.jpg"
-              : nil,
-            memoryCacheOnly: true,
-            height: 118,
-            width: 80
-          )
-
-          VStack(alignment: .leading) {
-            Text(movie.title ?? "")
-              .font(.headline)
-
-            if let year = movie.year {
-              Text(String(year))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-
-            // If the movie is completed, display when it was completed instead of when it was added to list
-            if status == "completed" {
-              if let isoString = movie.last_watched_at,
-                let completedDate = Self.isoFormatter.date(from: isoString)
-              {
-                Text("Completed: " + completedDate.timeAgoDisplay())
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
-            } else {
-              if let isoString = movie.added_to_watchlist_at,
-                let addedDate = Self.isoFormatter.date(from: isoString)
-              {
-                Text("Added: " + addedDate.timeAgoDisplay())
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-        }
+  @ViewBuilder
+  private func movieContextMenu(_ movie: V1.SDMovies) -> some View {
+    if let tmdbId = movie.id_tmdb {
+      ShareLink(
+        item: URL(string: "https://www.themoviedb.org/movie/\(tmdbId)")!,
+        subject: Text(movie.title ?? ""),
+        message: Text("Check out \(movie.title ?? "this movie")!")
+      ) {
+        Label("Share", systemImage: "square.and.arrow.up")
       }
-      .contextMenu {
-        if let tmdbId = movie.id_tmdb {
-          ShareLink(
-            item: URL(string: "https://www.themoviedb.org/movie/\(tmdbId)")!,
-            subject: Text(movie.title ?? ""),
-            message: Text("Check out \(movie.title ?? "this movie")!")
-          ) {
-            Label("Share", systemImage: "square.and.arrow.up")
+    }
+  }
+
+  @ViewBuilder
+  private func moviePreviewCard(_ movie: V1.SDMovies) -> some View {
+    PreviewCard(
+      title: movie.title ?? "Unknown",
+      year: movie.year,
+      poster: movie.poster,
+      userRating: movie.user_rating,
+      status: movie.status,
+      mediaType: "movie"
+    )
+  }
+
+  var body: some View {
+    Group {
+      if layout == .grid {
+        ScrollView {
+          LazyVGrid(columns: posterGridColumns, spacing: 16) {
+            ForEach(sortedMovies, id: \.self) { movie in
+              NavigationLink(destination: MovieDetailView(simkl_id: movie.simkl)) {
+                PosterGridCell(title: movie.title ?? "", poster: movie.poster, year: movie.year)
+              }
+              .buttonStyle(.plain)
+              .contextMenu {
+                movieContextMenu(movie)
+              } preview: {
+                moviePreviewCard(movie)
+              }
+            }
+          }
+          .padding(.horizontal, 12)
+          .padding(.vertical, 8)
+        }
+      } else {
+        List(sortedMovies, id: \.self) { movie in
+          NavigationLink(destination: MovieDetailView(simkl_id: movie.simkl)) {
+            HStack {
+              CustomKFImage(
+                imageUrlString: movie.poster != nil
+                  ? "\(SIMKL_CDN_URL)/posters/\(movie.poster!)_m.jpg"
+                  : nil,
+                memoryCacheOnly: true,
+                height: 118,
+                width: 80
+              )
+
+              VStack(alignment: .leading) {
+                Text(movie.title ?? "")
+                  .font(.headline)
+
+                if let year = movie.year {
+                  Text(String(year))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+
+                // If the movie is completed, display when it was completed instead of when it was added to list
+                if status == "completed" {
+                  if let isoString = movie.last_watched_at,
+                    let completedDate = Self.isoFormatter.date(from: isoString)
+                  {
+                    Text("Completed: " + completedDate.timeAgoDisplay())
+                      .font(.footnote)
+                      .foregroundStyle(.secondary)
+                  }
+                } else {
+                  if let isoString = movie.added_to_watchlist_at,
+                    let addedDate = Self.isoFormatter.date(from: isoString)
+                  {
+                    Text("Added: " + addedDate.timeAgoDisplay())
+                      .font(.footnote)
+                      .foregroundStyle(.secondary)
+                  }
+                }
+              }
+            }
+          }
+          .contextMenu {
+            movieContextMenu(movie)
+          } preview: {
+            moviePreviewCard(movie)
           }
         }
-      } preview: {
-        PreviewCard(
-          title: movie.title ?? "Unknown",
-          year: movie.year,
-          poster: movie.poster,
-          userRating: movie.user_rating,
-          status: movie.status,
-          mediaType: "movie"
-        )
+        .listStyle(.inset)
       }
     }
     .onAppear {
       sortDescriptor = resolvedSortDescriptor
       fetchMovies()
     }
-    .listStyle(.inset)
     .navigationTitle(
       status == "plantowatch"
         ? "Plan to Watch"
@@ -183,6 +216,9 @@ struct MovieListView: View {
     .navigationBarTitleDisplayMode(.inline)
     .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
     .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        LayoutToggleButton(layout: $layout)
+      }
       ToolbarItem(placement: .topBarTrailing) {
         Menu {
           Picker("Sort by", selection: $sortField) {

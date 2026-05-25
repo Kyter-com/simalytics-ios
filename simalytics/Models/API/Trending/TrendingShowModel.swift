@@ -10,6 +10,7 @@ import Foundation
 struct TrendingShowModel: Codable {
   let title: String
   let poster: String
+  let release_date: String?
   let ids: TrendingShowModel_ids
 }
 

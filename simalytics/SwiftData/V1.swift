@@ -414,17 +414,20 @@ enum V1: VersionedSchema {
     var title: String?
     var poster: String?
     var order: Int?
+    var year: Int?
 
     init(
       simkl: Int,
       title: String? = nil,
       poster: String? = nil,
-      order: Int? = nil
+      order: Int? = nil,
+      year: Int? = nil
     ) {
       self.simkl = simkl
       self.title = title
       self.poster = poster
       self.order = order
+      self.year = year
     }
   }
 
@@ -434,17 +437,20 @@ enum V1: VersionedSchema {
     var title: String?
     var poster: String?
     var order: Int?
+    var year: Int?
 
     init(
       simkl: Int,
       title: String? = nil,
       poster: String? = nil,
-      order: Int? = nil
+      order: Int? = nil,
+      year: Int? = nil
     ) {
       self.simkl = simkl
       self.title = title
       self.poster = poster
       self.order = order
+      self.year = year
     }
   }
 
@@ -454,17 +460,20 @@ enum V1: VersionedSchema {
     var title: String?
     var poster: String?
     var order: Int?
+    var year: Int?
 
     init(
       simkl: Int,
       title: String? = nil,
       poster: String? = nil,
-      order: Int? = nil
+      order: Int? = nil,
+      year: Int? = nil
     ) {
       self.simkl = simkl
       self.title = title
       self.poster = poster
       self.order = order
+      self.year = year
     }
   }
 }

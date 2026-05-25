@@ -29,9 +29,65 @@ extension V1.SDAnimes: UpNextMedia {
 struct UpNextView: View {
   @Environment(Auth.self) private var auth
   @AppStorage("hideAnime") private var hideAnime = false
+  @AppStorage("upNextLayout") private var layout: ListLayout = .list
   @State private var searchText: String = ""
   @Environment(\.modelContext) private var context
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
+
+  private func nextEpisodeBadge(for media: any UpNextMedia) -> String? {
+    var parts: [String] = []
+    if let season = media.next_to_watch_info_season {
+      parts.append("S\(season)")
+    }
+    if let episode = media.next_to_watch_info_episode {
+      parts.append("E\(episode)")
+    }
+    return parts.isEmpty ? nil : parts.joined(separator: "·")
+  }
+
+  private func markWatched(_ mediaItem: any UpNextMedia) {
+    Task {
+      let isAnime = mediaItem.type == "anime"
+      let postSeason = isAnime ? 1 : mediaItem.next_to_watch_info_season ?? 0
+      let postEpisode = mediaItem.next_to_watch_info_episode ?? 0
+
+      invalidateUpNextCache(modelContainer: context.container)
+
+      if isAnime {
+        await AnimeDetailView.markEpisodeWatched(
+          auth.simklAccessToken,
+          mediaItem.title ?? "",
+          mediaItem.simkl,
+          postSeason,
+          postEpisode
+        )
+      } else {
+        await ShowDetailView.markEpisodeWatched(
+          auth.simklAccessToken,
+          mediaItem.title ?? "",
+          mediaItem.simkl,
+          postSeason,
+          postEpisode
+        )
+      }
+      await syncLatestActivities(
+        auth.simklAccessToken,
+        modelContainer: context.container,
+        forceRefresh: true
+      )
+    }
+  }
+
+  @ViewBuilder
+  private func contextMenu(for mediaItem: any UpNextMedia) -> some View {
+    ShareLink(
+      item: URL(string: "https://simkl.com/\(mediaItem.type)/\(mediaItem.simkl)")!,
+      subject: Text(mediaItem.title ?? ""),
+      message: Text("Check out \(mediaItem.title ?? "this")!")
+    ) {
+      Label("Share", systemImage: "square.and.arrow.up")
+    }
+  }
 
   @Query(
     filter: #Predicate<V1.SDShows> {
@@ -65,101 +121,95 @@ struct UpNextView: View {
           Text("Sign in to Simkl to view your Up Next items.")
         }
       } else {
-        List(filteredMedia, id: \.simkl) { mediaItem in
-          NavigationLink(destination: destinationView(for: mediaItem)) {
-            HStack {
-              if let poster = mediaItem.poster {
-                CustomKFImage(
-                  imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
-                  memoryCacheOnly: false,
-                  height: 118,
-                  width: 80
-                )
-              }
-
-              VStack(alignment: .leading) {
-                if let title = mediaItem.title {
-                  Text(title)
-                    .font(.headline)
-                    .padding(.top, 8)
-                }
-                if let title = mediaItem.next_to_watch_info_title {
-                  Text(title)
-                    .font(.subheadline)
-                }
-                Spacer()
-                if let season = mediaItem.next_to_watch_info_season {
-                  Text("Season \(season)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
-                if let episode = mediaItem.next_to_watch_info_episode {
-                  Text("Episode \(episode)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
-                Spacer()
-              }
-            }
-            .swipeActions(edge: .trailing) {
-              Button {
-                Task {
-                  let isAnime = mediaItem.type == "anime"
-                  let postSeason = isAnime ? 1 : mediaItem.next_to_watch_info_season ?? 0
-                  let postEpisode = mediaItem.next_to_watch_info_episode ?? 0
-
-                  // No optimistic clear here: the user is looking at this row,
-                  // so nulling next_to_watch_info_title would drop it from the
-                  // @Query and the sync upsert would slide it back in — a
-                  // disappear/reappear flicker. Leaving the row in place lets
-                  // SwiftData update the episode text in-place (S7E1 → S7E2).
-                  invalidateUpNextCache(modelContainer: context.container)
-
-                  if isAnime {
-                    await AnimeDetailView.markEpisodeWatched(
-                      auth.simklAccessToken,
-                      mediaItem.title ?? "",
-                      mediaItem.simkl,
-                      postSeason,
-                      postEpisode
-                    )
-                  } else {
-                    await ShowDetailView.markEpisodeWatched(
-                      auth.simklAccessToken,
-                      mediaItem.title ?? "",
-                      mediaItem.simkl,
-                      postSeason,
-                      postEpisode
+        Group {
+          if layout == .grid {
+            ScrollView {
+              LazyVGrid(columns: posterGridColumns, spacing: 16) {
+                ForEach(filteredMedia, id: \.simkl) { mediaItem in
+                  NavigationLink(destination: destinationView(for: mediaItem)) {
+                    PosterGridCell(
+                      title: mediaItem.title ?? "",
+                      poster: mediaItem.poster,
+                      badge: nextEpisodeBadge(for: mediaItem)
                     )
                   }
-                  await syncLatestActivities(
-                    auth.simklAccessToken,
-                    modelContainer: context.container,
-                    forceRefresh: true
-                  )
+                  .buttonStyle(.plain)
+                  .contextMenu {
+                    contextMenu(for: mediaItem)
+                  } preview: {
+                    UpNextPreviewCard(mediaItem: mediaItem)
+                  }
                 }
-              } label: {
-                Label("Watched", systemImage: "checkmark.circle")
               }
-              .tint(.green)
+              .padding(.horizontal, 12)
+              .padding(.vertical, 8)
             }
-          }
-          .contextMenu {
-            ShareLink(
-              item: URL(string: "https://simkl.com/\(mediaItem.type)/\(mediaItem.simkl)")!,
-              subject: Text(mediaItem.title ?? ""),
-              message: Text("Check out \(mediaItem.title ?? "this")!")
-            ) {
-              Label("Share", systemImage: "square.and.arrow.up")
+          } else {
+            List(filteredMedia, id: \.simkl) { mediaItem in
+              NavigationLink(destination: destinationView(for: mediaItem)) {
+                HStack {
+                  if let poster = mediaItem.poster {
+                    CustomKFImage(
+                      imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
+                      memoryCacheOnly: false,
+                      height: 118,
+                      width: 80
+                    )
+                  }
+
+                  VStack(alignment: .leading) {
+                    if let title = mediaItem.title {
+                      Text(title)
+                        .font(.headline)
+                        .padding(.top, 8)
+                    }
+                    if let title = mediaItem.next_to_watch_info_title {
+                      Text(title)
+                        .font(.subheadline)
+                    }
+                    Spacer()
+                    if let season = mediaItem.next_to_watch_info_season {
+                      Text("Season \(season)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    }
+                    if let episode = mediaItem.next_to_watch_info_episode {
+                      Text("Episode \(episode)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                  }
+                }
+                // No optimistic clear here: the user is looking at this row,
+                // so nulling next_to_watch_info_title would drop it from the
+                // @Query and the sync upsert would slide it back in — a
+                // disappear/reappear flicker. Leaving the row in place lets
+                // SwiftData update the episode text in-place (S7E1 → S7E2).
+                .swipeActions(edge: .trailing) {
+                  Button {
+                    markWatched(mediaItem)
+                  } label: {
+                    Label("Watched", systemImage: "checkmark.circle")
+                  }
+                  .tint(.green)
+                }
+              }
+              .contextMenu {
+                contextMenu(for: mediaItem)
+              } preview: {
+                UpNextPreviewCard(mediaItem: mediaItem)
+              }
             }
-          } preview: {
-            UpNextPreviewCard(mediaItem: mediaItem)
+            .listStyle(.inset)
           }
         }
-        .listStyle(.inset)
         .searchable(text: $searchText, placement: .automatic)
         .navigationTitle("Up Next")
         .toolbar {
+          ToolbarItem(placement: .topBarTrailing) {
+            LayoutToggleButton(layout: $layout)
+          }
           ToolbarItem(placement: .topBarTrailing) {
             if globalLoadingIndicator.isSyncing {
               ProgressView()

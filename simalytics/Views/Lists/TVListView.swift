@@ -16,6 +16,7 @@ struct TVListView: View {
   @State private var sortDescriptor: SortDescriptor<V1.SDShows> = .init(\.title)
   @AppStorage("tvSortField") private var sortField: String = "title"
   @AppStorage("tvSortAscending") private var sortAscending: Bool = true
+  @AppStorage("tvListLayout") private var layout: ListLayout = .list
 
   private static let isoFormatter: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
@@ -105,78 +106,110 @@ struct TVListView: View {
     return comparison == .orderedDescending
   }
 
-  var body: some View {
-    List(sortedShows, id: \.self) { show in
-      NavigationLink(destination: ShowDetailView(simkl_id: show.simkl)) {
-        HStack {
-          CustomKFImage(
-            imageUrlString: show.poster != nil
-              ? "\(SIMKL_CDN_URL)/posters/\(show.poster!)_m.jpg"
-              : nil,
-            memoryCacheOnly: true,
-            height: 118,
-            width: 80
-          )
-
-          VStack(alignment: .leading) {
-            Text(show.title ?? "")
-              .font(.headline)
-
-            if let year = show.year {
-              Text(String(year))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-
-            // If the show is completed, display when it was completed instead of when it was added to list
-            if status == "completed" {
-              if let isoString = show.last_watched_at,
-                let completedDate = Self.isoFormatter.date(from: isoString)
-              {
-                Text("Completed: " + completedDate.timeAgoDisplay())
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
-            } else {
-              if let isoString = show.added_to_watchlist_at,
-                let addedDate = Self.isoFormatter.date(from: isoString)
-              {
-                Text("Added: " + addedDate.timeAgoDisplay())
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-        }
+  @ViewBuilder
+  private func showContextMenu(_ show: V1.SDShows) -> some View {
+    if let tmdbId = show.id_tmdb {
+      ShareLink(
+        item: URL(string: "https://www.themoviedb.org/tv/\(tmdbId)")!,
+        subject: Text(show.title ?? ""),
+        message: Text("Check out \(show.title ?? "this show")!")
+      ) {
+        Label("Share", systemImage: "square.and.arrow.up")
       }
-      .contextMenu {
-        if let tmdbId = show.id_tmdb {
-          ShareLink(
-            item: URL(string: "https://www.themoviedb.org/tv/\(tmdbId)")!,
-            subject: Text(show.title ?? ""),
-            message: Text("Check out \(show.title ?? "this show")!")
-          ) {
-            Label("Share", systemImage: "square.and.arrow.up")
+    }
+  }
+
+  @ViewBuilder
+  private func showPreviewCard(_ show: V1.SDShows) -> some View {
+    PreviewCard(
+      title: show.title ?? "Unknown",
+      year: show.year,
+      poster: show.poster,
+      userRating: show.user_rating,
+      status: show.status,
+      mediaType: "tv",
+      watchedEpisodes: show.watched_episodes_count,
+      totalEpisodes: show.total_episodes_count
+    )
+  }
+
+  var body: some View {
+    Group {
+      if layout == .grid {
+        ScrollView {
+          LazyVGrid(columns: posterGridColumns, spacing: 16) {
+            ForEach(sortedShows, id: \.self) { show in
+              NavigationLink(destination: ShowDetailView(simkl_id: show.simkl)) {
+                PosterGridCell(title: show.title ?? "", poster: show.poster, year: show.year)
+              }
+              .buttonStyle(.plain)
+              .contextMenu {
+                showContextMenu(show)
+              } preview: {
+                showPreviewCard(show)
+              }
+            }
+          }
+          .padding(.horizontal, 12)
+          .padding(.vertical, 8)
+        }
+      } else {
+        List(sortedShows, id: \.self) { show in
+          NavigationLink(destination: ShowDetailView(simkl_id: show.simkl)) {
+            HStack {
+              CustomKFImage(
+                imageUrlString: show.poster != nil
+                  ? "\(SIMKL_CDN_URL)/posters/\(show.poster!)_m.jpg"
+                  : nil,
+                memoryCacheOnly: true,
+                height: 118,
+                width: 80
+              )
+
+              VStack(alignment: .leading) {
+                Text(show.title ?? "")
+                  .font(.headline)
+
+                if let year = show.year {
+                  Text(String(year))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+
+                // If the show is completed, display when it was completed instead of when it was added to list
+                if status == "completed" {
+                  if let isoString = show.last_watched_at,
+                    let completedDate = Self.isoFormatter.date(from: isoString)
+                  {
+                    Text("Completed: " + completedDate.timeAgoDisplay())
+                      .font(.footnote)
+                      .foregroundStyle(.secondary)
+                  }
+                } else {
+                  if let isoString = show.added_to_watchlist_at,
+                    let addedDate = Self.isoFormatter.date(from: isoString)
+                  {
+                    Text("Added: " + addedDate.timeAgoDisplay())
+                      .font(.footnote)
+                      .foregroundStyle(.secondary)
+                  }
+                }
+              }
+            }
+          }
+          .contextMenu {
+            showContextMenu(show)
+          } preview: {
+            showPreviewCard(show)
           }
         }
-      } preview: {
-        PreviewCard(
-          title: show.title ?? "Unknown",
-          year: show.year,
-          poster: show.poster,
-          userRating: show.user_rating,
-          status: show.status,
-          mediaType: "tv",
-          watchedEpisodes: show.watched_episodes_count,
-          totalEpisodes: show.total_episodes_count
-        )
+        .listStyle(.inset)
       }
     }
     .onAppear {
       sortDescriptor = resolvedSortDescriptor
       fetchShows()
     }
-    .listStyle(.inset)
     .navigationTitle(
       status == "plantowatch"
         ? "Plan to Watch"
@@ -193,6 +226,9 @@ struct TVListView: View {
     .navigationBarTitleDisplayMode(.inline)
     .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
     .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        LayoutToggleButton(layout: $layout)
+      }
       ToolbarItem(placement: .topBarTrailing) {
         Menu {
           Picker("Sort by", selection: $sortField) {

@@ -74,15 +74,22 @@ struct SettingsView: View {
                         value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
                     ]
 
-                    let tokenResponse = try await webAuthenticationSession.authenticate(
-                      using: oAuthURLComponents.url!,
-                      callbackURLScheme: "simalytics"
-                    )
+                    let tokenResponse: URL
+                    do {
+                      tokenResponse = try await webAuthenticationSession.authenticate(
+                        using: oAuthURLComponents.url!,
+                        callbackURLScheme: "simalytics"
+                      )
+                    } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
+                      // User cancelled the sheet — not an error worth alerting on.
+                      return
+                    }
 
                     let queryItems = URLComponents(string: tokenResponse.absoluteString)?.queryItems
                     let token = queryItems?.filter({ $0.name == "code" }).first?.value ?? ""
 
                     if token.isEmpty {
+                      SentrySDK.capture(message: "Simkl OAuth redirect missing code: \(tokenResponse.absoluteString)")
                       showErrorAlert = true
                       return
                     }
@@ -121,6 +128,7 @@ struct SettingsView: View {
                       globalLoadingIndicator.stopSync()
                     }
                   } catch {
+                    SentrySDK.capture(error: error)
                     showErrorAlert = true
                   }
                 }

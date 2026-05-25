@@ -14,6 +14,7 @@ struct ExploreView: View {
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var context
   @AppStorage("hideAnime") private var hideAnime = false
+  @AppStorage("searchResultsLayout") private var searchResultsLayout: ListLayout = .grid
   @State private var sdTrendingShows: [V1.TrendingShows] = []
   @State private var sdTrendingMovies: [V1.TrendingMovies] = []
   @State private var sdTrendingAnimes: [V1.TrendingAnimes] = []
@@ -48,7 +49,9 @@ struct ExploreView: View {
             ScrollView {
               VStack(alignment: .leading) {
                 Group {
-                  ExploreGroupTitle(title: "Trending Shows")
+                  ExploreGroupHeader(title: "Trending Shows") {
+                    TrendingListView(category: .tv)
+                  }
                   ScrollView(.horizontal) {
                     HStack(spacing: 16) {
                       ForEach(sdTrendingShows, id: \.simkl) { showItem in
@@ -93,7 +96,9 @@ struct ExploreView: View {
                 }
 
                 Group {
-                  ExploreGroupTitle(title: "Trending Movies")
+                  ExploreGroupHeader(title: "Trending Movies") {
+                    TrendingListView(category: .movies)
+                  }
                   ScrollView(.horizontal) {
                     HStack(spacing: 16) {
                       ForEach(sdTrendingMovies, id: \.simkl) { movieItem in
@@ -139,7 +144,9 @@ struct ExploreView: View {
 
                 if !hideAnime {
                   Group {
-                    ExploreGroupTitle(title: "Trending Animes")
+                    ExploreGroupHeader(title: "Trending Anime") {
+                      TrendingListView(category: .anime)
+                    }
                     ScrollView(.horizontal) {
                       HStack(spacing: 16) {
                         ForEach(sdTrendingAnimes, id: \.simkl) { animeItem in
@@ -190,6 +197,11 @@ struct ExploreView: View {
         }
         .navigationTitle("Explore")
         .toolbar {
+          if !searchText.isEmpty {
+            ToolbarItem(placement: .topBarTrailing) {
+              LayoutToggleButton(layout: $searchResultsLayout)
+            }
+          }
           ToolbarItem(placement: .topBarTrailing) {
             if globalLoadingIndicator.isSyncing {
               ProgressView()

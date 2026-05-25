@@ -31,6 +31,28 @@ struct ExploreGroupTitle: View {
   }
 }
 
+struct ExploreGroupHeader<Destination: View>: View {
+  let title: String
+  let destination: () -> Destination
+
+  var body: some View {
+    NavigationLink(destination: destination()) {
+      HStack(spacing: 4) {
+        Text(title)
+          .font(.title2)
+          .bold()
+        Image(systemName: "chevron.right")
+          .font(.headline)
+          .foregroundStyle(.secondary)
+        Spacer()
+      }
+      .contentShape(Rectangle())
+      .padding([.top, .leading])
+    }
+    .buttonStyle(.plain)
+  }
+}
+
 struct YearOverlayTitle: View {
   var year: Int
 

@@ -16,6 +16,7 @@ struct AnimeListView: View {
   @State private var sortDescriptor: SortDescriptor<V1.SDAnimes> = .init(\.title)
   @AppStorage("animeSortField") private var sortField: String = "title"
   @AppStorage("animeSortAscending") private var sortAscending: Bool = true
+  @AppStorage("animeListLayout") private var layout: ListLayout = .list
 
   private static let isoFormatter: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
@@ -105,81 +106,111 @@ struct AnimeListView: View {
     return comparison == .orderedDescending
   }
 
-  var body: some View {
-    List(sortedAnimes, id: \.self) { anime in
-      NavigationLink(
-        destination: AnimeDetailView(simkl_id: anime.simkl)
+  @ViewBuilder
+  private func animeContextMenu(_ anime: V1.SDAnimes) -> some View {
+    if let malId = anime.id_mal {
+      ShareLink(
+        item: URL(string: "https://myanimelist.net/anime/\(malId)")!,
+        subject: Text(anime.title ?? ""),
+        message: Text("Check out \(anime.title ?? "this anime")!")
       ) {
-        HStack {
-          CustomKFImage(
-            imageUrlString: anime.poster != nil
-              ? "\(SIMKL_CDN_URL)/posters/\(anime.poster!)_m.jpg"
-              : nil,
-            memoryCacheOnly: true,
-            height: 118,
-            width: 80
-          )
-
-          VStack(alignment: .leading) {
-            Text(anime.title ?? "")
-              .font(.headline)
-
-            if let year = anime.year {
-              Text(String(year))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-
-            // If the anime is completed, display when it was completed instead of when it was added to list
-            if status == "completed" {
-              if let isoString = anime.last_watched_at,
-                let completedDate = Self.isoFormatter.date(from: isoString)
-              {
-                Text("Completed: " + completedDate.timeAgoDisplay())
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
-            } else {
-              if let isoString = anime.added_to_watchlist_at,
-                let addedDate = Self.isoFormatter.date(from: isoString)
-              {
-                Text("Added: " + addedDate.timeAgoDisplay())
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-        }
+        Label("Share", systemImage: "square.and.arrow.up")
       }
-      .contextMenu {
-        if let malId = anime.id_mal {
-          ShareLink(
-            item: URL(string: "https://myanimelist.net/anime/\(malId)")!,
-            subject: Text(anime.title ?? ""),
-            message: Text("Check out \(anime.title ?? "this anime")!")
-          ) {
-            Label("Share", systemImage: "square.and.arrow.up")
+    }
+  }
+
+  @ViewBuilder
+  private func animePreviewCard(_ anime: V1.SDAnimes) -> some View {
+    PreviewCard(
+      title: anime.title ?? "Unknown",
+      year: anime.year,
+      poster: anime.poster,
+      userRating: anime.user_rating,
+      status: anime.status,
+      mediaType: "anime",
+      animeType: anime.anime_type,
+      watchedEpisodes: anime.watched_episodes_count,
+      totalEpisodes: anime.total_episodes_count
+    )
+  }
+
+  var body: some View {
+    Group {
+      if layout == .grid {
+        ScrollView {
+          LazyVGrid(columns: posterGridColumns, spacing: 16) {
+            ForEach(sortedAnimes, id: \.self) { anime in
+              NavigationLink(destination: AnimeDetailView(simkl_id: anime.simkl)) {
+                PosterGridCell(title: anime.title ?? "", poster: anime.poster, year: anime.year)
+              }
+              .buttonStyle(.plain)
+              .contextMenu {
+                animeContextMenu(anime)
+              } preview: {
+                animePreviewCard(anime)
+              }
+            }
+          }
+          .padding(.horizontal, 12)
+          .padding(.vertical, 8)
+        }
+      } else {
+        List(sortedAnimes, id: \.self) { anime in
+          NavigationLink(destination: AnimeDetailView(simkl_id: anime.simkl)) {
+            HStack {
+              CustomKFImage(
+                imageUrlString: anime.poster != nil
+                  ? "\(SIMKL_CDN_URL)/posters/\(anime.poster!)_m.jpg"
+                  : nil,
+                memoryCacheOnly: true,
+                height: 118,
+                width: 80
+              )
+
+              VStack(alignment: .leading) {
+                Text(anime.title ?? "")
+                  .font(.headline)
+
+                if let year = anime.year {
+                  Text(String(year))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+
+                // If the anime is completed, display when it was completed instead of when it was added to list
+                if status == "completed" {
+                  if let isoString = anime.last_watched_at,
+                    let completedDate = Self.isoFormatter.date(from: isoString)
+                  {
+                    Text("Completed: " + completedDate.timeAgoDisplay())
+                      .font(.footnote)
+                      .foregroundStyle(.secondary)
+                  }
+                } else {
+                  if let isoString = anime.added_to_watchlist_at,
+                    let addedDate = Self.isoFormatter.date(from: isoString)
+                  {
+                    Text("Added: " + addedDate.timeAgoDisplay())
+                      .font(.footnote)
+                      .foregroundStyle(.secondary)
+                  }
+                }
+              }
+            }
+          }
+          .contextMenu {
+            animeContextMenu(anime)
+          } preview: {
+            animePreviewCard(anime)
           }
         }
-      } preview: {
-        PreviewCard(
-          title: anime.title ?? "Unknown",
-          year: anime.year,
-          poster: anime.poster,
-          userRating: anime.user_rating,
-          status: anime.status,
-          mediaType: "anime",
-          animeType: anime.anime_type,
-          watchedEpisodes: anime.watched_episodes_count,
-          totalEpisodes: anime.total_episodes_count
-        )
+        .listStyle(.inset)
       }
     }
     .onAppear {
       sortDescriptor = resolvedSortDescriptor
       fetchAnimes()
     }
-    .listStyle(.inset)
     .navigationTitle(
       status == "plantowatch"
         ? "Plan to Watch"
@@ -196,6 +227,9 @@ struct AnimeListView: View {
     .navigationBarTitleDisplayMode(.inline)
     .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
     .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        LayoutToggleButton(layout: $layout)
+      }
       ToolbarItem(placement: .topBarTrailing) {
         Menu {
           Picker("Sort by", selection: $sortField) {

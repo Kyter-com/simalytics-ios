@@ -27,7 +27,10 @@ struct CustomKFImage: View {
           }
           .resizable()
           .setProcessor(DownsamplingImageProcessor(size: processorSize))
-          .cacheOriginalImage()
+          // cacheOriginalImage + a non-default processor triggers Kingfisher's
+          // dual-cache path (CacheCallbackCoordinator), whose state machine
+          // has no internal locking and traps on concurrent apply() calls when
+          // many cells finish around the same time (e.g. layout toggle).
           .cacheMemoryOnly(memoryCacheOnly)
           .memoryCacheExpiration(.days(7))
           .diskCacheExpiration(.days(30))
