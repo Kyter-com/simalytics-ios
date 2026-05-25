@@ -70,7 +70,7 @@ struct PosterGridCell: View {
       Text(title)
         .font(.caption)
         .foregroundStyle(.primary)
-        .lineLimit(2)
+        .lineLimit(2, reservesSpace: true)
         .multilineTextAlignment(.leading)
         .frame(width: 110, alignment: .leading)
     }
