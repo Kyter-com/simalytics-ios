@@ -55,14 +55,15 @@ struct PosterGridCell: View {
 
         if let badge {
           Text(badge)
-            .font(.caption2)
-            .fontWeight(.semibold)
+            .font(.caption)
+            .bold()
             .foregroundStyle(.white)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
             .background(.black.opacity(0.7), in: Capsule())
             .padding(6)
             .frame(maxWidth: .infinity, alignment: .trailing)
+            .accessibilityLabel("Next episode \(badge)")
         }
       }
       .frame(width: 110, height: 165)

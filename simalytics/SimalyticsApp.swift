@@ -87,6 +87,8 @@ struct SimalyticsApp: App {
 
       options.releaseName = Self.sentryReleaseName
       options.tracesSampleRate = 0.1
+      options.tracePropagationTargets = ["api.simalytics.kyter.com"]
+      options.failedRequestTargets = ["api.simalytics.kyter.com"]
       options.enableMetricKit = true
       options.beforeSend = { event in
         guard let request = event.request else {

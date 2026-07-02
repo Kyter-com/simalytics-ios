@@ -47,4 +47,25 @@ struct ProcessUpNextCacheTests {
     ).first
     #expect(refreshed?.changes_api == nil, "changes_api must be the field invalidateUpNextCache nulls")
   }
+
+  @Test("Up Next mark-watched refuses missing or invalid episode numbers")
+  func validatesEpisodeBeforePostingToSimkl() {
+    #expect(validatedSimklEpisode(season: 1, episode: nil) == nil)
+    #expect(validatedSimklEpisode(season: 1, episode: 0) == nil)
+    #expect(validatedSimklEpisode(season: nil, episode: 4) == nil)
+    #expect(validatedSimklEpisode(season: nil, episode: 4, fallbackSeason: 1)?.season == 1)
+    #expect(validatedSimklEpisode(season: 2, episode: 4)?.episode == 4)
+  }
+
+  @Test("Simkl API URLs include required app metadata")
+  func simklURLIncludesRequiredMetadata() throws {
+    let url = simklAPIURL(path: "search/tv", queryItems: [URLQueryItem(name: "q", value: "world")])
+    let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+    let queryNames = Set((components.queryItems ?? []).map(\.name))
+
+    #expect(components.host == "api.simkl.com")
+    #expect(queryNames.contains("client_id"))
+    #expect(queryNames.contains("app-name"))
+    #expect(queryNames.contains("app-version"))
+  }
 }

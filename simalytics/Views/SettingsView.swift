@@ -151,35 +151,37 @@ struct SettingsView: View {
           }
 
           Section {
-            HStack {
-              Image(systemName: "photo.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.purple)
-                .frame(width: 28, height: 28)
-
-              Text("Blur Episode Images")
-              Spacer()
-              Toggle("", isOn: $blurImages)
+            Toggle(isOn: $blurImages) {
+              Label {
+                Text("Blur Episode Images")
+              } icon: {
+                Image(systemName: "photo.circle.fill")
+                  .font(.title2)
+                  .foregroundStyle(.purple)
+                  .frame(width: 28, height: 28)
+              }
             }
-            HStack {
-              Image(systemName: "star.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.yellow)
-                .frame(width: 28, height: 28)
 
-              Text("Use 5-Star Ratings")
-              Spacer()
-              Toggle("", isOn: $useFiveStarRating)
+            Toggle(isOn: $useFiveStarRating) {
+              Label {
+                Text("Use 5-Star Ratings")
+              } icon: {
+                Image(systemName: "star.circle.fill")
+                  .font(.title2)
+                  .foregroundStyle(.yellow)
+                  .frame(width: 28, height: 28)
+              }
             }
-            HStack {
-              Image(systemName: "eye.slash.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.orange)
-                .frame(width: 28, height: 28)
 
-              Text("Hide Anime")
-              Spacer()
-              Toggle("", isOn: $hideAnime)
+            Toggle(isOn: $hideAnime) {
+              Label {
+                Text("Hide Anime")
+              } icon: {
+                Image(systemName: "eye.slash.circle.fill")
+                  .font(.title2)
+                  .foregroundStyle(.orange)
+                  .frame(width: 28, height: 28)
+              }
             }
           } header: {
             Text("Display")

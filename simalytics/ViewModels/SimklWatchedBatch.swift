@@ -2,7 +2,7 @@
 //  SimklWatchedBatch.swift
 //  simalytics
 //
-//  Shared batched POST helper for /sync/watched. The TV and anime callers
+//  Shared batched POST helper for /sync/watched. The show and anime callers
 //  only differ in the `type` field they put in the request body and the
 //  model they decode the response into — everything else (chunking, auth
 //  headers, status reporting, hadFailures bookkeeping) is identical.
@@ -19,8 +19,9 @@ struct SimklWatchedBatch<T: Decodable & Sendable>: Sendable {
 
 // POSTs `simklIDs` to /sync/watched in 100-item chunks (Simkl's documented
 // cap when extended=episodes is set) and decodes each chunk into `[T]`.
-// Non-200 chunks are reported to Sentry and flagged via `hadFailures`
-// rather than thrown so a partial result is still usable.
+// Non-200 chunks are flagged via `hadFailures` rather than thrown so a
+// partial result is still usable. Deterministic client/auth failures are
+// reported; transient Simkl/rate-limit responses are not app exceptions.
 func simklWatchedBatch<T: Decodable & Sendable>(
   simklIDs: [Int],
   type: String,
@@ -42,15 +43,17 @@ func simklWatchedBatch<T: Decodable & Sendable>(
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-      let body: [[String: Any]] = chunk.map { ["simkl": $0, "type": type] }
+      let body: [[String: Any]] = chunk.map { ["ids": ["simkl": $0], "type": type] }
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       if let status = (response as? HTTPURLResponse)?.statusCode, status != 200 {
-        reportError(NSError(
-          domain: "Simkl", code: status,
-          userInfo: [NSLocalizedDescriptionKey: "Batched /sync/watched (\(type)) returned HTTP \(status) for \(chunk.count) ids"]
-        ))
+        if shouldReportWatchedLookupStatus(status) {
+          reportError(NSError(
+            domain: "Simkl", code: status,
+            userInfo: [NSLocalizedDescriptionKey: "Batched /sync/watched (\(type)) returned HTTP \(status) for \(chunk.count) ids"]
+          ))
+        }
         hadFailures = true
         continue
       }
@@ -61,4 +64,8 @@ func simklWatchedBatch<T: Decodable & Sendable>(
     }
   }
   return SimklWatchedBatch(items: combined, hadFailures: hadFailures)
+}
+
+private func shouldReportWatchedLookupStatus(_ status: Int) -> Bool {
+  status != 429 && !(500...599).contains(status)
 }

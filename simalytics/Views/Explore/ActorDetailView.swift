@@ -235,7 +235,7 @@ private struct ActorCreditPlaceholderCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
 
       Text(credit.year ?? "Resolving")
-        .font(.caption2)
+        .font(.caption)
         .foregroundStyle(.secondary)
     }
     .frame(width: 100)
@@ -392,13 +392,13 @@ private struct ActorCreditCard: View {
 
       if let year = item.credit.year {
         Text(year)
-          .font(.caption2)
+          .font(.caption)
           .foregroundStyle(.secondary)
       }
 
       if !item.credit.role.isEmpty {
         Text(item.credit.role)
-          .font(.caption2)
+          .font(.caption)
           .foregroundStyle(.secondary)
           .lineLimit(2)
       }

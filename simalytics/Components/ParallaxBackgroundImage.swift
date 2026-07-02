@@ -29,7 +29,9 @@ struct ParallaxBackgroundImage: View {
           .resizable()
           .aspectRatio(contentMode: .fill)
           .offset(y: -minY)
-          .frame(width: UIScreen.main.bounds.width, height: height)
+          .frame(width: reader.size.width, height: height)
+          .clipped()
+          .accessibilityHidden(true)
         }
       }
       .frame(height: 150)

@@ -114,21 +114,24 @@ struct AnimeDetailView: View {
       ScrollView {
         ParallaxBackgroundImage(fanart: animeDetails?.fanart)
 
-        HStack {
+        HStack(alignment: .top, spacing: 16) {
           if let poster = animeDetails?.poster {
-            CustomKFImage(
-              imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
-              memoryCacheOnly: true,
-              height: 220.59,
-              width: 150
-            )
-            .overlay(
-              RoundedRectangle(cornerRadius: 8).stroke(
-                colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
-            )
-            .onTapGesture {
+            Button {
               showingFullscreenPoster = true
+            } label: {
+              CustomKFImage(
+                imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
+                memoryCacheOnly: true,
+                height: 220.59,
+                width: 150
+              )
+              .overlay {
+                RoundedRectangle(cornerRadius: 8).stroke(
+                  colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
+              }
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("View \(animeDetails?.title ?? "anime") poster")
           }
           Spacer()
           VStack {
@@ -185,24 +188,26 @@ struct AnimeDetailView: View {
           .padding(.top, 8)
         }
 
-        HStack {
+        HStack(spacing: 12) {
           if watchlistStatus != nil {
-            Button(action: {
+            Button {
               showingMemoSheet.toggle()
-            }) {
-              Label("Add Memo", systemImage: "square.and.pencil")
-                .padding([.leading, .trailing])
-                .padding(.top, 8)
             }
+            label: {
+              Label("Add Memo", systemImage: "square.and.pencil")
+            }
+            .buttonStyle(.bordered)
           }
-          Button(action: {
+          Button {
             showingJustWatchSheet.toggle()
-          }) {
+          } label: {
             Label("Where to Watch", systemImage: "sparkles.tv")
-              .padding([.leading, .trailing])
-              .padding(.top, 8)
           }
+          .buttonStyle(.bordered)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding([.leading, .trailing])
+        .padding(.top, 8)
 
         Spacer()
 
@@ -228,74 +233,74 @@ struct AnimeDetailView: View {
                     }
                   }
                 } label: {
-                  HStack {
-                    Text(selectedSeason ?? "")
-                    Image(systemName: "chevron.up.chevron.down")
-                  }
+                  Label(selectedSeason ?? "Season", systemImage: "chevron.up.chevron.down")
                   .foregroundStyle(Color.accentColor)
                   .bold()
                   .padding(.horizontal, 10)
                   .padding(.vertical, 8)
-                  .background(Color.gray.opacity(0.1))
-                  .clipShape(.rect(cornerRadius: 8))
+                  .background(.regularMaterial, in: .rect(cornerRadius: 8))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding([.leading, .trailing])
               }
 
               ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
-                HStack {
-                  ZStack(alignment: .bottomTrailing) {
-                    ZStack {
-                      CustomKFImage(
-                        imageUrlString: episode.img != nil
-                          ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : nil,
-                        memoryCacheOnly: true,
-                        height: 70.42,
-                        width: 125
-                      )
-                      if blurImages && !hasWatchedEpisode(season: episode.type == "special" ? 0 : 1, episode: episode.episode ?? -1) {
-                        Rectangle()
-                          .fill(Color.clear)
-                          .frame(width: 125, height: 70.42)
-                          .background(BlurView(style: .regular))
-                          .clipShape(.rect(cornerRadius: 8))
-                      }
-                    }
-                    if hasWatchedEpisode(
-                      season: episode.type == "special" ? 0 : 1, episode: episode.episode ?? -1)
-                    {
-                      Image(systemName: "checkmark.circle")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundStyle(colorScheme == .dark ? Color.green.darker() : Color.green)
-                        .frame(width: 14, height: 14)
-                        .padding(4)
-                        .background(colorScheme == .dark ? Color.black : Color.white)
-                        .clipShape(.rect(cornerRadius: 8))
-                        .offset(x: -2, y: -2)
-                    }
-                  }
-
-                  VStack {
-                    Text(episode.title)
-                      .font(.headline)
-                      .lineLimit(1)
-                      .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if let description = episode.description {
-                      Text(description)
-                        .font(.caption)
-                        .lineLimit(3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                  }
-                }
-                .padding([.top], 6)
-                .onTapGesture {
+                Button {
                   selectedEpisode = episode
                   showingShowEpisodeSheet.toggle()
+                } label: {
+                  HStack(alignment: .top, spacing: 12) {
+                    ZStack(alignment: .bottomTrailing) {
+                      ZStack {
+                        CustomKFImage(
+                          imageUrlString: episode.img != nil
+                            ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : nil,
+                          memoryCacheOnly: true,
+                          height: 70.42,
+                          width: 125
+                        )
+                        if blurImages && !hasWatchedEpisode(season: episode.type == "special" ? 0 : 1, episode: episode.episode ?? -1) {
+                          Rectangle()
+                            .fill(Color.clear)
+                            .frame(width: 125, height: 70.42)
+                            .background(BlurView(style: .regular))
+                            .clipShape(.rect(cornerRadius: 8))
+                        }
+                      }
+                      if hasWatchedEpisode(
+                        season: episode.type == "special" ? 0 : 1, episode: episode.episode ?? -1)
+                      {
+                        Image(systemName: "checkmark.circle")
+                          .resizable()
+                          .scaledToFit()
+                          .foregroundStyle(colorScheme == .dark ? Color.green.darker() : Color.green)
+                          .frame(width: 14, height: 14)
+                          .padding(4)
+                          .background(colorScheme == .dark ? Color.black : Color.white)
+                          .clipShape(.rect(cornerRadius: 8))
+                          .offset(x: -2, y: -2)
+                      }
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                      Text(episode.title)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                      if let description = episode.description {
+                        Text(description)
+                          .font(.caption)
+                          .foregroundStyle(.secondary)
+                          .lineLimit(3)
+                          .frame(maxWidth: .infinity, alignment: .leading)
+                      }
+                    }
+                  }
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open episode \(episode.title)")
+                .padding([.top], 6)
               }
               .padding([.leading, .trailing])
             }
@@ -321,6 +326,7 @@ struct AnimeDetailView: View {
           item_status: watchlistStatus ?? "", simkl_type: "anime"
         )
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
       }
       .sheet(isPresented: $showingJustWatchSheet) {
         JustWatchView(
@@ -328,12 +334,14 @@ struct AnimeDetailView: View {
           mediaType: animeDetails?.anime_type == "tv" ? "tv" : "movie"
         )
         .presentationDetents([.fraction(0.99)])
+        .presentationDragIndicator(.visible)
       }
       .sheet(isPresented: $showingShowEpisodeSheet) {
         AnimeEpisodeView(
           episode: $selectedEpisode, animeEpisodes: $animeEpisodes, animeWatchlist: $animeWatchlist, animeDetails: $animeDetails, simklId: simkl_id
         )
         .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
       }
       .fullScreenCover(isPresented: $showingFullscreenPoster) {
         if let poster = animeDetails?.poster {

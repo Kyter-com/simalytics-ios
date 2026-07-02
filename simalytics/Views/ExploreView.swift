@@ -10,6 +10,8 @@ import SwiftData
 import SwiftUI
 
 struct ExploreView: View {
+  var searchFocusTrigger = 0
+
   @Environment(Auth.self) private var auth
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var context
@@ -20,6 +22,7 @@ struct ExploreView: View {
   @State private var sdTrendingAnimes: [V1.TrendingAnimes] = []
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
+  @State private var isSearchPresented = false
 
   private func fetchData() {
     do {
@@ -212,11 +215,14 @@ struct ExploreView: View {
       .onAppear {
         fetchData()
       }
-      .searchable(text: $searchText, placement: .automatic)
+      .searchable(text: $searchText, isPresented: $isSearchPresented, placement: .automatic)
       .searchScopes($searchCategory) {
         ForEach(SearchCategory.allCases.filter { !hideAnime || $0 != .anime }) { category in
           Text(category.rawValue).tag(category)
         }
+      }
+      .onChange(of: searchFocusTrigger) {
+        isSearchPresented = true
       }
     }
   }

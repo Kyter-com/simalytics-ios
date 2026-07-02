@@ -8,31 +8,50 @@
 import SwiftUI
 
 struct ContentView: View {
-  @State private var selectedTab = 0
+  @State private var selectedTab: AppTab = .lists
+  @State private var exploreSearchFocusTrigger = 0
+
+  private var tabSelection: Binding<AppTab> {
+    Binding {
+      selectedTab
+    } set: { newTab in
+      if selectedTab == .explore && newTab == .explore {
+        exploreSearchFocusTrigger += 1
+      }
+      selectedTab = newTab
+    }
+  }
 
   var body: some View {
-    TabView(selection: $selectedTab) {
+    TabView(selection: tabSelection) {
       ListView()
         .tabItem {
           Label("Lists", systemImage: "list.bullet.indent")
         }
-        .tag(0)
-      ExploreView()
+        .tag(AppTab.lists)
+      ExploreView(searchFocusTrigger: exploreSearchFocusTrigger)
         .tabItem {
           Label("Explore", systemImage: "magnifyingglass")
         }
-        .tag(1)
+        .tag(AppTab.explore)
       UpNextView()
         .tabItem {
           Label("Up Next", systemImage: "play.tv")
         }
-        .tag(2)
+        .tag(AppTab.upNext)
       SettingsView()
         .tabItem {
           Label("Settings", systemImage: "gearshape")
         }
-        .tag(3)
+        .tag(AppTab.settings)
     }
     .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
+  }
+
+  private enum AppTab: Hashable {
+    case lists
+    case explore
+    case upNext
+    case settings
   }
 }

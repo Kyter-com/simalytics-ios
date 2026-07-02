@@ -48,8 +48,13 @@ struct UpNextView: View {
   private func markWatched(_ mediaItem: any UpNextMedia) {
     Task {
       let isAnime = mediaItem.type == "anime"
-      let postSeason = isAnime ? 1 : mediaItem.next_to_watch_info_season ?? 0
-      let postEpisode = mediaItem.next_to_watch_info_episode ?? 0
+      guard
+        let episodeSelection = validatedSimklEpisode(
+          season: mediaItem.next_to_watch_info_season,
+          episode: mediaItem.next_to_watch_info_episode,
+          fallbackSeason: isAnime ? 1 : nil
+        )
+      else { return }
 
       invalidateUpNextCache(modelContainer: context.container)
 
@@ -58,16 +63,16 @@ struct UpNextView: View {
           auth.simklAccessToken,
           mediaItem.title ?? "",
           mediaItem.simkl,
-          postSeason,
-          postEpisode
+          episodeSelection.season,
+          episodeSelection.episode
         )
       } else {
         await ShowDetailView.markEpisodeWatched(
           auth.simklAccessToken,
           mediaItem.title ?? "",
           mediaItem.simkl,
-          postSeason,
-          postEpisode
+          episodeSelection.season,
+          episodeSelection.episode
         )
       }
       await syncLatestActivities(
@@ -122,7 +127,13 @@ struct UpNextView: View {
         }
       } else {
         Group {
-          if layout == .grid {
+          if filteredMedia.isEmpty {
+            ContentUnavailableView {
+              Label(searchText.isEmpty ? "Nothing Up Next" : "No Results", systemImage: searchText.isEmpty ? "play.tv" : "magnifyingglass")
+            } description: {
+              Text(searchText.isEmpty ? "Episodes you are currently watching will appear here." : "Try searching for another show or episode.")
+            }
+          } else if layout == .grid {
             ScrollView {
               LazyVGrid(columns: posterGridColumns, spacing: 16) {
                 ForEach(filteredMedia, id: \.simkl) { mediaItem in

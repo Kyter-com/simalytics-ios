@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct PulseCircle: View {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var isAnimating = false
   var active: Bool
 
@@ -22,17 +23,23 @@ struct PulseCircle: View {
         .scaleEffect(isAnimating ? 2.5 : 1.0)
         .opacity(isAnimating ? 0.0 : 0.6)
         .animation(
-          Animation.easeInOut(duration: 1.5)
-            .repeatForever(autoreverses: false),
+          reduceMotion
+            ? nil
+            : Animation.easeInOut(duration: 1.5)
+              .repeatForever(autoreverses: false),
           value: isAnimating
         )
     }
     .onAppear {
-      isAnimating = true
+      isAnimating = !reduceMotion
     }
     .onDisappear {
       isAnimating = false
     }
+    .onChange(of: reduceMotion) {
+      isAnimating = !reduceMotion
+    }
+    .accessibilityHidden(true)
   }
 }
 

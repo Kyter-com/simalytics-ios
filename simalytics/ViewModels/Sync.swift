@@ -32,7 +32,7 @@ func syncLatestActivities(
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
 
     // Phase 1: every task that mutates SDLastSync(id: 1) runs sequentially.
@@ -129,7 +129,7 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
       syncRecord!.movies_plantowatch = lastActivity
       try context.save()
@@ -184,7 +184,7 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
       syncRecord!.movies_dropped = lastActivity
       try context.save()
@@ -238,7 +238,7 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
       syncRecord!.movies_completed = lastActivity
       try context.save()
@@ -280,7 +280,7 @@ func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: S
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
       syncRecord!.movies_removed_from_list = lastActivity
       try context.save()
@@ -342,7 +342,7 @@ func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, 
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
       syncRecord!.movies_rated_at = lastActivity
       try context.save()
@@ -395,7 +395,7 @@ func fetchAndStoreTVPlanToWatch(_ accessToken: String, _ lastActivity: String?, 
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
       syncRecord!.tv_plantowatch = lastActivity
       try context.save()
@@ -449,7 +449,7 @@ func fetchAndStoreTVCompleted(_ accessToken: String, _ lastActivity: String?, _ 
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
       syncRecord!.tv_completed = lastActivity
       try context.save()
@@ -502,7 +502,7 @@ func fetchAndStoreTVHold(_ accessToken: String, _ lastActivity: String?, _ conte
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
       syncRecord!.tv_hold = lastActivity
       try context.save()
@@ -555,7 +555,7 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
       syncRecord!.tv_dropped = lastActivity
       try context.save()
@@ -613,7 +613,7 @@ func fetchAndStoreTVWatching(
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
       syncRecord!.tv_watching = lastActivity
       try context.save()
@@ -656,7 +656,7 @@ func fetchAndStoreTVRemovedFromList(_ accessToken: String, _ lastActivity: Strin
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
       syncRecord!.tv_removed_from_list = lastActivity
       try context.save()
@@ -717,7 +717,7 @@ func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ co
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
       syncRecord!.tv_rated_at = lastActivity
       try context.save()
@@ -770,7 +770,7 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
       syncRecord!.anime_plantowatch = lastActivity
       try context.save()
@@ -824,7 +824,7 @@ func fetchAndStoreAnimeDropped(_ accessToken: String, _ lastActivity: String?, _
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
       syncRecord!.anime_dropped = lastActivity
       try context.save()
@@ -877,7 +877,7 @@ func fetchAndStoreAnimeCompleted(_ accessToken: String, _ lastActivity: String?,
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
       syncRecord!.anime_completed = lastActivity
       try context.save()
@@ -930,7 +930,7 @@ func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ co
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
       syncRecord!.anime_hold = lastActivity
       try context.save()
@@ -988,7 +988,7 @@ func fetchAndStoreAnimeWatching(
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
       syncRecord!.anime_watching = lastActivity
       try context.save()
@@ -1031,7 +1031,7 @@ func fetchAndStoreAnimeRemovedFromList(_ accessToken: String, _ lastActivity: St
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
       syncRecord!.anime_removed_from_list = lastActivity
       try context.save()
@@ -1092,7 +1092,7 @@ func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, _) = try await URLSession.shared.simklData(for: request)
     guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
       syncRecord!.anime_rated_at = lastActivity
       try context.save()

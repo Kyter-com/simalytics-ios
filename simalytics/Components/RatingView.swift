@@ -35,8 +35,9 @@ struct RatingView: View {
   let rating: Binding<Double>
   let starColor: Color
   let starRounding: StarRounding
-  let size: CGFloat
 
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @ScaledMetric(relativeTo: .body) private var scaledSize: CGFloat = 20
   private let fullStarImage: Image = Image(systemName: "star.fill")
   private let halfStarImage: Image = Image(systemName: "star.lefthalf.fill")
   private let emptyStarImage: Image = Image(systemName: "star")
@@ -51,26 +52,30 @@ struct RatingView: View {
     self.rating = rating
     self.starColor = starColor
     self.starRounding = starRounding
-    self.size = size
+    _scaledSize = ScaledMetric(wrappedValue: size, relativeTo: .body)
   }
 
   var body: some View {
-    HStack {
+    HStack(spacing: 2) {
       ForEach(1...maxRating, id: \.self) { index in
-        starImageView(index: index)
-          .foregroundStyle(starColor)
-          .onTapGesture {
-            rating.wrappedValue = Double(index)
-            withAnimation(.easeInOut(duration: 0.5)) {
-              selectedStar = index
-            }
-            Task {
-              try? await Task.sleep(for: .milliseconds(500))
-              selectedStar = nil
-            }
-          }
+        Button {
+          updateRating(to: index)
+        } label: {
+          starImageView(index: index)
+            .foregroundStyle(starColor)
+            .frame(minWidth: 30, minHeight: 44)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Rate \(index) out of \(maxRating)")
+        .accessibilityValue(
+          rating.wrappedValue == Double(index)
+            ? "Selected"
+            : "Current rating \(rating.wrappedValue.formatted()) out of \(maxRating)"
+        )
       }
     }
+    .accessibilityElement(children: .contain)
   }
 
   func starImageView(index: Int) -> some View {
@@ -100,16 +105,22 @@ struct RatingView: View {
       image
       .resizable()
       .aspectRatio(contentMode: .fit)
-      .frame(width: size, height: size)
-      .overlay(
-        selectedStar == index
-          ? Circle()
-            .strokeBorder(starColor, lineWidth: 4)
-            .scaleEffect(1.5)
-            .opacity(0)
-            .animation(
-              Animation.easeInOut(duration: 1)
-                .repeatForever(autoreverses: false), value: 1) : nil
-      )
+      .frame(width: scaledSize, height: scaledSize)
+      .scaleEffect(selectedStar == index && !reduceMotion ? 1.2 : 1)
+      .animation(.snappy(duration: 0.2), value: selectedStar)
+  }
+
+  private func updateRating(to index: Int) {
+    rating.wrappedValue = Double(index)
+
+    guard !reduceMotion else { return }
+
+    selectedStar = index
+    Task {
+      try? await Task.sleep(for: .milliseconds(250))
+      await MainActor.run {
+        selectedStar = nil
+      }
+    }
   }
 }

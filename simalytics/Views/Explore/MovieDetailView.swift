@@ -70,22 +70,31 @@ struct MovieDetailView: View {
       ScrollView {
         ParallaxBackgroundImage(fanart: movieDetails?.fanart)
 
-        HStack {
-          CustomKFImage(
-            imageUrlString: movieDetails?.poster != nil
-              ? "\(SIMKL_CDN_URL)/posters/\(movieDetails?.poster ?? "")_m.jpg" : nil,
-            memoryCacheOnly: true,
-            height: 225,
-            width: 150
-          )
-          .overlay(
-            RoundedRectangle(cornerRadius: 8).stroke(
-              colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
-          )
-          .onTapGesture {
-            if movieDetails?.poster != nil {
+        HStack(alignment: .top, spacing: 16) {
+          if let poster = movieDetails?.poster {
+            Button {
               showingFullscreenPoster = true
+            } label: {
+              CustomKFImage(
+                imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
+                memoryCacheOnly: true,
+                height: 225,
+                width: 150
+              )
+              .overlay {
+                RoundedRectangle(cornerRadius: 8).stroke(
+                  colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
+              }
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("View \(movieDetails?.title ?? "movie") poster")
+          } else {
+            CustomKFImage(
+              imageUrlString: nil,
+              memoryCacheOnly: true,
+              height: 225,
+              width: 150
+            )
           }
 
           Spacer()
@@ -192,24 +201,26 @@ struct MovieDetailView: View {
           .padding(.top, 8)
         }
 
-        HStack {
+        HStack(spacing: 12) {
           if watchlistStatus != nil {
-            Button(action: {
+            Button {
               showingMemoSheet.toggle()
-            }) {
-              Label("Add Memo", systemImage: "square.and.pencil")
-                .padding([.leading, .trailing])
-                .padding(.top, 8)
             }
+            label: {
+              Label("Add Memo", systemImage: "square.and.pencil")
+            }
+            .buttonStyle(.bordered)
           }
-          Button(action: {
+          Button {
             showingJustWatchSheet.toggle()
-          }) {
+          } label: {
             Label("Where to Watch", systemImage: "sparkles.tv")
-              .padding([.leading, .trailing])
-              .padding(.top, 8)
           }
+          .buttonStyle(.bordered)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding([.leading, .trailing])
+        .padding(.top, 8)
 
         Spacer()
 
@@ -230,6 +241,7 @@ struct MovieDetailView: View {
           memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id, item_status: watchlistStatus ?? "", simkl_type: "movie"
         )
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
       }
       .sheet(isPresented: $showingJustWatchSheet) {
         JustWatchView(
@@ -237,6 +249,7 @@ struct MovieDetailView: View {
           mediaType: "movie"
         )
         .presentationDetents([.fraction(0.99)])
+        .presentationDragIndicator(.visible)
       }
       .fullScreenCover(isPresented: $showingFullscreenPoster) {
         if let poster = movieDetails?.poster {

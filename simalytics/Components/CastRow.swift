@@ -33,7 +33,7 @@ struct CastCard: View {
 
       if let character = member.character, !character.isEmpty {
         Text(character)
-          .font(.caption2)
+          .font(.caption)
           .foregroundStyle(.secondary)
           .lineLimit(2)
           .frame(maxWidth: .infinity, alignment: .leading)

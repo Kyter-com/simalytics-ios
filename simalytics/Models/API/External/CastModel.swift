@@ -32,7 +32,7 @@ func getCast(_ accessToken: String, _ tmdbId: String?, mediaType: String) async 
     request.setValue(mediaType, forHTTPHeaderField: "x-type")
     request.setValue(tmdbId, forHTTPHeaderField: "x-id")
 
-    let (data, response) = try await URLSession.shared.data(for: request)
+    let (data, response) = try await URLSession.shared.simklData(for: request)
     guard (response as? HTTPURLResponse)?.statusCode == 200 else { return [] }
 
     let res = try JSONDecoder().decode(TMDBCreditsResponse.self, from: data)

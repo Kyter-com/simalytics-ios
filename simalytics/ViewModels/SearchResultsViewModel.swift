@@ -18,25 +18,28 @@ enum SearchCategory: String, Codable, CaseIterable, Identifiable, Hashable {
 
 extension SearchResultsView {
   static func fetchResults(searchText: String, type: String) async -> [SearchResultModel] {
-    do {
-      var urlComponents = URLComponents(string: "https://api.simkl.com/search/\(type)")!
-      urlComponents.queryItems = [
-        URLQueryItem(name: "q", value: searchText.lowercased()),
-        URLQueryItem(name: "limit", value: "10"),
-        URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
-      ]
+    let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !query.isEmpty else { return [] }
 
-      var request = URLRequest(url: urlComponents.url!)
+    do {
+      let url = simklAPIURL(path: "search/\(type)", queryItems: [
+        URLQueryItem(name: "q", value: query.lowercased()),
+        URLQueryItem(name: "limit", value: "10"),
+      ])
+
+      var request = URLRequest(url: url)
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
+      try Task.checkCancellation()
       guard (response as? HTTPURLResponse)?.statusCode == 200 else {
         return []
       }
 
       return try JSONDecoder().decode([SearchResultModel].self, from: data)
+    } catch is CancellationError {
+      return []
     } catch {
-      reportError(error)
       return []
     }
   }

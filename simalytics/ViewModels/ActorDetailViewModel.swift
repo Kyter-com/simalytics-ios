@@ -34,7 +34,7 @@ extension ActorDetailView {
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
       request.setValue(String(personID), forHTTPHeaderField: "x-id")
 
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
       return try JSONDecoder().decode(TMDBPersonDetails.self, from: data)
@@ -91,7 +91,7 @@ extension ActorDetailView {
 
     do {
       guard let url = urlComponents.url else { return nil }
-      let request = URLRequest(url: url)
+      let request = prepareSimklRequest(URLRequest(url: url))
 
       // Simkl recommends /redirect over the legacy /search/id endpoint: it returns
       // 301 with the simkl id in the Location URL — no JSON body to parse. We

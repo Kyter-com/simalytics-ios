@@ -18,7 +18,7 @@ private func fetchTrendingArray<T: Decodable>(_ type: String) async -> [T] {
     var request = URLRequest(url: url)
     request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-    let (data, response) = try await URLSession.shared.data(for: request)
+    let (data, response) = try await URLSession.shared.simklData(for: request)
     guard (response as? HTTPURLResponse)?.statusCode == 200 else { return [] }
 
     return try JSONDecoder().decode([T].self, from: data)

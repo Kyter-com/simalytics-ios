@@ -15,6 +15,15 @@ extension UpNextView {
     accessToken: String
   ) async -> String? {
     do {
+      guard
+        let episodeSelection = validatedSimklEpisode(
+          season: show.next_to_watch_info?.season,
+          episode: show.next_to_watch_info?.episode
+        )
+      else {
+        return "Could not mark this episode watched because Simkl did not provide episode info. Open the title and choose the episode directly."
+      }
+
       let url = URL(string: "https://api.simkl.com/sync/history")!
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
@@ -33,10 +42,10 @@ extension UpNextView {
             ],
             "seasons": [
               [
-                "number": show.next_to_watch_info?.season ?? 0,
+                "number": episodeSelection.season,
                 "episodes": [
                   [
-                    "number": show.next_to_watch_info?.episode ?? 0,
+                    "number": episodeSelection.episode,
                     "watched_at": dateString,
                   ]
                 ],
@@ -71,7 +80,7 @@ extension UpNextView {
       request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else {
         return []
       }

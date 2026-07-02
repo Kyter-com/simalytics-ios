@@ -33,7 +33,7 @@ func addMemoToMovie(accessToken: String, simkl: Int, memoText: String, isPrivate
       ]
     ]
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
-    _ = try await URLSession.shared.data(for: request)
+    _ = try await URLSession.shared.simklData(for: request)
 
     let context = ModelContext(modelContainer)
     let fetchDescriptor = FetchDescriptor<V1.SDMovies>(
@@ -73,7 +73,7 @@ func addMemoToShow(accessToken: String, simkl: Int, memoText: String, isPrivate:
       ]
     ]
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
-    _ = try await URLSession.shared.data(for: request)
+    _ = try await URLSession.shared.simklData(for: request)
 
     let context = ModelContext(modelContainer)
     let fetchDescriptor = FetchDescriptor<V1.SDShows>(
@@ -113,7 +113,7 @@ func addMemoToAnime(accessToken: String, simkl: Int, memoText: String, isPrivate
       ]
     ]
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
-    _ = try await URLSession.shared.data(for: request)
+    _ = try await URLSession.shared.simklData(for: request)
 
     let context = ModelContext(modelContainer)
     let fetchDescriptor = FetchDescriptor<V1.SDAnimes>(

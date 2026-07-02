@@ -22,13 +22,53 @@ enum SimklMutationError: Error {
   }
 }
 
+func simklAPIURL(path: String, queryItems: [URLQueryItem] = []) -> URL {
+  var components = URLComponents()
+  components.scheme = "https"
+  components.host = "api.simkl.com"
+  components.path = path.hasPrefix("/") ? path : "/\(path)"
+  components.queryItems = queryItems
+  appendSimklRequiredQueryItems(to: &components)
+  return components.url!
+}
+
+func prepareSimklRequest(_ request: URLRequest) -> URLRequest {
+  var preparedRequest = request
+  if let url = preparedRequest.url,
+    url.host?.lowercased() == "api.simkl.com",
+    var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+  {
+    appendSimklRequiredQueryItems(to: &components)
+    preparedRequest.url = components.url
+  }
+
+  configureSimklHeaders(on: &preparedRequest)
+  return preparedRequest
+}
+
+func validatedSimklEpisode(
+  season: Int?,
+  episode: Int?,
+  fallbackSeason: Int? = nil
+) -> (season: Int, episode: Int)? {
+  guard let episode, episode > 0 else { return nil }
+  guard let season = season ?? fallbackSeason, season >= 0 else { return nil }
+  return (season, episode)
+}
+
+extension URLSession {
+  func simklData(for request: URLRequest) async throws -> (Data, URLResponse) {
+    try await data(for: prepareSimklRequest(request))
+  }
+}
+
 func performSimklRequest(_ request: URLRequest, retryCount: Int = 2) async throws -> (Data, HTTPURLResponse) {
   var attempt = 0
   var retryDelayNanoseconds: UInt64 = 500_000_000
 
   while true {
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       guard let httpResponse = response as? HTTPURLResponse else {
         throw SimklMutationError.invalidResponse
       }
@@ -122,4 +162,45 @@ private func shouldRetrySimklMutation(_ error: Error) -> Bool {
   }
 
   return false
+}
+
+private func appendSimklRequiredQueryItems(to components: inout URLComponents) {
+  var queryItems = components.queryItems ?? []
+  appendQueryItemIfMissing(URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID), to: &queryItems)
+  appendQueryItemIfMissing(URLQueryItem(name: "app-name", value: SIMKL_APP_NAME), to: &queryItems)
+  appendQueryItemIfMissing(URLQueryItem(name: "app-version", value: SIMKL_APP_VERSION), to: &queryItems)
+  components.queryItems = queryItems
+}
+
+private func appendQueryItemIfMissing(_ queryItem: URLQueryItem, to queryItems: inout [URLQueryItem]) {
+  guard !queryItems.contains(where: { $0.name.caseInsensitiveCompare(queryItem.name) == .orderedSame }) else {
+    return
+  }
+  queryItems.append(queryItem)
+}
+
+private func configureSimklHeaders(on request: inout URLRequest, accessToken: String? = nil) {
+  guard request.url?.host?.lowercased() == "api.simkl.com" else { return }
+
+  request.setValue(SIMKL_USER_AGENT, forHTTPHeaderField: "User-Agent")
+  if request.value(forHTTPHeaderField: "Accept") == nil {
+    request.setValue("application/json", forHTTPHeaderField: "Accept")
+  }
+
+  let method = request.httpMethod?.uppercased() ?? "GET"
+  if method != "GET",
+    request.value(forHTTPHeaderField: "Content-Type") == nil
+  {
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+  }
+
+  if request.value(forHTTPHeaderField: "simkl-api-key") == nil {
+    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
+  }
+
+  if let accessToken,
+    !accessToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  {
+    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+  }
 }

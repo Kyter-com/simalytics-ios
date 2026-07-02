@@ -147,20 +147,33 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script is responsible for uploading debug symbols and source context for Sentry.
-if [[ \"$(uname -m)\" == arm64 ]]; then
+			shellScript = "# This script is responsible for uploading release debug symbols and source context for Sentry.
+# Local debug/simulator builds do not produce useful dSYMs for upload, and
+# should not depend on the developer machine's Sentry CLI auth state.
+if [ \"${CONFIGURATION:-}\" = \"Debug\" ] || [ \"${PLATFORM_NAME:-}\" = \"iphonesimulator\" ] || [ \"${EFFECTIVE_PLATFORM_NAME:-}\" = \"-iphonesimulator\" ]; then
+  exit 0
+fi
+
+if [ -z \"${DWARF_DSYM_FOLDER_PATH:-}\" ] || [ ! -d \"$DWARF_DSYM_FOLDER_PATH\" ]; then
+  echo \"warning: sentry-cli skipped because DWARF_DSYM_FOLDER_PATH is missing\"
+  exit 0
+fi
+
+if [ \"$(uname -m)\" = arm64 ]; then
   export PATH=\"/opt/homebrew/bin:$PATH\"
 fi
 
-if which sentry-cli >/dev/null; then
-  export SENTRY_ORG=kyter
-  export SENTRY_PROJECT=simalytics-ios
-  ERROR=$(sentry-cli debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH\" 2>&1 >/dev/null)
-  if [ ! $? -eq 0 ]; then
-    echo \"warning: sentry-cli - $ERROR\"
-  fi
-else
-  echo \"warning: sentry-cli not installed, download from https://github.com/getsentry/sentry-cli/releases\"
+if ! command -v sentry-cli >/dev/null; then
+  echo \"warning: sentry-cli not installed; skipping dSYM upload\"
+  exit 0
+fi
+
+export SENTRY_ORG=\"${SENTRY_ORG:-kyter}\"
+export SENTRY_PROJECT=\"${SENTRY_PROJECT:-simalytics-ios}\"
+
+ERROR=$(sentry-cli debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH\" 2>&1 >/dev/null)
+if [ $? -ne 0 ]; then
+  echo \"warning: sentry-cli - $ERROR\"
 fi
 ";
 		};
@@ -311,7 +324,7 @@ fi
 				CODE_SIGN_ENTITLEMENTS = simalytics/simalytics.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 119;
+				CURRENT_PROJECT_VERSION = 120;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"simalytics/Preview Content\"";
@@ -362,7 +375,7 @@ fi
 				CODE_SIGN_ENTITLEMENTS = simalytics/simalytics.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 119;
+				CURRENT_PROJECT_VERSION = 120;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"simalytics/Preview Content\"";

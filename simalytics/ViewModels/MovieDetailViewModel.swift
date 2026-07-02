@@ -20,7 +20,7 @@ extension MovieDetailView {
       var request = URLRequest(url: urlComponents.url!)
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
       if String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) == "[]" {
@@ -45,10 +45,10 @@ extension MovieDetailView {
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-      let body: [[String: Any]] = [["simkl": simkl_id, "type": "movie"]]
+      let body: [[String: Any]] = [["ids": ["simkl": simkl_id], "type": "movie"]]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
       return try JSONDecoder().decode([MovieWatchlistModel].self, from: data).first
@@ -77,7 +77,7 @@ extension MovieDetailView {
         ]
       ]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      _ = try await URLSession.shared.data(for: request)
+      _ = try await URLSession.shared.simklData(for: request)
     } catch {
       reportError(error)
     }

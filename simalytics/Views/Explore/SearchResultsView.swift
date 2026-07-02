@@ -60,7 +60,9 @@ struct SearchResultsView: View {
 
   var body: some View {
     Group {
-      if layout == .list {
+      if visibleResults.isEmpty {
+        ContentUnavailableView("No Results", systemImage: "magnifyingglass")
+      } else if layout == .list {
         List(visibleResults, id: \.ids.simkl_id) { result in
           NavigationLink(destination: destinationView(for: result)) {
             HStack {
@@ -95,31 +97,10 @@ struct SearchResultsView: View {
         .listStyle(.inset)
       } else {
         ScrollView {
-          LazyVGrid(
-            columns: [
-              GridItem(.flexible()),
-              GridItem(.flexible()),
-              GridItem(.flexible()),
-            ], spacing: 16
-          ) {
+          LazyVGrid(columns: posterGridColumns, spacing: 16) {
             ForEach(visibleResults, id: \.ids.simkl_id) { result in
               NavigationLink(destination: destinationView(for: result)) {
-                VStack {
-                  if let poster = result.poster {
-                    ZStack(alignment: .bottomLeading) {
-                      CustomKFImage(
-                        imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
-                        memoryCacheOnly: true,
-                        height: 147,
-                        width: 100
-                      )
-                      if let year = result.year {
-                        YearOverlayTitle(year: year)
-                      }
-                    }
-                  }
-                  ExploreTitle(title: result.title)
-                }
+                PosterGridCell(title: result.title, poster: result.poster, year: result.year)
               }
               .buttonStyle(.plain)
               .contextMenu {
@@ -129,7 +110,8 @@ struct SearchResultsView: View {
               }
             }
           }
-          .padding()
+          .padding(.horizontal, 12)
+          .padding(.vertical, 8)
         }
       }
     }

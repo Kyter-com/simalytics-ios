@@ -16,9 +16,14 @@ struct JustWatchView: View {
   var tmdbId: String?
   var mediaType: String
 
+  private var listingURL: URL? {
+    guard let link = justWatchListings?.link else { return nil }
+    return URL(string: link)
+  }
+
   var body: some View {
     NavigationStack {
-      VStack {
+      VStack(spacing: 0) {
         if isLoading {
           VStack {
             Spacer()
@@ -31,144 +36,35 @@ struct JustWatchView: View {
         {
           ContentUnavailableView("No streaming options available", systemImage: "sparkles.tv")
         } else {
-          if let free = justWatchListings?.free, !free.isEmpty {
-            Text("Watch Free")
-              .font(.headline)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.leading)
-            ScrollView(.horizontal) {
-              HStack(spacing: 16) {
-                ForEach(free, id: \.provider_id) { option in
-                  Button(action: {
-                    UIApplication.shared.open(URL(string: justWatchListings?.link ?? "")!)
-                  }) {
-                    VStack {
-                      CustomKFImage(
-                        imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: false,
-                        height: 50,
-                        width: 50
-                      )
-                    }
-                  }
-                  .buttonStyle(PlainButtonStyle())
-                }
-              }
-              .padding([.leading, .trailing, .bottom])
+          ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+              JustWatchProviderSection(
+                title: "Watch Free",
+                options: justWatchListings?.free ?? [],
+                listingURL: listingURL
+              )
+              JustWatchProviderSection(
+                title: "Watch with Ads",
+                options: justWatchListings?.ads ?? [],
+                listingURL: listingURL
+              )
+              JustWatchProviderSection(
+                title: "Stream",
+                options: justWatchListings?.flatrate ?? [],
+                listingURL: listingURL
+              )
+              JustWatchProviderSection(
+                title: "Rent",
+                options: justWatchListings?.rent ?? [],
+                listingURL: listingURL
+              )
+              JustWatchProviderSection(
+                title: "Buy",
+                options: justWatchListings?.buy ?? [],
+                listingURL: listingURL
+              )
             }
-            .scrollIndicators(.hidden)
-          }
-
-          if let ads = justWatchListings?.ads, !ads.isEmpty {
-            Text("Watch with Ads")
-              .font(.headline)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.leading)
-            ScrollView(.horizontal) {
-              HStack(spacing: 16) {
-                ForEach(ads, id: \.provider_id) { option in
-                  Button(action: {
-                    UIApplication.shared.open(URL(string: justWatchListings?.link ?? "")!)
-                  }) {
-                    VStack {
-                      CustomKFImage(
-                        imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: false,
-                        height: 50,
-                        width: 50
-                      )
-                    }
-                  }
-                  .buttonStyle(PlainButtonStyle())
-                }
-              }
-              .padding([.leading, .trailing, .bottom])
-            }
-            .scrollIndicators(.hidden)
-          }
-
-          if let flatrate = justWatchListings?.flatrate, !flatrate.isEmpty {
-            Text("Stream")
-              .font(.headline)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.leading)
-            ScrollView(.horizontal) {
-              HStack(spacing: 16) {
-                ForEach(flatrate, id: \.provider_id) { option in
-                  Button(action: {
-                    UIApplication.shared.open(URL(string: justWatchListings?.link ?? "")!)
-                  }) {
-                    VStack {
-                      CustomKFImage(
-                        imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: false,
-                        height: 50,
-                        width: 50
-                      )
-                    }
-                  }
-                  .buttonStyle(PlainButtonStyle())
-                }
-              }
-              .padding([.leading, .trailing, .bottom])
-            }
-            .scrollIndicators(.hidden)
-          }
-
-          if let rent = justWatchListings?.rent, !rent.isEmpty {
-            Text("Rent")
-              .font(.headline)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.leading)
-            ScrollView(.horizontal) {
-              HStack(spacing: 16) {
-                ForEach(rent, id: \.provider_id) { option in
-                  Button(action: {
-                    UIApplication.shared.open(URL(string: justWatchListings?.link ?? "")!)
-                  }) {
-                    VStack {
-                      CustomKFImage(
-                        imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: false,
-                        height: 50,
-                        width: 50
-                      )
-                    }
-                  }
-                  .buttonStyle(PlainButtonStyle())
-                }
-              }
-              .padding([.leading, .trailing, .bottom])
-            }
-            .scrollIndicators(.hidden)
-          }
-
-          if let buy = justWatchListings?.buy, !buy.isEmpty {
-            Text("Buy")
-              .font(.headline)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.leading)
-            ScrollView(.horizontal) {
-              HStack(spacing: 16) {
-                ForEach(buy, id: \.provider_id) { option in
-                  Button(action: {
-                    UIApplication.shared.open(URL(string: justWatchListings?.link ?? "")!)
-                  }) {
-                    VStack {
-                      CustomKFImage(
-                        imageUrlString: "https://media.themoviedb.org/t/p/original/\(option.logo_path ?? "")",
-                        memoryCacheOnly: false,
-                        height: 50,
-                        width: 50
-                      )
-                    }
-                  }
-                  .buttonStyle(PlainButtonStyle())
-                }
-              }
-              .padding([.leading, .trailing, .bottom])
-            }
-            .scrollIndicators(.hidden)
+            .padding(.top, 8)
           }
         }
 
@@ -177,9 +73,7 @@ struct JustWatchView: View {
         HStack {
           Text("Data provided by")
             .font(.caption)
-          Button(action: {
-            UIApplication.shared.open(URL(string: "https://www.justwatch.com/")!)
-          }) {
+          Link(destination: URL(string: "https://www.justwatch.com/")!) {
             AsyncImage(url: URL(string: "https://www.justwatch.com/appassets/img/logo/JustWatch-logo-large.png")) { image in
               image
                 .resizable()
@@ -190,7 +84,9 @@ struct JustWatchView: View {
                 .frame(width: 100, height: 50)
             }
           }
+          .accessibilityLabel("JustWatch")
         }
+        .padding(.horizontal)
       }
       .navigationTitle("Where to Watch")
       .navigationBarTitleDisplayMode(.inline)
@@ -220,7 +116,7 @@ struct JustWatchView: View {
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
       request.setValue(mediaType, forHTTPHeaderField: "x-type")
       request.setValue(tmdbId!, forHTTPHeaderField: "x-id")
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
       let res = try JSONDecoder().decode(JustWatchModel.self, from: data)

@@ -13,8 +13,23 @@ struct CustomKFImage: View {
   let memoryCacheOnly: Bool
   let height: CGFloat
   let width: CGFloat
+  let contentMode: SwiftUI.ContentMode
 
   @Environment(\.displayScale) private var displayScale
+
+  init(
+    imageUrlString: String?,
+    memoryCacheOnly: Bool,
+    height: CGFloat,
+    width: CGFloat,
+    contentMode: SwiftUI.ContentMode = .fill
+  ) {
+    self.imageUrlString = imageUrlString
+    self.memoryCacheOnly = memoryCacheOnly
+    self.height = height
+    self.width = width
+    self.contentMode = contentMode
+  }
 
   var body: some View {
     Group {
@@ -35,28 +50,29 @@ struct CustomKFImage: View {
           .memoryCacheExpiration(.days(7))
           .diskCacheExpiration(.days(30))
           .cancelOnDisappear(true)
-          .aspectRatio(contentMode: .fit)
+          .aspectRatio(contentMode: contentMode)
           .frame(width: width, height: height)
-          .clipShape(RoundedRectangle(cornerRadius: 8))
-          .overlay(
+          .clipShape(.rect(cornerRadius: 8))
+          .overlay {
             RoundedRectangle(cornerRadius: 8)
               .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
-          )
+          }
       } else {
         Rectangle()
-          .fill(Color(.systemGray5))
+          .fill(.quaternary)
           .frame(width: width, height: height)
-          .clipShape(RoundedRectangle(cornerRadius: 8))
-          .overlay(
+          .clipShape(.rect(cornerRadius: 8))
+          .overlay {
             RoundedRectangle(cornerRadius: 8)
               .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
-          )
-          .overlay(
+          }
+          .overlay {
             Image(systemName: "photo.badge.exclamationmark")
               .font(.system(size: min(width, height) * 0.4))
               .foregroundStyle(.secondary)
-          )
+          }
       }
     }
+    .accessibilityHidden(true)
   }
 }

@@ -11,6 +11,7 @@ import SwiftUI
 
 struct FullscreenPosterView: View {
   let posterPath: String
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.dismiss) private var dismiss
   @State private var image: UIImage?
   @State private var isLoading = true
@@ -44,24 +45,22 @@ struct FullscreenPosterView: View {
               .onEnded { _ in
                 lastScale = scale
                 if scale < 1.0 {
-                  withAnimation {
+                  if reduceMotion {
                     scale = 1.0
                     lastScale = 1.0
+                  } else {
+                    withAnimation {
+                      scale = 1.0
+                      lastScale = 1.0
+                    }
                   }
                 }
               }
           )
           .onTapGesture(count: 2) {
-            withAnimation {
-              if scale > 1.0 {
-                scale = 1.0
-                lastScale = 1.0
-              } else {
-                scale = 2.0
-                lastScale = 2.0
-              }
-            }
+            toggleZoom()
           }
+          .accessibilityLabel("Poster")
       }
     }
     .overlay(alignment: .topTrailing) {
@@ -70,7 +69,8 @@ struct FullscreenPosterView: View {
           Button {
             saveImageToPhotos()
           } label: {
-            Image(systemName: "square.and.arrow.down")
+            Label("Save poster", systemImage: "square.and.arrow.down")
+              .labelStyle(.iconOnly)
               .font(.title2)
               .foregroundStyle(.white)
               .padding(12)
@@ -81,7 +81,8 @@ struct FullscreenPosterView: View {
         Button {
           dismiss()
         } label: {
-          Image(systemName: "xmark")
+          Label("Close poster", systemImage: "xmark")
+            .labelStyle(.iconOnly)
             .font(.title2)
             .foregroundStyle(.white)
             .padding(12)
@@ -114,6 +115,26 @@ struct FullscreenPosterView: View {
       image = nil
     }
     isLoading = false
+  }
+
+  private func toggleZoom() {
+    let updateScale = {
+      if scale > 1.0 {
+        scale = 1.0
+        lastScale = 1.0
+      } else {
+        scale = 2.0
+        lastScale = 2.0
+      }
+    }
+
+    if reduceMotion {
+      updateScale()
+    } else {
+      withAnimation(.snappy) {
+        updateScale()
+      }
+    }
   }
 
   private func saveImageToPhotos() {

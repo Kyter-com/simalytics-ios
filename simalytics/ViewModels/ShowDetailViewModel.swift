@@ -20,7 +20,7 @@ extension ShowDetailView {
       var request = URLRequest(url: urlComponents.url!)
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
       if String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) == "[]" {
@@ -38,7 +38,7 @@ extension ShowDetailView {
   // for many shows at once. Thin wrapper around the shared helper so the
   // call site stays clean and TV/anime behaviour can't drift apart.
   static func getShowWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async -> SimklWatchedBatch<ShowWatchlistModel> {
-    await simklWatchedBatch(simklIDs: simklIDs, type: "tv", accessToken: accessToken)
+    await simklWatchedBatch(simklIDs: simklIDs, type: "show", accessToken: accessToken)
   }
 
   static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async -> ShowWatchlistModel? {
@@ -49,10 +49,10 @@ extension ShowDetailView {
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-      let body: [[String: Any]] = [["simkl": simkl_id, "type": "tv"]]
+      let body: [[String: Any]] = [["ids": ["simkl": simkl_id], "type": "show"]]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
       return try JSONDecoder().decode([ShowWatchlistModel].self, from: data).first
@@ -156,7 +156,7 @@ extension ShowDetailView {
       var request = URLRequest(url: urlComponents.url!)
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else {
         return []
       }
@@ -187,7 +187,7 @@ extension ShowDetailView {
         ]
       ]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      _ = try await URLSession.shared.data(for: request)
+      _ = try await URLSession.shared.simklData(for: request)
     } catch {
       reportError(error)
     }

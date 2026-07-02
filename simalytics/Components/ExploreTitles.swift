@@ -14,9 +14,10 @@ struct ExploreTitle: View {
     Text(title)
       .font(.subheadline)
       .padding(.top, 2)
-      .lineLimit(1)
+      .lineLimit(2, reservesSpace: true)
       .truncationMode(.tail)
-      .frame(width: 100)
+      .multilineTextAlignment(.leading)
+      .frame(width: 100, alignment: .leading)
   }
 }
 
@@ -58,15 +59,11 @@ struct YearOverlayTitle: View {
 
   var body: some View {
     Text(String(year))
-      .font(.caption2)
-      .padding(4)
-      .background(
-        Color(
-          UIColor { traitCollection in
-            traitCollection.userInterfaceStyle == .dark ? .black : .white
-          }
-        ).opacity(0.8)
-      )
+      .font(.caption)
+      .bold()
+      .padding(.horizontal, 6)
+      .padding(.vertical, 4)
+      .background(.regularMaterial)
       .clipShape(.rect(cornerRadius: 6))
       .padding([.leading, .bottom], 6)
   }
