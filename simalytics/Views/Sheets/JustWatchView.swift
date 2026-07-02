@@ -21,6 +21,13 @@ struct JustWatchView: View {
     return URL(string: link)
   }
 
+  private var hasAnyListing: Bool {
+    [
+      justWatchListings?.free, justWatchListings?.ads, justWatchListings?.flatrate,
+      justWatchListings?.rent, justWatchListings?.buy,
+    ].contains { !($0 ?? []).isEmpty }
+  }
+
   var body: some View {
     NavigationStack {
       VStack(spacing: 0) {
@@ -31,9 +38,7 @@ struct JustWatchView: View {
               .padding()
             Spacer()
           }
-        } else if justWatchListings == nil
-          || (justWatchListings?.free?.isEmpty ?? true && justWatchListings?.flatrate?.isEmpty ?? true && justWatchListings?.buy?.isEmpty ?? true)
-        {
+        } else if justWatchListings == nil || !hasAnyListing {
           ContentUnavailableView("No streaming options available", systemImage: "sparkles.tv")
         } else {
           ScrollView {
@@ -67,8 +72,6 @@ struct JustWatchView: View {
             .padding(.top, 8)
           }
         }
-
-        Spacer()
 
         HStack {
           Text("Data provided by")

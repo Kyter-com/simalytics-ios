@@ -178,6 +178,7 @@ struct MovieDetailView: View {
           Text(genres.joined(separator: " • "))
             .font(.footnote)
             .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
@@ -185,6 +186,7 @@ struct MovieDetailView: View {
         if let overview = movieDetails?.overview {
           Text(overview)
             .font(.footnote)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .padding(.top, 8)
         }
@@ -197,6 +199,7 @@ struct MovieDetailView: View {
             starRounding: useFiveStarRating ? .roundToHalfStar : .roundToFullStar,
             size: useFiveStarRating ? 28 : 20
           )
+          .frame(maxWidth: .infinity, alignment: .leading)
           .padding([.leading, .trailing])
           .padding(.top, 8)
         }
@@ -248,7 +251,7 @@ struct MovieDetailView: View {
           tmdbId: movieDetails?.ids?.tmdb,
           mediaType: "movie"
         )
-        .presentationDetents([.fraction(0.99)])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
       }
       .fullScreenCover(isPresented: $showingFullscreenPoster) {

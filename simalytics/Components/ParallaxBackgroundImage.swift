@@ -28,9 +28,12 @@ struct ParallaxBackgroundImage: View {
           .fade(duration: 0.10)
           .resizable()
           .aspectRatio(contentMode: .fill)
-          .offset(y: -minY)
           .frame(width: reader.size.width, height: height)
           .clipped()
+          // Offset AFTER clipping so the stretched banner still covers the
+          // area behind the transparent nav bar. Clipping before the offset
+          // (the previous order) trimmed that coverage and exposed a white bar.
+          .offset(y: -minY)
           .accessibilityHidden(true)
         }
       }

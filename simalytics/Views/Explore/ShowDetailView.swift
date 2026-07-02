@@ -160,6 +160,7 @@ struct ShowDetailView: View {
           Text(genres.joined(separator: " • "))
             .font(.footnote)
             .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
@@ -167,6 +168,7 @@ struct ShowDetailView: View {
         if let overview = showDetails?.overview {
           Text(overview)
             .font(.footnote)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .padding(.top, 8)
         }
@@ -179,6 +181,7 @@ struct ShowDetailView: View {
             starRounding: useFiveStarRating ? .roundToHalfStar : .roundToFullStar,
             size: useFiveStarRating ? 28 : 20
           )
+          .frame(maxWidth: .infinity, alignment: .leading)
           .padding([.leading, .trailing])
           .padding(.top, 8)
         }
@@ -329,7 +332,7 @@ struct ShowDetailView: View {
           tmdbId: showDetails?.ids?.tmdb,
           mediaType: "tv"
         )
-        .presentationDetents([.fraction(0.99)])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
       }
       .sheet(isPresented: $showingShowEpisodeSheet) {
