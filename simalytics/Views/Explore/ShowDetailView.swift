@@ -109,7 +109,7 @@ struct ShowDetailView: View {
       ScrollView {
         ParallaxBackgroundImage(fanart: showDetails?.fanart)
 
-        HStack(alignment: .top, spacing: 16) {
+        HStack {
           if let poster = showDetails?.poster {
             Button {
               showingFullscreenPoster = true
@@ -160,7 +160,6 @@ struct ShowDetailView: View {
           Text(genres.joined(separator: " • "))
             .font(.footnote)
             .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
@@ -168,7 +167,6 @@ struct ShowDetailView: View {
         if let overview = showDetails?.overview {
           Text(overview)
             .font(.footnote)
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .padding(.top, 8)
         }
@@ -181,7 +179,6 @@ struct ShowDetailView: View {
             starRounding: useFiveStarRating ? .roundToHalfStar : .roundToFullStar,
             size: useFiveStarRating ? 28 : 20
           )
-          .frame(maxWidth: .infinity, alignment: .leading)
           .padding([.leading, .trailing])
           .padding(.top, 8)
         }
@@ -204,7 +201,6 @@ struct ShowDetailView: View {
           }
           .buttonStyle(.bordered)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding([.leading, .trailing])
         .padding(.top, 8)
 

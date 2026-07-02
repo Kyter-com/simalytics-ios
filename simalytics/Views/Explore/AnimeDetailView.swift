@@ -114,7 +114,7 @@ struct AnimeDetailView: View {
       ScrollView {
         ParallaxBackgroundImage(fanart: animeDetails?.fanart)
 
-        HStack(alignment: .top, spacing: 16) {
+        HStack {
           if let poster = animeDetails?.poster {
             Button {
               showingFullscreenPoster = true
@@ -165,7 +165,6 @@ struct AnimeDetailView: View {
           Text(genres.joined(separator: " • "))
             .font(.footnote)
             .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
@@ -173,7 +172,6 @@ struct AnimeDetailView: View {
         if let overview = animeDetails?.overview {
           Text(overview.stripHTML)
             .font(.footnote)
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .padding(.top, 8)
         }
@@ -186,7 +184,6 @@ struct AnimeDetailView: View {
             starRounding: useFiveStarRating ? .roundToHalfStar : .roundToFullStar,
             size: useFiveStarRating ? 28 : 20
           )
-          .frame(maxWidth: .infinity, alignment: .leading)
           .padding([.leading, .trailing])
           .padding(.top, 8)
         }
@@ -208,7 +205,6 @@ struct AnimeDetailView: View {
           }
           .buttonStyle(.bordered)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding([.leading, .trailing])
         .padding(.top, 8)
 
