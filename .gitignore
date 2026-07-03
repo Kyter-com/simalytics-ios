@@ -93,3 +93,6 @@ iOSInjectionProject/
 
 .sentryclirc
 .DS_Store
+
+# App Store Connect CLI (asc) local staging checkpoints
+.asc/
