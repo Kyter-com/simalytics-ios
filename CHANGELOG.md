@@ -10,7 +10,12 @@
 
 ## 1.0.12
 
-Reopened the App Store Connect release train after 1.0.11 closed to new build submissions.
+Shipped to the App Store as build 122 (submitted 2026-07-03).
+
+- Restored the parallax banner and refined spacing on title detail pages
+- Re-centered the detail action controls and tidied poster and info layout
+- Made the Where to Watch section more reliable
+- Hardened Simkl requests and media views for smoother, more consistent loading
 
 ## 1.0.11
 
