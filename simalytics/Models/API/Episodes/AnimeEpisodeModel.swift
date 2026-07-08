@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct AnimeEpisodeModel: Codable {
+struct AnimeEpisodeModel: Codable, Sendable {
   let title: String
   let description: String?
   let episode: Int?
@@ -20,6 +20,6 @@ struct AnimeEpisodeModel: Codable {
   let ids: AnimeEpisodeModelIds
 }
 
-struct AnimeEpisodeModelIds: Codable {
+struct AnimeEpisodeModelIds: Codable, Sendable {
   let simkl_id: Int
 }

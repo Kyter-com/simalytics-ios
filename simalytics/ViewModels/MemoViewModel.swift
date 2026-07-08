@@ -45,7 +45,7 @@ func addMemoToMovie(accessToken: String, simkl: Int, memoText: String, isPrivate
       try? context.save()
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -85,7 +85,7 @@ func addMemoToShow(accessToken: String, simkl: Int, memoText: String, isPrivate:
       try? context.save()
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -125,6 +125,6 @@ func addMemoToAnime(accessToken: String, simkl: Int, memoText: String, isPrivate
       try? context.save()
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }

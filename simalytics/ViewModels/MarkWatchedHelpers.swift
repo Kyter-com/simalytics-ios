@@ -55,7 +55,7 @@ func optimisticallyClearNextToWatch(
       }
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -71,6 +71,6 @@ func invalidateUpNextCache(modelContainer: ModelContainer) {
     syncRecord.changes_api = nil
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }

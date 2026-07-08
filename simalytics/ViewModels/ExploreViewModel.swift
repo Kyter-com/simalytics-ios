@@ -23,7 +23,7 @@ private func fetchTrendingArray<T: Decodable>(_ type: String) async -> [T] {
 
     return try JSONDecoder().decode([T].self, from: data)
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
     return []
   }
 }

@@ -9,17 +9,70 @@ import Foundation
 import Sentry
 import SwiftData
 
+private actor SyncLatestActivitiesGate {
+  private var isRunning = false
+  private var pendingSync = false
+  private var pendingForceRefresh = false
+
+  func begin(forceRefresh: Bool) -> Bool {
+    guard !isRunning else {
+      pendingSync = true
+      pendingForceRefresh = pendingForceRefresh || forceRefresh
+      return false
+    }
+
+    isRunning = true
+    return true
+  }
+
+  func finishCurrentRun() -> Bool? {
+    guard pendingSync else {
+      isRunning = false
+      pendingForceRefresh = false
+      return nil
+    }
+
+    let forceRefresh = pendingForceRefresh
+    pendingSync = false
+    pendingForceRefresh = false
+    return forceRefresh
+  }
+}
+
+private let syncLatestActivitiesGate = SyncLatestActivitiesGate()
+
 private func ensureLastSyncRecord(_ container: ModelContainer) {
   let context = ModelContext(container)
-  let existing = (try? context.fetch(
-    FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
-  ))?.first
+  let existing =
+    (try? context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ))?.first
   guard existing == nil else { return }
   context.insert(V1.SDLastSync(id: 1))
   try? context.save()
 }
 
 func syncLatestActivities(
+  _ accessToken: String,
+  modelContainer: ModelContainer,
+  forceRefresh: Bool = false
+) async {
+  var runForceRefresh = forceRefresh
+  guard await syncLatestActivitiesGate.begin(forceRefresh: forceRefresh) else { return }
+
+  while true {
+    await runSyncLatestActivities(
+      accessToken,
+      modelContainer: modelContainer,
+      forceRefresh: runForceRefresh
+    )
+
+    guard let nextForceRefresh = await syncLatestActivitiesGate.finishCurrentRun() else { break }
+    runForceRefresh = nextForceRefresh
+  }
+}
+
+private func runSyncLatestActivities(
   _ accessToken: String,
   modelContainer: ModelContainer,
   forceRefresh: Bool = false
@@ -89,7 +142,7 @@ func syncLatestActivities(
     let releaseDateContext = ModelContext(modelContainer)
     await backfillMissingPlanToWatchReleaseDates(releaseDateContext)
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -145,7 +198,7 @@ func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: Strin
     syncRecord!.movies_plantowatch = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -199,7 +252,7 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
     syncRecord!.movies_dropped = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -253,7 +306,7 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
     syncRecord!.movies_completed = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -304,7 +357,7 @@ func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: S
     syncRecord!.movies_removed_from_list = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -357,7 +410,7 @@ func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, 
     syncRecord!.movies_rated_at = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -411,7 +464,7 @@ func fetchAndStoreTVPlanToWatch(_ accessToken: String, _ lastActivity: String?, 
     syncRecord!.tv_plantowatch = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -464,7 +517,7 @@ func fetchAndStoreTVCompleted(_ accessToken: String, _ lastActivity: String?, _ 
     syncRecord!.tv_completed = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -517,7 +570,7 @@ func fetchAndStoreTVHold(_ accessToken: String, _ lastActivity: String?, _ conte
     syncRecord!.tv_hold = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -570,7 +623,7 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
     syncRecord!.tv_dropped = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -629,7 +682,7 @@ func fetchAndStoreTVWatching(
     syncRecord!.tv_watching = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -680,7 +733,7 @@ func fetchAndStoreTVRemovedFromList(_ accessToken: String, _ lastActivity: Strin
     syncRecord!.tv_removed_from_list = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -732,7 +785,7 @@ func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ co
     syncRecord!.tv_rated_at = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -786,7 +839,7 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
     syncRecord!.anime_plantowatch = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -839,7 +892,7 @@ func fetchAndStoreAnimeDropped(_ accessToken: String, _ lastActivity: String?, _
     syncRecord!.anime_dropped = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -892,7 +945,7 @@ func fetchAndStoreAnimeCompleted(_ accessToken: String, _ lastActivity: String?,
     syncRecord!.anime_completed = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -945,7 +998,7 @@ func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ co
     syncRecord!.anime_hold = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -1004,7 +1057,7 @@ func fetchAndStoreAnimeWatching(
     syncRecord!.anime_watching = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -1055,7 +1108,7 @@ func fetchAndStoreAnimeRemovedFromList(_ accessToken: String, _ lastActivity: St
     syncRecord!.anime_removed_from_list = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -1107,7 +1160,7 @@ func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _
     syncRecord!.anime_rated_at = lastActivity
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -1176,7 +1229,7 @@ private func backfillMissingPlanToWatchReleaseDates(_ context: ModelContext) asy
     await enrichAnimeReleaseDatesForSimklIDs(animeIDs, context, formatter)
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -1185,10 +1238,12 @@ private func enrichMovieReleaseDatesForPlanToWatch(
   _ context: ModelContext,
   _ formatter: ISO8601DateFormatter
 ) async {
-  let uniqueMovieIDs: [Int] = Array(Set(movies.compactMap { movieItem in
-    guard movieItem.status == "plantowatch" else { return nil }
-    return movieItem.movie?.ids?.simkl
-  }))
+  let uniqueMovieIDs: [Int] = Array(
+    Set(
+      movies.compactMap { movieItem in
+        guard movieItem.status == "plantowatch" else { return nil }
+        return movieItem.movie?.ids?.simkl
+      }))
   await enrichMovieReleaseDatesForSimklIDs(uniqueMovieIDs, context, formatter)
 }
 
@@ -1197,10 +1252,12 @@ private func enrichShowReleaseDatesForPlanToWatch(
   _ context: ModelContext,
   _ formatter: ISO8601DateFormatter
 ) async {
-  let uniqueShowIDs: [Int] = Array(Set(shows.compactMap { showItem in
-    guard showItem.status == "plantowatch" else { return nil }
-    return showItem.show?.ids?.simkl
-  }))
+  let uniqueShowIDs: [Int] = Array(
+    Set(
+      shows.compactMap { showItem in
+        guard showItem.status == "plantowatch" else { return nil }
+        return showItem.show?.ids?.simkl
+      }))
   await enrichShowReleaseDatesForSimklIDs(uniqueShowIDs, context, formatter)
 }
 
@@ -1209,10 +1266,12 @@ private func enrichAnimeReleaseDatesForPlanToWatch(
   _ context: ModelContext,
   _ formatter: ISO8601DateFormatter
 ) async {
-  let uniqueAnimeIDs: [Int] = Array(Set(animes.compactMap { animeItem in
-    guard animeItem.status == "plantowatch" else { return nil }
-    return animeItem.show?.ids.simkl
-  }))
+  let uniqueAnimeIDs: [Int] = Array(
+    Set(
+      animes.compactMap { animeItem in
+        guard animeItem.status == "plantowatch" else { return nil }
+        return animeItem.show?.ids.simkl
+      }))
   await enrichAnimeReleaseDatesForSimklIDs(uniqueAnimeIDs, context, formatter)
 }
 
@@ -1235,7 +1294,7 @@ private func enrichMovieReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
     return
   }
 
@@ -1257,7 +1316,7 @@ private func enrichMovieReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -1280,7 +1339,7 @@ private func enrichShowReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
     return
   }
 
@@ -1302,7 +1361,7 @@ private func enrichShowReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -1325,7 +1384,7 @@ private func enrichAnimeReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
     return
   }
 
@@ -1347,7 +1406,7 @@ private func enrichAnimeReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -1522,7 +1581,7 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
     syncRecord!.trending_data = now.ISO8601Format()
     try context.save()
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -1555,13 +1614,12 @@ func processUpNextEpisodes(
       }
     }
     if !needsSync { return }
-    var sdShowsFD = FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.status == "watching" })
-    sdShowsFD.propertiesToFetch = [\.simkl]
-    let sdShowsIds = try context.fetch(sdShowsFD)
+    let sdShowsFD = FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.status == "watching" })
+    let sdShows = try context.fetch(sdShowsFD)
 
-    var sdAnimesFD = FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.status == "watching" && $0.anime_type == "tv" })
-    sdAnimesFD.propertiesToFetch = [\.simkl]
-    let sdAnimesIds = try context.fetch(sdAnimesFD)
+    let sdAnimesFD = FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.status == "watching" && $0.anime_type == "tv" })
+    let sdAnimes = try context.fetch(sdAnimesFD)
+    var shouldSave = false
 
     // Batch the /sync/watched lookups: docs warn against per-item calls when
     // /sync/all-items is also in use. One request handles up to 100 shows.
@@ -1570,14 +1628,15 @@ func processUpNextEpisodes(
     // would). `hadFailures` propagates so we can skip stamping the 6h cache
     // when any chunk failed (otherwise stale rows stay stale for 6h).
     let showWatchedBatch = await ShowDetailView.getShowWatchlistBatch(
-      sdShowsIds.map { $0.simkl }, accessToken
+      sdShows.map { $0.simkl }, accessToken
     )
     let showWatchedByID = Dictionary(
       showWatchedBatch.items.map { ($0.simkl, $0) },
       uniquingKeysWith: { _, last in last }
     )
 
-    for show in sdShowsIds {
+    for show in sdShows {
+      if Task.isCancelled { return }
       let watchedEpisodes = showWatchedByID[show.simkl]
 
       guard
@@ -1642,34 +1701,30 @@ func processUpNextEpisodes(
         .first
 
       if let latest = nextUnwatched {
-        print("Updating", show.simkl)
-
-        let simklId = show.simkl  // capture value outside the predicate
-
-        let fetchDescriptor = FetchDescriptor<V1.SDShows>(
-          predicate: #Predicate<V1.SDShows> { $0.simkl == simklId }
-        )
-
-        if let existingShow = try context.fetch(fetchDescriptor).first {
-          existingShow.next_to_watch_info_title = latest.title
-          existingShow.next_to_watch_info_season = latest.season
-          existingShow.next_to_watch_info_episode = latest.episode
-          existingShow.next_to_watch_info_date = latest.date
-
-          try context.save()
+        if show.next_to_watch_info_title != latest.title
+          || show.next_to_watch_info_season != latest.season
+          || show.next_to_watch_info_episode != latest.episode
+          || show.next_to_watch_info_date != latest.date
+        {
+          show.next_to_watch_info_title = latest.title
+          show.next_to_watch_info_season = latest.season
+          show.next_to_watch_info_episode = latest.episode
+          show.next_to_watch_info_date = latest.date
+          shouldSave = true
         }
       }
     }
 
     let animeWatchedBatch = await AnimeDetailView.getAnimeWatchlistBatch(
-      sdAnimesIds.map { $0.simkl }, accessToken
+      sdAnimes.map { $0.simkl }, accessToken
     )
     let animeWatchedByID = Dictionary(
       animeWatchedBatch.items.map { ($0.simkl, $0) },
       uniquingKeysWith: { _, last in last }
     )
 
-    for anime in sdAnimesIds {
+    for anime in sdAnimes {
+      if Task.isCancelled { return }
       let watchedEpisodes = animeWatchedByID[anime.simkl]
 
       guard
@@ -1708,7 +1763,8 @@ func processUpNextEpisodes(
           return !watchedLookup(seasonNum, epNum)
         }
 
-      let actuallyWatchedEpisodes = allEpisodes
+      let actuallyWatchedEpisodes =
+        allEpisodes
         .filter { ($0.season ?? 1) != 0 }
         .filter { episode in
           guard let epNum = episode.episode else { return false }
@@ -1735,20 +1791,14 @@ func processUpNextEpisodes(
         .first
 
       if let latest = nextUnwatched {
-        print("Updating", anime.simkl)
-
-        let simklId = anime.simkl  // capture value outside the predicate
-
-        let fetchDescriptor = FetchDescriptor<V1.SDAnimes>(
-          predicate: #Predicate<V1.SDAnimes> { $0.simkl == simklId }
-        )
-
-        if let existingShow = try context.fetch(fetchDescriptor).first {
-          existingShow.next_to_watch_info_title = latest.title
-          existingShow.next_to_watch_info_episode = latest.episode
-          existingShow.next_to_watch_info_date = latest.date
-
-          try context.save()
+        if anime.next_to_watch_info_title != latest.title
+          || anime.next_to_watch_info_episode != latest.episode
+          || anime.next_to_watch_info_date != latest.date
+        {
+          anime.next_to_watch_info_title = latest.title
+          anime.next_to_watch_info_episode = latest.episode
+          anime.next_to_watch_info_date = latest.date
+          shouldSave = true
         }
       }
     }
@@ -1759,10 +1809,13 @@ func processUpNextEpisodes(
     // need the next scheduled run to retry instead of skipping for 6h.
     if !showWatchedBatch.hadFailures && !animeWatchedBatch.hadFailures {
       syncRecord!.changes_api = now.ISO8601Format()
+      shouldSave = true
     }
-    try context.save()
+    if shouldSave {
+      try context.save()
+    }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 // TODO: Widgets with next episode and show progress

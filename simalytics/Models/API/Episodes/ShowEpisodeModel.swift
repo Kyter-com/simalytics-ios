@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ShowEpisodeModel: Codable {
+struct ShowEpisodeModel: Codable, Sendable {
   let title: String
   let description: String?
   let season: Int?
@@ -19,6 +19,6 @@ struct ShowEpisodeModel: Codable {
   let ids: ShowEpisodeModelIds
 }
 
-struct ShowEpisodeModelIds: Codable {
+struct ShowEpisodeModelIds: Codable, Sendable {
   let simkl_id: Int
 }

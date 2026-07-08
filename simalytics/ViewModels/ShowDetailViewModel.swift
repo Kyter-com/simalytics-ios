@@ -156,11 +156,7 @@ extension ShowDetailView {
       var request = URLRequest(url: urlComponents.url!)
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-      let (data, response) = try await URLSession.shared.simklData(for: request)
-      guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-        return []
-      }
-
+      let (data, _) = try await performSimklRequest(request)
       return try JSONDecoder().decode([ShowEpisodeModel].self, from: data)
     } catch {
       reportError(error)

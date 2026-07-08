@@ -15,6 +15,12 @@ struct CustomKFImage: View {
   let width: CGFloat
   let contentMode: SwiftUI.ContentMode
 
+  private static let bypassURLCache = AnyModifier { request in
+    var request = request
+    request.cachePolicy = .reloadIgnoringLocalCacheData
+    return request
+  }
+
   @Environment(\.displayScale) private var displayScale
 
   init(
@@ -36,6 +42,7 @@ struct CustomKFImage: View {
       if let imageUrlString = imageUrlString, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
         let processorSize = CGSize(width: max(width * displayScale, 1), height: max(height * displayScale, 1))
         KFImage(url)
+          .requestModifier(Self.bypassURLCache)
           .fade(duration: 0.33)
           .placeholder {
             ProgressView()

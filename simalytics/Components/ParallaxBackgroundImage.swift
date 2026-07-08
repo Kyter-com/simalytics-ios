@@ -11,6 +11,12 @@ import SwiftUI
 struct ParallaxBackgroundImage: View {
   var fanart: String?
 
+  private static let bypassURLCache = AnyModifier { request in
+    var request = request
+    request.cachePolicy = .reloadIgnoringLocalCacheData
+    return request
+  }
+
   var body: some View {
     if let fanart = fanart {
       GeometryReader { reader in
@@ -21,6 +27,7 @@ struct ParallaxBackgroundImage: View {
           KFImage(
             URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")
           )
+          .requestModifier(Self.bypassURLCache)
           .serialize(as: .JPEG)
           .cacheMemoryOnly(true)
           .fromMemoryCacheOrRefresh(true)

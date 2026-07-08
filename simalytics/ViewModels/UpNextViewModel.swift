@@ -88,7 +88,7 @@ extension UpNextView {
       let showsResponse = try JSONDecoder().decode(UpNextShowModel.self, from: data)
       return showsResponse.shows.filter { $0.next_to_watch_info?.title?.isEmpty == false }
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return []
     }
   }

@@ -182,11 +182,7 @@ extension AnimeDetailView {
       var request = URLRequest(url: urlComponents.url!)
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-      let (data, response) = try await URLSession.shared.simklData(for: request)
-      guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-        return []
-      }
-
+      let (data, _) = try await performSimklRequest(request)
       let episodes = try JSONDecoder().decode([AnimeEpisodeModel].self, from: data)
 
       if countSeasons {

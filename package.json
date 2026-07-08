@@ -1,6 +1,6 @@
 {
   "name": "@kyter/simalytics-ios",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "private": true,
   "description": "Release notes and changelog tooling for Simalytics iOS.",
   "packageManager": "npm@11.8.0",

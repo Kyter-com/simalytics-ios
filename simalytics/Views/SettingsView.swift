@@ -128,7 +128,7 @@ struct SettingsView: View {
                       globalLoadingIndicator.stopSync()
                     }
                   } catch {
-                    SentrySDK.capture(error: error)
+                    reportError(error)
                     showErrorAlert = true
                   }
                 }
@@ -431,9 +431,11 @@ struct SettingsView: View {
           } footer: {
             HStack {
               Spacer()
-              Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+              Text(
+                "Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))"
+              )
+              .font(.footnote)
+              .foregroundStyle(.secondary)
               Spacer()
             }
             .padding(.vertical, 24)

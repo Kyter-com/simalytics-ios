@@ -34,6 +34,7 @@ struct SimalyticsApp: App {
 
   // Cap the Kingfisher disk cache so it LRU-evicts instead of growing without bound.
   private static let imageDiskCacheSizeLimit: UInt = 500 * 1024 * 1024
+  private static let urlMemoryCacheSizeLimit = 20 * 1024 * 1024
 
   private static var sentryReleaseName: String? {
     guard let infoDictionary = Bundle.main.infoDictionary,
@@ -65,6 +66,10 @@ struct SimalyticsApp: App {
   }()
 
   init() {
+    URLCache.shared = URLCache(
+      memoryCapacity: Self.urlMemoryCacheSizeLimit,
+      diskCapacity: 0
+    )
     ImageCache.default.diskStorage.config.sizeLimit = Self.imageDiskCacheSizeLimit
 
     SentrySDK.start { options in

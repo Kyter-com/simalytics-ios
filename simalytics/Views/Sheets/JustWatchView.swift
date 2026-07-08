@@ -125,7 +125,7 @@ struct JustWatchView: View {
       let res = try JSONDecoder().decode(JustWatchModel.self, from: data)
       return res.results?.US
     } catch {
-      SentrySDK.capture(error: error)
+      reportError(error)
       return nil
     }
   }

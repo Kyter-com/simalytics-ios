@@ -38,7 +38,7 @@ func getCast(_ accessToken: String, _ tmdbId: String?, mediaType: String) async 
     let res = try JSONDecoder().decode(TMDBCreditsResponse.self, from: data)
     return (res.cast ?? []).sorted { ($0.order ?? .max) < ($1.order ?? .max) }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
     return []
   }
 }

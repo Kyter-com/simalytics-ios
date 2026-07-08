@@ -40,6 +40,7 @@ func prepareSimklRequest(_ request: URLRequest) -> URLRequest {
   {
     appendSimklRequiredQueryItems(to: &components)
     preparedRequest.url = components.url
+    preparedRequest.cachePolicy = .reloadIgnoringLocalCacheData
   }
 
   configureSimklHeaders(on: &preparedRequest)
@@ -136,15 +137,38 @@ func isSimklCancellationError(_ error: Error) -> Bool {
     return true
   }
 
+  let nsError = error as NSError
+  if nsError.domain == NSURLErrorDomain, nsError.code == URLError.cancelled.rawValue {
+    return true
+  }
+
   return false
 }
 
-/// Reports an error to Sentry unless it's a user-initiated cancellation.
+/// Reports an error to Sentry unless it's a user-initiated cancellation or expected network failure.
 /// Cancellations happen routinely during navigation (users tapping away
 /// before a fetch completes) and are not real errors.
 func reportError(_ error: Error) {
-  if isSimklCancellationError(error) { return }
+  if isSimklCancellationError(error) || isExpectedTransientNetworkError(error) { return }
   SentrySDK.capture(error: error)
+}
+
+func isExpectedTransientNetworkError(_ error: Error) -> Bool {
+  let code: URLError.Code?
+  if let urlError = error as? URLError {
+    code = urlError.code
+  } else {
+    let nsError = error as NSError
+    code = nsError.domain == NSURLErrorDomain ? URLError.Code(rawValue: nsError.code) : nil
+  }
+
+  switch code {
+  case .timedOut, .networkConnectionLost, .notConnectedToInternet,
+    .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed:
+    return true
+  default:
+    return false
+  }
 }
 
 private func shouldRetrySimklMutation(_ error: Error) -> Bool {

@@ -27,7 +27,8 @@ func refreshStaleData(_ accessToken: String, _ context: ModelContext) async {
     let twentyFourHoursAgo = now.addingTimeInterval(-twentyFourHoursInSeconds)
 
     if let lastRefreshStr = syncRecord!.stale_data_refresh,
-       let lastRefreshDate = formatter.date(from: lastRefreshStr) {
+      let lastRefreshDate = formatter.date(from: lastRefreshStr)
+    {
       if lastRefreshDate >= twentyFourHoursAgo {
         return
       }
@@ -246,7 +247,7 @@ func refreshStaleData(_ accessToken: String, _ context: ModelContext) async {
       print("Stale data refresh failed: all API calls failed, will retry next sync")
     }
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
   }
 }
 
@@ -272,7 +273,7 @@ private func refreshMovie(_ simkl: Int, _ context: ModelContext, _ formatter: IS
     }
     return false
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
     return false
   }
 }
@@ -300,7 +301,7 @@ private func refreshShow(_ simkl: Int, _ context: ModelContext, _ formatter: ISO
     }
     return false
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
     return false
   }
 }
@@ -329,7 +330,7 @@ private func refreshAnime(_ simkl: Int, _ context: ModelContext, _ formatter: IS
     }
     return false
   } catch {
-    SentrySDK.capture(error: error)
+    reportError(error)
     return false
   }
 }

@@ -159,21 +159,62 @@ if [ -z \"${DWARF_DSYM_FOLDER_PATH:-}\" ] || [ ! -d \"$DWARF_DSYM_FOLDER_PATH\" 
   exit 0
 fi
 
+warn_and_exit() {
+  echo \"warning: sentry-cli - $1\"
+  exit 0
+}
+
+fail_upload() {
+  if [ \"${CI_XCODE_CLOUD:-}\" = \"TRUE\" ] || [ \"${CI_XCODE_CLOUD:-}\" = \"1\" ]; then
+    echo \"error: sentry-cli - $1\"
+    exit 1
+  fi
+  warn_and_exit \"$1\"
+}
+
+install_sentry_cli_for_ci() {
+  if [ \"${CI_XCODE_CLOUD:-}\" != \"TRUE\" ] && [ \"${CI_XCODE_CLOUD:-}\" != \"1\" ]; then
+    return 1
+  fi
+
+  SENTRY_CLI_INSTALL_DIR=\"${TMPDIR:-/tmp}/sentry-cli\"
+  mkdir -p \"$SENTRY_CLI_INSTALL_DIR\"
+
+  if curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=\"${SENTRY_CLI_VERSION:-3.6.0}\" INSTALL_DIR=\"$SENTRY_CLI_INSTALL_DIR\" sh >/dev/null; then
+    if [ -x \"$SENTRY_CLI_INSTALL_DIR/sentry-cli\" ]; then
+      SENTRY_CLI_BIN=\"$SENTRY_CLI_INSTALL_DIR/sentry-cli\"
+      return 0
+    fi
+    if [ -x \"$SENTRY_CLI_INSTALL_DIR/bin/sentry-cli\" ]; then
+      SENTRY_CLI_BIN=\"$SENTRY_CLI_INSTALL_DIR/bin/sentry-cli\"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 if [ \"$(uname -m)\" = arm64 ]; then
   export PATH=\"/opt/homebrew/bin:$PATH\"
 fi
 
-if ! command -v sentry-cli >/dev/null; then
-  echo \"warning: sentry-cli not installed; skipping dSYM upload\"
-  exit 0
+SENTRY_CLI_BIN=\"\"
+if command -v sentry-cli >/dev/null; then
+  SENTRY_CLI_BIN=\"$(command -v sentry-cli)\"
+elif ! install_sentry_cli_for_ci; then
+  warn_and_exit \"not installed and auto-install failed; skipping dSYM upload\"
+fi
+
+if [ -z \"${SENTRY_AUTH_TOKEN:-}\" ]; then
+  warn_and_exit \"SENTRY_AUTH_TOKEN is missing; skipping dSYM upload\"
 fi
 
 export SENTRY_ORG=\"${SENTRY_ORG:-kyter}\"
 export SENTRY_PROJECT=\"${SENTRY_PROJECT:-simalytics-ios}\"
 
-ERROR=$(sentry-cli debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH\" 2>&1 >/dev/null)
+ERROR=$(\"$SENTRY_CLI_BIN\" debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH\" 2>&1 >/dev/null)
 if [ $? -ne 0 ]; then
-  echo \"warning: sentry-cli - $ERROR\"
+  fail_upload \"$ERROR\"
 fi
 ";
 		};
@@ -324,7 +365,7 @@ fi
 				CODE_SIGN_ENTITLEMENTS = simalytics/simalytics.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 122;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"simalytics/Preview Content\"";
@@ -355,7 +396,7 @@ fi
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.12;
+				MARKETING_VERSION = 1.0.13;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyter.simalytics;
 				PRODUCT_NAME = Simalytics;
 				SDKROOT = auto;
@@ -375,7 +416,7 @@ fi
 				CODE_SIGN_ENTITLEMENTS = simalytics/simalytics.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 122;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"simalytics/Preview Content\"";
@@ -406,7 +447,7 @@ fi
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.12;
+				MARKETING_VERSION = 1.0.13;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyter.simalytics;
 				PRODUCT_NAME = Simalytics;
 				SDKROOT = auto;
