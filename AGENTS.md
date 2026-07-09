@@ -56,3 +56,16 @@ ASC plus git plus Changesets are the release source of truth.
 - Use `ASC_OP_ITEM=<1password-item-id-or-name> npm run release:next-build -- --apply` to get the next build number from ASC and sync Xcode `CURRENT_PROJECT_VERSION`.
 - Use `ASC_OP_ITEM=<1password-item-id-or-name> npm run release:backfill` to regenerate `docs/apple-release-history.md` from ASC and git.
 - Keep Simalytics commits conventional where practical (`feat:`, `fix:`, `perf:`, `refactor:`, `chore:`).
+
+## Observability (Sentry)
+
+Crash reporting via Sentry, org `kyter`, project `simalytics-ios`. dSYMs upload automatically — no manual step in the normal release flow:
+
+- **Xcode Cloud** archives run `ci_scripts/ci_post_xcodebuild.sh` (downloads `sentry-cli`, uploads `$CI_ARCHIVE_PATH/dSYMs` with `--include-sources`). It warns but never fails the build.
+- **Local** archives use the Xcode "Upload Debug Symbols to Sentry" build phase, which is dev-machine-only and self-skips on Xcode Cloud (`CI_XCODE_CLOUD`).
+
+`SENTRY_AUTH_TOKEN` must be an **org-`kyter`** auth token (scope `org:ci`):
+
+- Xcode Cloud: set as a **secret** env var on the workflow via the App Store Connect UI — the ASC API cannot set Xcode Cloud env vars/secrets.
+- Local dev: read from `.sentryclirc` (gitignored). Never commit tokens.
+- If symbols stop appearing, check the archive's `ci_post_xcodebuild.log`. `error: Project not found` means the token is bound to the wrong Sentry org (not `kyter`).
