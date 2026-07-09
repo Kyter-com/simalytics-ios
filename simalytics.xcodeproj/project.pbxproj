@@ -147,9 +147,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script is responsible for uploading release debug symbols and source context for Sentry.
-# Local debug/simulator builds do not produce useful dSYMs for upload, and
-# should not depend on the developer machine's Sentry CLI auth state.
+			shellScript = "# Uploads release dSYMs and source context to Sentry for LOCAL archive builds.
+# On Xcode Cloud this is handled by ci_scripts/ci_post_xcodebuild.sh, which runs
+# after dsymutil generates the dSYMs and installs sentry-cli without sudo.
+if [ -n \"${CI_XCODE_CLOUD:-}\" ]; then
+  exit 0
+fi
+
+# Debug/simulator builds do not produce useful dSYMs for upload.
 if [ \"${CONFIGURATION:-}\" = \"Debug\" ] || [ \"${PLATFORM_NAME:-}\" = \"iphonesimulator\" ] || [ \"${EFFECTIVE_PLATFORM_NAME:-}\" = \"-iphonesimulator\" ]; then
   exit 0
 fi
@@ -159,62 +164,21 @@ if [ -z \"${DWARF_DSYM_FOLDER_PATH:-}\" ] || [ ! -d \"$DWARF_DSYM_FOLDER_PATH\" 
   exit 0
 fi
 
-warn_and_exit() {
-  echo \"warning: sentry-cli - $1\"
-  exit 0
-}
-
-fail_upload() {
-  if [ \"${CI_XCODE_CLOUD:-}\" = \"TRUE\" ] || [ \"${CI_XCODE_CLOUD:-}\" = \"1\" ]; then
-    echo \"error: sentry-cli - $1\"
-    exit 1
-  fi
-  warn_and_exit \"$1\"
-}
-
-install_sentry_cli_for_ci() {
-  if [ \"${CI_XCODE_CLOUD:-}\" != \"TRUE\" ] && [ \"${CI_XCODE_CLOUD:-}\" != \"1\" ]; then
-    return 1
-  fi
-
-  SENTRY_CLI_INSTALL_DIR=\"${TMPDIR:-/tmp}/sentry-cli\"
-  mkdir -p \"$SENTRY_CLI_INSTALL_DIR\"
-
-  if curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=\"${SENTRY_CLI_VERSION:-3.6.0}\" INSTALL_DIR=\"$SENTRY_CLI_INSTALL_DIR\" sh >/dev/null; then
-    if [ -x \"$SENTRY_CLI_INSTALL_DIR/sentry-cli\" ]; then
-      SENTRY_CLI_BIN=\"$SENTRY_CLI_INSTALL_DIR/sentry-cli\"
-      return 0
-    fi
-    if [ -x \"$SENTRY_CLI_INSTALL_DIR/bin/sentry-cli\" ]; then
-      SENTRY_CLI_BIN=\"$SENTRY_CLI_INSTALL_DIR/bin/sentry-cli\"
-      return 0
-    fi
-  fi
-
-  return 1
-}
-
 if [ \"$(uname -m)\" = arm64 ]; then
   export PATH=\"/opt/homebrew/bin:$PATH\"
 fi
 
-SENTRY_CLI_BIN=\"\"
-if command -v sentry-cli >/dev/null; then
-  SENTRY_CLI_BIN=\"$(command -v sentry-cli)\"
-elif ! install_sentry_cli_for_ci; then
-  warn_and_exit \"not installed and auto-install failed; skipping dSYM upload\"
-fi
-
-if [ -z \"${SENTRY_AUTH_TOKEN:-}\" ]; then
-  warn_and_exit \"SENTRY_AUTH_TOKEN is missing; skipping dSYM upload\"
+if ! command -v sentry-cli >/dev/null; then
+  echo \"warning: sentry-cli not installed; skipping dSYM upload\"
+  exit 0
 fi
 
 export SENTRY_ORG=\"${SENTRY_ORG:-kyter}\"
 export SENTRY_PROJECT=\"${SENTRY_PROJECT:-simalytics-ios}\"
 
-ERROR=$(\"$SENTRY_CLI_BIN\" debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH\" 2>&1 >/dev/null)
+ERROR=$(sentry-cli debug-files upload --include-sources \"$DWARF_DSYM_FOLDER_PATH\" 2>&1 >/dev/null)
 if [ $? -ne 0 ]; then
-  fail_upload \"$ERROR\"
+  echo \"warning: sentry-cli - $ERROR\"
 fi
 ";
 		};
