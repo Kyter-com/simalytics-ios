@@ -89,7 +89,7 @@ struct SettingsView: View {
                     let token = queryItems?.filter({ $0.name == "code" }).first?.value ?? ""
 
                     if token.isEmpty {
-                      SentrySDK.capture(message: "Simkl OAuth redirect missing code: \(tokenResponse.absoluteString)")
+                      SentrySDK.capture(message: "Simkl OAuth redirect missing code")
                       showErrorAlert = true
                       return
                     }

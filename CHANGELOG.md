@@ -1,5 +1,11 @@
 # @kyter/simalytics-ios
 
+## 1.0.14
+
+### Patch Changes
+
+- Updated app dependencies and kept OAuth callback URL details out of diagnostics.
+
 ## 1.0.13
 
 ### Patch Changes
