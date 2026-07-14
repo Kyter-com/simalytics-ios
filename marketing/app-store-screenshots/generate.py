@@ -81,6 +81,7 @@ SLIDES = [
     {"title": "Always know what to watch next.", "screen": "upnext"},
     {"title": "See what everyone's watching.", "screen": "explore"},
     {"title": "Your whole collection at a glance.", "screen": "grid"},
+    {"title": "Go deeper on every title you track.", "screen": "movie-detail"},
 ]
 
 # Headline weight. San Francisco (SFNS.ttf) is a variable font; we select a named

@@ -10,6 +10,11 @@ import Sentry
 
 extension MovieDetailView {
   static func getMovieDetails(_ simkl_id: Int) async -> MovieDetailsModel? {
+    #if DEBUG
+      if ScreenshotMode.isActive, let fixture = ScreenshotDetailFixtures.movieDetails(simkl_id) {
+        return fixture
+      }
+    #endif
     do {
       var urlComponents = URLComponents(string: "https://api.simkl.com/movies/\(simkl_id)")!
       urlComponents.queryItems = [
@@ -37,6 +42,11 @@ extension MovieDetailView {
   static func getMovieWatchlist(_ simkl_id: Int, _ accessToken: String) async
     -> MovieWatchlistModel?
   {
+    #if DEBUG
+      if ScreenshotMode.isActive, let fixture = ScreenshotDetailFixtures.movieWatchlist(simkl_id) {
+        return fixture
+      }
+    #endif
     do {
       let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched")!
 

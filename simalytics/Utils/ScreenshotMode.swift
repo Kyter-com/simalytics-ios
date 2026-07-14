@@ -52,12 +52,24 @@
       ProcessInfo.processInfo.environment["SIMALYTICS_SCREENSHOT_SCREEN"]
     }
 
+    /// Per-capture toggle for the Anime section/shelf. Off (shown) by default;
+    /// `capture.sh` sets it for the Explore slide so its trending-anime shelf, whose
+    /// only PD art is early B&W, doesn't sit among the color shelves.
+    static var hideAnime: Bool {
+      ProcessInfo.processInfo.environment["SIMALYTICS_SCREENSHOT_HIDE_ANIME"] == "1"
+    }
+
     /// One-time setup for screenshot mode: force grid layout for the poster-wall
-    /// slide and route poster fetches through local PD JPEGs.
+    /// slide, hide the (unseeded) Anime section/shelf, and route poster fetches
+    /// through local PD JPEGs.
     static func setUp() {
       guard isActive else { return }
       UserDefaults.standard.set(ListLayout.grid.rawValue, forKey: "movieListLayout")
       UserDefaults.standard.set(ListLayout.grid.rawValue, forKey: "tvListLayout")
+      // Anime visibility is per-capture (SIMALYTICS_SCREENSHOT_HIDE_ANIME=1): the
+      // Lists slide shows the Anime section, but the Explore slide hides the Trending
+      // Anime shelf (its posters are early B&W and would clash with the color shelves).
+      UserDefaults.standard.set(hideAnime, forKey: "hideAnime")
       installPosterInterceptor()
     }
 
@@ -88,16 +100,20 @@
     }
   }
 
-  /// Serves local public-domain poster JPEGs for any Simkl poster request.
+  /// Serves local public-domain images for any Simkl poster or fanart request.
   ///
-  /// The app builds poster URLs as `.../posters/<key>_m.jpg`; this protocol pulls
-  /// `<key>` out of the path and returns `<posterDirectory>/<key>.jpg`. If the key
-  /// has no matching file it fails the request, so the app falls back to its own
-  /// placeholder rather than ever reaching the network.
+  /// The app builds poster URLs as `.../posters/<key>_m.jpg` and detail-view fanart
+  /// banners as `.../fanart/<key>_mobile.jpg`; this protocol pulls `<key>` out of the
+  /// path and returns `<posterDirectory>/<key>.jpg`. If the key has no matching file
+  /// it fails the request, so the app falls back to its own placeholder rather than
+  /// ever reaching the network. (Fanart keys use a distinct `<poster>-fanart` name so
+  /// the portrait poster and its landscape banner don't collide on one filename.)
   final class PosterURLProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool {
-      guard ScreenshotMode.posterDirectory != nil else { return false }
-      return request.url?.absoluteString.contains("/posters/") ?? false
+      guard ScreenshotMode.posterDirectory != nil,
+        let url = request.url?.absoluteString
+      else { return false }
+      return url.contains("/posters/") || url.contains("/fanart/")
     }
 
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -124,11 +140,18 @@
     override func stopLoading() {}
 
     /// `https://wsrv.nl/?url=https://simkl.in/posters/nosferatu-1922_m.jpg`
-    /// -> `nosferatu-1922`
+    /// -> `nosferatu-1922`, and
+    /// `https://wsrv.nl/?url=https://simkl.in/fanart/the-general-1926-fanart_mobile.jpg`
+    /// -> `the-general-1926-fanart`.
     static func posterKey(from absoluteURL: String) -> String? {
-      guard let range = absoluteURL.range(of: "/posters/") else { return nil }
+      let markers = ["/posters/", "/fanart/"]
+      guard let marker = markers.first(where: { absoluteURL.contains($0) }),
+        let range = absoluteURL.range(of: marker)
+      else { return nil }
       var tail = String(absoluteURL[range.upperBound...])
-      for suffix in ["_m.jpg", "_ca.jpg", "_w.jpg", ".jpg"] where tail.hasSuffix(suffix) {
+      // `_mobile.jpg` first: it doesn't end in `_m.jpg`, so it must be matched
+      // before the shorter poster suffixes.
+      for suffix in ["_mobile.jpg", "_m.jpg", "_ca.jpg", "_w.jpg", ".jpg"] where tail.hasSuffix(suffix) {
         tail = String(tail.dropLast(suffix.count))
         break
       }

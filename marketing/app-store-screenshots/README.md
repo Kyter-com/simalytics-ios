@@ -26,7 +26,7 @@ python3 marketing/app-store-screenshots/generate.py
 ## Full reproduce (real captures end-to-end)
 
 ```bash
-# iPhone 16 Pro Max @ iOS 26.x
+# iPhone 17 Pro Max @ iOS 26.x
 marketing/app-store-screenshots/capture.sh <iphone-sim-udid> \
   marketing/app-store-screenshots/raw/iphone-6.9
 
@@ -38,8 +38,9 @@ marketing/app-store-screenshots/capture.sh <ipad-sim-udid> \
 python3 marketing/app-store-screenshots/generate.py
 ```
 
-`xcrun simctl list devices available` lists simulator UDIDs. Prefer an iOS 26+
-runtime so the captured system chrome renders with Liquid Glass.
+`xcrun simctl list devices available` lists simulator UDIDs. `capture.sh` requires
+both the iOS 26+ SDK and an iOS 26+ simulator runtime so the captured system chrome
+renders with Liquid Glass; it exits before building when either requirement is not met.
 
 ## How the data gets in (public domain, offline)
 
@@ -52,9 +53,20 @@ compiled out of Release) is switched on by launch env vars that `capture.sh` set
 
 | env var | effect |
 | --- | --- |
-| `SIMALYTICS_SCREENSHOTS=1` | in-memory store pre-seeded with public-domain fixtures (`ScreenshotSeedData`); sync disabled; a sentinel token opens the Explore/Up Next gates (never networked, never stored) |
+| `SIMALYTICS_SCREENSHOTS=1` | in-memory store pre-seeded with public-domain fixtures (`ScreenshotSeedData`); sync disabled; a sentinel token opens the Explore/Up Next gates (never networked, never stored); grid layout forced |
 | `SIMALYTICS_SCREENSHOT_TAB=<tab>` | launch straight into `lists` \| `upnext` \| `explore` \| `settings` (tap-free capture) |
-| `SIMALYTICS_SCREENSHOT_POSTER_DIR=<dir>` | local dir of public-domain poster JPEGs; `PosterURLProtocol` serves these for every poster request so nothing is fetched from Simkl |
+| `SIMALYTICS_SCREENSHOT_SCREEN=<screen>` | route the Lists tab to a sub-screen: `movies-grid` \| `tv-grid` (poster-wall grids) \| `movie-detail` (rich detail view). Empty = the Lists hub. |
+| `SIMALYTICS_SCREENSHOT_HIDE_ANIME=1` | hide the Anime section/shelf for this capture; `capture.sh` sets it only for the Explore slide (early-B&W anime art clashes with the color shelves), so Lists still shows anime |
+| `SIMALYTICS_SCREENSHOT_POSTER_DIR=<dir>` | local dir of public-domain poster JPEGs; `PosterURLProtocol` serves these for every `/posters/` **and** detail-view `/fanart/` request so nothing is fetched from Simkl |
+
+Detail views are network-driven (they render from a live `getMovieDetails` fetch, not
+the seeded store), so a rich offline detail capture needs an injected fixture:
+`ScreenshotDetailFixtures` (DEBUG) returns a hand-built `MovieDetailsModel` for the
+featured title and the view-model short-circuits to it in screenshot mode. Its poster
++ "Users Also Watched" row ride the `/posters/` interceptor; its parallax banner rides
+`/fanart/` (a verified-PD studio still, or a poster-derived fallback from
+`make-fanart.py`); and
+`ids.tmdb = nil` hides the cast row so no copyrighted TMDB photos appear.
 
 Result: deterministic, offline, and guaranteed-PD captures with a small,
 Release-inert code footprint.
@@ -100,8 +112,10 @@ rsvg-convert -w 2400 -f png frames/ipad-13.svg   -o frames/ipad-13.png
 
 ```
 marketing/app-store-screenshots/
-├── capture.sh          # boot -> build -> launch each tab (fixture mode) -> screenshot
+├── capture.sh          # boot -> build -> launch each tab/screen (fixture mode) -> screenshot
 ├── generate.py         # composites raw captures into marketing PNGs (iPhone + iPad)
+├── seed-fixtures.py    # generates simalytics/Utils/ScreenshotSeedData.swift from pd-catalog.json
+├── make-fanart.py      # derives fallback fanart when no verified-PD landscape still exists
 ├── backgrounds/        # blackboard.jpg — the composite backdrop
 ├── frames/             # <device>.svg sources + pre-rasterized <device>.png (iphone-16, ipad-13)
 ├── pd-posters/         # verified public-domain poster JPEGs (<key>.jpg)
@@ -112,17 +126,18 @@ marketing/app-store-screenshots/
 
 ## Slides
 
-`SLIDES` in `generate.py` covers the three marketing-worthy top-level tabs the
-harness launches straight into:
+`SLIDES` in `generate.py` (order sets the `NN-` prefix on each raw capture):
 
-1. `01-lists` — the categorized watchlist (Movies / TV; anime omitted — no PD anime)
+1. `01-lists` — the categorized watchlist (Movies / TV / Anime; anime shows here but
+   its shelf is hidden on Explore)
 2. `02-upnext` — Up Next, the "what to watch next" queue
 3. `03-explore` — trending discovery
+4. `04-grid` — the Movies poster-wall grid (`movies-grid` sub-screen)
+5. `05-movie-detail` — a rich movie detail view (`movie-detail` sub-screen): hero
+   banner, poster, metadata, synopsis, rating, and a "Users Also Watched" row
 
-**Next pass** (poster-wall grids, rich detail views) needs sub-screen navigation,
-which the current tap-free simctl harness doesn't do. Add either a DEBUG initial-
-navigation hook (still tap-free) or an XCUITest UI-testing target (the SnipSnaps
-pattern); both reuse the same fixture mode.
+Sub-screens (grids, detail) are reached tap-free via `SIMALYTICS_SCREENSHOT_SCREEN`,
+routed in `ContentView.listsTab` — no XCUITest target needed.
 
 ## Adding a slide
 
@@ -138,9 +153,27 @@ pattern); both reuse the same fixture mode.
 - **On-screen media** — every title/poster in the screenshots is public domain. The
   posters in `pd-posters/` were sourced from Wikimedia Commons; `pd-catalog.json`
   records each one's title, year, PD license tag (`PD-US-expired` /
-  `PD-US-no-notice` / `PD-US-not-renewed` / etc.), and source page. Each was
-  license-verified before inclusion. Note: PD status here is **US**-based; a few
-  works may still be under copyright in other jurisdictions.
+  `PD-US-no-notice` / `PD-US-not-renewed` / etc.), source page, and a `note` where the
+  image needs context. Each was license-verified before inclusion. Note: PD status
+  here is **US**-based; a few works may still be under copyright in other jurisdictions.
+- **Color posters** — for liveliness we favor vivid color lithograph one-sheets, most
+  of them pre-1929 (`PD-US-expired`, renewal-independent).
+- **Same-character stand-ins** — genuine color PD *TV-show* poster art barely exists,
+  so a few shows use a color PD *film/serial* poster of the same character (e.g. the
+  Cisco Kid → *In Old Arizona* 1929; Sherlock Holmes → the 1922 Barrymore one-sheet;
+  the Lone Ranger → the 1938 Republic serial). `POSTER_OVERRIDES` in `seed-fixtures.py`
+  maps the show to the image; the list still shows the show's own name/year, and
+  `pd-catalog.json` records each image's true film + license.
+- **Detail-view banners** — prefer a real verified-PD landscape still and record its
+  source/license in `pd-catalog.json`. The featured *His Girl Friday* banner is a
+  subject-aware crop of a 1940 Columbia Pictures studio still tagged
+  `PD-US-not-renewed` by Wikimedia Commons. When no safe still exists,
+  `make-fanart.py` can derive a blurred color wash from the title's PD poster.
+- **Anime** — no colorful public-domain anime exists (the safe options are early B&W).
+  A few early PD anime titles are seeded so the Lists "Anime" section shows realistic
+  counts, but **no anime poster appears in any captured slide** (the Lists hub is
+  counts-only, the Explore anime shelf is hidden, none are "watching"), so all rows
+  share one never-displayed real PD still (`namakura-gatana-1917`, the 1917 Dull Sword).
 - **Backdrop** — `backgrounds/blackboard.jpg` is a photo by Peter Gargiulo on
   Unsplash (Unsplash License; free for commercial use), cropped and downscaled.
 - **Device frames** — `frames/*.svg` are slimmed Figma device mockups (iPhone 16,
