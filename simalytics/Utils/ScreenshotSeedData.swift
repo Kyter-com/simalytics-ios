@@ -17,6 +17,7 @@
     static func seed(into context: ModelContext) {
       for movie in movies() { context.insert(movie) }
       for show in shows() { context.insert(show) }
+      for anime in animes() { context.insert(anime) }
       for trending in trendingMovies() { context.insert(trending) }
       for trending in trendingShows() { context.insert(trending) }
       try? context.save()
@@ -24,67 +25,43 @@
 
     // ISO-8601 string `daysAgo` before now, so relative labels stay sensible.
     private static func iso(_ daysAgo: Int) -> String {
-      ISO8601DateFormatter().string(
-        from: Date().addingTimeInterval(TimeInterval(-daysAgo * 86_400)))
+      ISO8601DateFormatter().string(from: Date().addingTimeInterval(TimeInterval(-daysAgo * 86_400)))
     }
 
     // MARK: Movies (plantowatch / completed / dropped)
 
     private static func movies() -> [V1.SDMovies] {
       [
-        movie(
-          900101, "The General", 1926, "the-general-1926", "completed", rating: 9, added: 300,
-          watched: 80),
-        movie(
-          900102, "The Cabinet of Dr. Caligari", 1920, "the-cabinet-of-dr-caligari-1920",
-          "completed", rating: 9, added: 210, watched: 60),
-        movie(
-          900103, "His Girl Friday", 1940, "his-girl-friday-1940", "completed", rating: 8,
-          added: 120, watched: 30),
-        movie(
-          900104, "Charade", 1963, "charade-1963", "completed", rating: 8, added: 90, watched: 14),
-        movie(
-          900105, "The Kid", 1921, "the-kid-1921", "completed", rating: 9, added: 260, watched: 70),
-        movie(
-          900106, "Meet John Doe", 1941, "meet-john-doe-1941", "completed", rating: 8, added: 150,
-          watched: 40),
-        movie(
-          900107, "My Man Godfrey", 1936, "my-man-godfrey-1936", "completed", rating: 7, added: 100,
-          watched: 22),
-        movie(
-          900108, "A Star Is Born", 1937, "a-star-is-born-1937", "completed", rating: 8, added: 200,
-          watched: 55),
-        movie(
-          900109, "The Stranger", 1946, "the-stranger-1946", "completed", rating: 7, added: 70,
-          watched: 12),
+        movie(900101, "The General", 1926, "the-general-1926", "completed", rating: 9, added: 300, watched: 80),
+        movie(900102, "The Cabinet of Dr. Caligari", 1920, "the-cabinet-of-dr-caligari-1920", "completed", rating: 9, added: 210, watched: 60),
+        movie(900103, "His Girl Friday", 1940, "his-girl-friday-1940", "completed", rating: 8, added: 120, watched: 30),
+        movie(900104, "Charade", 1963, "charade-1963", "completed", rating: 8, added: 90, watched: 14),
+        movie(900105, "The Kid", 1921, "the-kid-1921", "completed", rating: 9, added: 260, watched: 70),
+        movie(900106, "Meet John Doe", 1941, "meet-john-doe-1941", "completed", rating: 8, added: 150, watched: 40),
+        movie(900107, "My Man Godfrey", 1936, "my-man-godfrey-1936", "completed", rating: 7, added: 100, watched: 22),
+        movie(900108, "A Star Is Born", 1937, "a-star-is-born-1937", "completed", rating: 8, added: 200, watched: 55),
+        movie(900109, "The Stranger", 1946, "the-stranger-1946", "completed", rating: 7, added: 70, watched: 12),
         movie(900110, "Detour", 1945, "detour-1945", "completed", rating: 7, added: 45, watched: 9),
         movie(900111, "Carnival of Souls", 1962, "carnival-of-souls-1962", "plantowatch", added: 8),
-        movie(
-          900112, "House on Haunted Hill", 1959, "house-on-haunted-hill-1959", "plantowatch",
-          added: 12),
+        movie(900112, "House on Haunted Hill", 1959, "house-on-haunted-hill-1959", "plantowatch", added: 12),
         movie(900113, "D.O.A.", 1950, "d-o-a-1950", "plantowatch", added: 18),
-        movie(
-          900114, "Gulliver's Travels", 1939, "gulliver-s-travels-1939", "plantowatch", added: 25),
-        movie(
-          900115, "A Trip to the Moon", 1902, "a-trip-to-the-moon-1902", "plantowatch", added: 33),
-        movie(
-          900116, "Nanook of the North", 1922, "nanook-of-the-north-1922", "plantowatch", added: 40),
-        movie(
-          900117, "The Phantom of the Opera", 1925, "the-phantom-of-the-opera-1925", "plantowatch",
-          added: 5),
+        movie(900114, "Gulliver's Travels", 1939, "gulliver-s-travels-1939", "plantowatch", added: 25),
+        movie(900115, "A Trip to the Moon", 1902, "a-trip-to-the-moon-1902", "plantowatch", added: 33),
+        movie(900116, "Nanook of the North", 1922, "nanook-of-the-north-1922", "plantowatch", added: 40),
+        movie(900117, "The Phantom of the Opera", 1925, "the-phantom-of-the-opera-1925", "plantowatch", added: 5),
         movie(900118, "Beat the Devil", 1953, "beat-the-devil-1953", "plantowatch", added: 15),
-        movie(
-          900119, "Plan 9 from Outer Space", 1959, "plan-9-from-outer-space-1959", "dropped",
-          added: 140, watched: 100),
-        movie(
-          900120, "Reefer Madness", 1936, "reefer-madness-1936", "dropped", added: 160, watched: 120
-        ),
-        movie(
-          900121, "The Brain That Wouldn't Die", 1962, "the-brain-that-wouldn-t-die-1962",
-          "dropped", added: 175, watched: 130),
-        movie(
-          900122, "A Farewell to Arms", 1932, "a-farewell-to-arms-1932", "dropped", added: 190,
-          watched: 150),
+        movie(900119, "Plan 9 from Outer Space", 1959, "plan-9-from-outer-space-1959", "dropped", added: 140, watched: 100),
+        movie(900120, "Reefer Madness", 1936, "reefer-madness-1936", "dropped", added: 160, watched: 120),
+        movie(900121, "The Brain That Wouldn't Die", 1962, "the-brain-that-wouldn-t-die-1962", "dropped", added: 175, watched: 130),
+        movie(900122, "A Farewell to Arms", 1932, "a-farewell-to-arms-1932", "dropped", added: 190, watched: 150),
+        movie(900123, "The Lost World", 1925, "the-lost-world-1925", "completed", rating: 9, added: 220, watched: 65),
+        movie(900124, "The Gorilla", 1927, "the-gorilla-1927", "completed", rating: 7, added: 60, watched: 11),
+        movie(900125, "Don Q, Son of Zorro", 1925, "don-q-son-of-zorro-1925", "completed", rating: 8, added: 130, watched: 35),
+        movie(900126, "Robin Hood", 1922, "robin-hood-1922", "completed", rating: 9, added: 250, watched: 75),
+        movie(900127, "Ben-Hur: A Tale of the Christ", 1925, "ben-hur-1925", "completed", rating: 8, added: 240, watched: 70),
+        movie(900128, "The Black Pirate", 1926, "the-black-pirate-1926", "completed", rating: 8, added: 110, watched: 28),
+        movie(900129, "7th Heaven", 1927, "7th-heaven-1927", "completed", rating: 8, added: 95, watched: 20),
+        movie(900130, "The Gold Rush", 1925, "the-gold-rush-1925", "completed", rating: 9, added: 280, watched: 85),
       ]
     }
 
@@ -105,33 +82,16 @@
 
     private static func shows() -> [V1.SDShows] {
       [
-        show(
-          900201, "The Cisco Kid", 1950, "the-cisco-kid-1950", "watching", watchedEps: 12,
-          totalEps: 156, added: 40, next: ("Ghost Town", 2, 3, 4)),
-        show(
-          900202, "Alcoa Presents: One Step Beyond", 1959, "alcoa-presents-one-step-beyond-1959",
-          "watching", watchedEps: 7, totalEps: 96, added: 55, next: ("The Dark Room", 1, 8, 6)),
-        show(
-          900203, "The Lone Ranger", 1949, "the-lone-ranger-1949", "watching", watchedEps: 30,
-          totalEps: 221, added: 120, next: ("The Renegades", 2, 5, 9)),
-        show(
-          900204, "Sherlock Holmes", 1954, "sherlock-holmes-1954-tv-series-1954", "watching",
-          watchedEps: 5, totalEps: 39, added: 20,
-          next: ("The Case of the Belligerent Ghost", 1, 6, 2)),
-        show(
-          900205, "The Beverly Hillbillies", 1962, "the-beverly-hillbillies-1962", "watching",
-          watchedEps: 4, totalEps: 274, added: 14, next: ("Jed Buys Stock", 1, 5, 12)),
-        show(
-          900206, "Dragnet", 1951, "dragnet-1951", "completed", watchedEps: 276, totalEps: 276,
-          rating: 8, added: 260),
-        show(
-          900207, "The Red Skelton Show", 1951, "the-red-skelton-show-1951", "completed",
-          watchedEps: 120, totalEps: 120, rating: 7, added: 280),
+        show(900201, "The Cisco Kid", 1950, "in-old-arizona-1929", "watching", watchedEps: 12, totalEps: 156, added: 40, next: ("Ghost Town", 2, 3, 4)),
+        show(900202, "Alcoa Presents: One Step Beyond", 1959, "alcoa-presents-one-step-beyond-1959", "watching", watchedEps: 7, totalEps: 96, added: 55, next: ("The Dark Room", 1, 8, 6)),
+        show(900203, "The Lone Ranger", 1949, "the-lone-ranger-1938-serial", "watching", watchedEps: 30, totalEps: 221, added: 120, next: ("The Renegades", 2, 5, 9)),
+        show(900204, "Sherlock Holmes", 1954, "sherlock-holmes-1922", "watching", watchedEps: 5, totalEps: 39, added: 20, next: ("The Case of the Belligerent Ghost", 1, 6, 2)),
+        show(900205, "The Beverly Hillbillies", 1962, "the-beverly-hillbillies-1962", "watching", watchedEps: 4, totalEps: 274, added: 14, next: ("Jed Buys Stock", 1, 5, 12)),
+        show(900206, "Dragnet", 1951, "dragnet-1951", "completed", watchedEps: 276, totalEps: 276, rating: 8, added: 260),
+        show(900207, "The Red Skelton Show", 1951, "the-red-skelton-show-1951", "completed", watchedEps: 120, totalEps: 120, rating: 7, added: 280),
         show(900208, "You Bet Your Life", 1950, "you-bet-your-life-1950", "plantowatch", added: 16),
-        show(
-          900209, "The George Burns and Gracie Allen Show", 1950,
-          "the-george-burns-and-gracie-allen-show-1950", "hold", watchedEps: 20, totalEps: 291,
-          added: 180),
+        show(900209, "The George Burns and Gracie Allen Show", 1950, "the-george-burns-and-gracie-allen-show-1950", "hold", watchedEps: 20, totalEps: 291, added: 180),
+        show(900210, "Hopalong Cassidy", 1949, "hopalong-cassidy-1936", "watching", watchedEps: 15, totalEps: 52, added: 25, next: ("The Hidden Valley", 1, 9, 5)),
       ]
     }
 
@@ -152,71 +112,62 @@
         next_to_watch_info_date: next.map { iso($0.daysAgo) })
     }
 
+    // MARK: Anime (Lists "Anime" section counts only; posters never shown)
+
+    private static func animes() -> [V1.SDAnimes] {
+      [
+        anime(900401, "Namakura Gatana", 1917, "namakura-gatana-1917", "completed", watchedEps: 1, totalEps: 1, rating: 8, added: 60),
+        anime(900402, "Urashima Tarō", 1918, "namakura-gatana-1917", "completed", watchedEps: 1, totalEps: 1, rating: 7, added: 60),
+        anime(900403, "Momotarō", 1918, "namakura-gatana-1917", "completed", watchedEps: 1, totalEps: 1, added: 60),
+        anime(900404, "Kobutori", 1929, "namakura-gatana-1917", "plantowatch", added: 60),
+        anime(900405, "Sarukani Gassen", 1927, "namakura-gatana-1917", "plantowatch", added: 60),
+        anime(900406, "Chamebō Shingapo no Maki", 1928, "namakura-gatana-1917", "hold", watchedEps: 1, totalEps: 2, added: 60),
+      ]
+    }
+
+    private static func anime(
+      _ simkl: Int, _ title: String, _ year: Int, _ poster: String, _ status: String,
+      watchedEps: Int? = nil, totalEps: Int? = nil, rating: Int? = nil, added: Int = 60
+    ) -> V1.SDAnimes {
+      V1.SDAnimes(
+        simkl: simkl, added_to_watchlist_at: iso(added), release_date: "\(year)-01-01",
+        last_watched_at: watchedEps != nil ? iso(30) : nil,
+        user_rated_at: rating != nil ? iso(added) : nil, user_rating: rating,
+        status: status, watched_episodes_count: watchedEps, total_episodes_count: totalEps,
+        anime_type: "movie", poster: poster, year: year, title: title)
+    }
+
     // MARK: Trending (Explore)
 
     private static func trendingMovies() -> [V1.TrendingMovies] {
       [
-        V1.TrendingMovies(
-          simkl: 910001, title: "The General", poster: "the-general-1926", order: 1, year: 1926),
-        V1.TrendingMovies(
-          simkl: 910002, title: "His Girl Friday", poster: "his-girl-friday-1940", order: 2,
-          year: 1940),
-        V1.TrendingMovies(
-          simkl: 910003, title: "Charade", poster: "charade-1963", order: 3, year: 1963),
-        V1.TrendingMovies(
-          simkl: 910004, title: "The Cabinet of Dr. Caligari",
-          poster: "the-cabinet-of-dr-caligari-1920", order: 4, year: 1920),
-        V1.TrendingMovies(
-          simkl: 910005, title: "Meet John Doe", poster: "meet-john-doe-1941", order: 5, year: 1941),
-        V1.TrendingMovies(
-          simkl: 910006, title: "A Star Is Born", poster: "a-star-is-born-1937", order: 6,
-          year: 1937),
-        V1.TrendingMovies(
-          simkl: 910007, title: "My Man Godfrey", poster: "my-man-godfrey-1936", order: 7,
-          year: 1936),
-        V1.TrendingMovies(
-          simkl: 910008, title: "The Kid", poster: "the-kid-1921", order: 8, year: 1921),
-        V1.TrendingMovies(
-          simkl: 910009, title: "Plan 9 from Outer Space", poster: "plan-9-from-outer-space-1959",
-          order: 9, year: 1959),
-        V1.TrendingMovies(
-          simkl: 910010, title: "Carnival of Souls", poster: "carnival-of-souls-1962", order: 10,
-          year: 1962),
-        V1.TrendingMovies(
-          simkl: 910011, title: "Detour", poster: "detour-1945", order: 11, year: 1945),
-        V1.TrendingMovies(
-          simkl: 910012, title: "House on Haunted Hill", poster: "house-on-haunted-hill-1959",
-          order: 12, year: 1959),
+        V1.TrendingMovies(simkl: 910001, title: "The Lost World", poster: "the-lost-world-1925", order: 1, year: 1925),
+        V1.TrendingMovies(simkl: 910002, title: "The Gorilla", poster: "the-gorilla-1927", order: 2, year: 1927),
+        V1.TrendingMovies(simkl: 910003, title: "Don Q, Son of Zorro", poster: "don-q-son-of-zorro-1925", order: 3, year: 1925),
+        V1.TrendingMovies(simkl: 910004, title: "Robin Hood", poster: "robin-hood-1922", order: 4, year: 1922),
+        V1.TrendingMovies(simkl: 910005, title: "Ben-Hur: A Tale of the Christ", poster: "ben-hur-1925", order: 5, year: 1925),
+        V1.TrendingMovies(simkl: 910006, title: "The Black Pirate", poster: "the-black-pirate-1926", order: 6, year: 1926),
+        V1.TrendingMovies(simkl: 910007, title: "7th Heaven", poster: "7th-heaven-1927", order: 7, year: 1927),
+        V1.TrendingMovies(simkl: 910008, title: "The Gold Rush", poster: "the-gold-rush-1925", order: 8, year: 1925),
+        V1.TrendingMovies(simkl: 910009, title: "The General", poster: "the-general-1926", order: 9, year: 1926),
+        V1.TrendingMovies(simkl: 910010, title: "His Girl Friday", poster: "his-girl-friday-1940", order: 10, year: 1940),
+        V1.TrendingMovies(simkl: 910011, title: "Meet John Doe", poster: "meet-john-doe-1941", order: 11, year: 1941),
+        V1.TrendingMovies(simkl: 910012, title: "A Star Is Born", poster: "a-star-is-born-1937", order: 12, year: 1937),
       ]
     }
 
     private static func trendingShows() -> [V1.TrendingShows] {
       [
-        V1.TrendingShows(
-          simkl: 920001, title: "The Cisco Kid", poster: "the-cisco-kid-1950", order: 1, year: 1950),
-        V1.TrendingShows(
-          simkl: 920002, title: "The Lone Ranger", poster: "the-lone-ranger-1949", order: 2,
-          year: 1949),
-        V1.TrendingShows(
-          simkl: 920003, title: "Sherlock Holmes", poster: "sherlock-holmes-1954-tv-series-1954",
-          order: 3, year: 1954),
-        V1.TrendingShows(
-          simkl: 920004, title: "Dragnet", poster: "dragnet-1951", order: 4, year: 1951),
-        V1.TrendingShows(
-          simkl: 920005, title: "The Beverly Hillbillies", poster: "the-beverly-hillbillies-1962",
-          order: 5, year: 1962),
-        V1.TrendingShows(
-          simkl: 920006, title: "Alcoa Presents: One Step Beyond",
-          poster: "alcoa-presents-one-step-beyond-1959", order: 6, year: 1959),
-        V1.TrendingShows(
-          simkl: 920007, title: "The Red Skelton Show", poster: "the-red-skelton-show-1951",
-          order: 7, year: 1951),
-        V1.TrendingShows(
-          simkl: 920008, title: "You Bet Your Life", poster: "you-bet-your-life-1950", order: 8,
-          year: 1950),
-        V1.TrendingShows(
-          simkl: 920009, title: "The George Burns and Gracie Allen Show",
-          poster: "the-george-burns-and-gracie-allen-show-1950", order: 9, year: 1950),
+        V1.TrendingShows(simkl: 920001, title: "The Cisco Kid", poster: "in-old-arizona-1929", order: 1, year: 1950),
+        V1.TrendingShows(simkl: 920002, title: "The Lone Ranger", poster: "the-lone-ranger-1938-serial", order: 2, year: 1949),
+        V1.TrendingShows(simkl: 920003, title: "Hopalong Cassidy", poster: "hopalong-cassidy-1936", order: 3, year: 1949),
+        V1.TrendingShows(simkl: 920004, title: "Sherlock Holmes", poster: "sherlock-holmes-1922", order: 4, year: 1954),
+        V1.TrendingShows(simkl: 920005, title: "Dragnet", poster: "dragnet-1951", order: 5, year: 1951),
+        V1.TrendingShows(simkl: 920006, title: "The Beverly Hillbillies", poster: "the-beverly-hillbillies-1962", order: 6, year: 1962),
+        V1.TrendingShows(simkl: 920007, title: "Alcoa Presents: One Step Beyond", poster: "alcoa-presents-one-step-beyond-1959", order: 7, year: 1959),
+        V1.TrendingShows(simkl: 920008, title: "The Red Skelton Show", poster: "the-red-skelton-show-1951", order: 8, year: 1951),
+        V1.TrendingShows(simkl: 920009, title: "You Bet Your Life", poster: "you-bet-your-life-1950", order: 9, year: 1950),
+        V1.TrendingShows(simkl: 920010, title: "The George Burns and Gracie Allen Show", poster: "the-george-burns-and-gracie-allen-show-1950", order: 10, year: 1950),
       ]
     }
   }

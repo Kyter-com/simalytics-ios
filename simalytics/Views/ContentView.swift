@@ -35,6 +35,8 @@ struct ContentView: View {
       switch ScreenshotMode.screen {
       case "movies-grid": NavigationStack { MovieListView(status: "completed") }
       case "tv-grid": NavigationStack { TVListView(status: "watching") }
+      case "movie-detail":
+        NavigationStack { MovieDetailView(simkl_id: ScreenshotDetailFixtures.featuredMovieID) }
       default: ListView()
       }
     #else

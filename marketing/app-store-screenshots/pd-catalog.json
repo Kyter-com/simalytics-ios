@@ -85,7 +85,12 @@
     "year": 1940,
     "type": "movie",
     "license": "PD-US-not-renewed",
-    "source": "https://upload.wikimedia.org/wikipedia/commons/6/6e/His_Girl_Friday_%281940_poster%29.jpg"
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/6e/His_Girl_Friday_%281940_poster%29.jpg",
+    "fanart": {
+      "license": "PD-US-not-renewed",
+      "source": "https://commons.wikimedia.org/wiki/File:His-Girl-Friday-Grant-Russell.jpg",
+      "note": "1940 Columbia Pictures promotional still of Cary Grant and Rosalind Russell; cropped to keep both faces visible in the detail-view banner."
+    }
   },
   {
     "key": "charade-1963",
@@ -246,5 +251,114 @@
     "type": "movie",
     "license": "PD-US-no-notice",
     "source": "https://upload.wikimedia.org/wikipedia/commons/3/37/Reefer_Madness_%281936%29.jpg"
+  },
+  {
+    "key": "the-lost-world-1925",
+    "title": "The Lost World",
+    "year": 1925,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/76/The_Lost_World_%281925%29_-_film_poster.jpg"
+  },
+  {
+    "key": "ben-hur-1925",
+    "title": "Ben-Hur: A Tale of the Christ",
+    "year": 1925,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/63/Ben-Hur-1925.jpg"
+  },
+  {
+    "key": "robin-hood-1922",
+    "title": "Robin Hood",
+    "year": 1922,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/44/Douglas_Fairbanks_Robin_Hood_1922_film_poster.jpg"
+  },
+  {
+    "key": "don-q-son-of-zorro-1925",
+    "title": "Don Q, Son of Zorro",
+    "year": 1925,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Don_Q_Son_of_Zorro_-_film_poster.jpg"
+  },
+  {
+    "key": "the-black-pirate-1926",
+    "title": "The Black Pirate",
+    "year": 1926,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Black_pirate_1926_poster.jpg"
+  },
+  {
+    "key": "7th-heaven-1927",
+    "title": "7th Heaven",
+    "year": 1927,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fa/7th_Heaven_%281927_poster%29.jpg"
+  },
+  {
+    "key": "the-gorilla-1927",
+    "title": "The Gorilla",
+    "year": 1927,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a3/The_Gorilla_1927_poster.jpg"
+  },
+  {
+    "key": "the-gold-rush-1925",
+    "title": "The Gold Rush",
+    "year": 1925,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4d/Gold_rush_poster.jpg"
+  },
+  {
+    "key": "in-old-arizona-1929",
+    "title": "In Old Arizona",
+    "year": 1929,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "note": "Color one-sheet used as the poster for the 1950 The Cisco Kid TV series (same character; Warner Baxter played the Cisco Kid). PD by term expiration (pre-1931), renewal-independent.",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/33/In_Old_Arizona_1928_poster.jpg"
+  },
+  {
+    "key": "sherlock-holmes-1922",
+    "title": "Sherlock Holmes",
+    "year": 1922,
+    "type": "movie",
+    "license": "PD-US-expired",
+    "note": "1922 Goldwyn (John Barrymore) color one-sheet used as the poster for the 1954 Sherlock Holmes TV series (same character). PD by term expiration.",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/29/Sherlock_Holmes_poster.jpg"
+  },
+  {
+    "key": "the-lone-ranger-1938-serial",
+    "title": "The Lone Ranger (1938 Republic serial)",
+    "year": 1938,
+    "type": "movie",
+    "license": "PD-US-no-notice",
+    "note": "Color Republic Pictures serial one-sheet used as the poster for the 1949 The Lone Ranger TV series (same character).",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/68/Lonerangerserial.JPG"
+  },
+  {
+    "key": "hopalong-cassidy-1936",
+    "title": "Hopalong Cassidy",
+    "year": 1949,
+    "type": "tv",
+    "license": "PD-US-no-notice",
+    "note": "Poster image is the 1936 film 'Hopalong Cassidy Returns' (William Boyd) color one-sheet, standing in for the 1949 Hopalong Cassidy TV series (same character/star).",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/73/Hopalong_Cassidy_Returns_FilmPoster.jpeg"
+  },
+  {
+    "key": "namakura-gatana-1917",
+    "title": "Namakura Gatana",
+    "year": 1917,
+    "type": "anime",
+    "license": "PD-US-expired",
+    "note": "The Dull Sword (Jun'ichi Kouchi), oldest surviving Japanese theatrical animation; B&W. Shared placeholder poster for the demo anime rows — anime posters are never displayed in any captured slide (Lists hub is counts-only, Explore anime shelf hidden, no anime marked watching).",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Anime_cell_1917.jpg"
   }
 ]

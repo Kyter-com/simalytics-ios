@@ -35,6 +35,13 @@ SCHEME="simalytics"
 DERIVED="$ROOT/.capture-runs/DerivedData"
 POSTER_DIR="$ROOT/pd-posters"
 
+SDK_VERSION="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+SDK_MAJOR="${SDK_VERSION%%.*}"
+if [[ ! "$SDK_MAJOR" =~ ^[0-9]+$ ]] || (( SDK_MAJOR < 26 )); then
+  echo "error: App Store captures require the iOS 26+ SDK for Liquid Glass (active SDK: $SDK_VERSION)" >&2
+  exit 1
+fi
+
 # Ordered capture plan: "<NN-name>:<tab>[:<screen>]" where <tab> is a
 # SIMALYTICS_SCREENSHOT_TAB value (lists | upnext | explore | settings), the
 # optional <screen> is a SIMALYTICS_SCREENSHOT_SCREEN sub-screen (e.g.
@@ -45,6 +52,7 @@ SCREENS=(
   "02-upnext:upnext"
   "03-explore:explore"
   "04-grid:lists:movies-grid"
+  "05-movie-detail:lists:movie-detail"
 )
 
 if [[ ! -d "$POSTER_DIR" ]]; then
@@ -54,6 +62,16 @@ fi
 echo "==> Booting $DEVICE"
 xcrun simctl boot "$DEVICE" >/dev/null 2>&1 || true
 xcrun simctl bootstatus "$DEVICE" -b >/dev/null
+
+RUNTIME_VERSION="$(xcrun simctl getenv "$DEVICE" SIMULATOR_RUNTIME_VERSION)"
+RUNTIME_MAJOR="${RUNTIME_VERSION%%.*}"
+DEVICE_NAME="$(xcrun simctl getenv "$DEVICE" SIMULATOR_DEVICE_NAME)"
+if [[ ! "$RUNTIME_MAJOR" =~ ^[0-9]+$ ]] || (( RUNTIME_MAJOR < 26 )); then
+  echo "error: $DEVICE_NAME runs iOS $RUNTIME_VERSION; App Store captures require iOS 26+ for Liquid Glass" >&2
+  echo "       choose an iOS 26+ device from: xcrun simctl list devices available" >&2
+  exit 1
+fi
+echo "    $DEVICE_NAME on iOS $RUNTIME_VERSION (SDK $SDK_VERSION)"
 
 echo "==> Overriding the status bar (clean Apple 9:41, full battery/signal)"
 xcrun simctl status_bar "$DEVICE" override \
@@ -81,10 +99,14 @@ mkdir -p "$RAW_DIR"
 for entry in "${SCREENS[@]}"; do
   IFS=':' read -r name tab screen <<< "$entry"
   echo "==> Capturing $name (tab=$tab${screen:+, screen=$screen})"
+  # Show the Anime section everywhere except Explore, where the trending-anime
+  # shelf (early B&W art) would clash with the color shelves.
+  hide_anime="0"; [[ "$tab" == "explore" ]] && hide_anime="1"
   xcrun simctl terminate "$DEVICE" "$BUNDLE" >/dev/null 2>&1 || true
   SIMCTL_CHILD_SIMALYTICS_SCREENSHOTS="1" \
   SIMCTL_CHILD_SIMALYTICS_SCREENSHOT_TAB="$tab" \
   SIMCTL_CHILD_SIMALYTICS_SCREENSHOT_SCREEN="${screen:-}" \
+  SIMCTL_CHILD_SIMALYTICS_SCREENSHOT_HIDE_ANIME="$hide_anime" \
   SIMCTL_CHILD_SIMALYTICS_SCREENSHOT_POSTER_DIR="$POSTER_DIR" \
     xcrun simctl launch "$DEVICE" "$BUNDLE" >/dev/null
   sleep 6  # let the seeded UI + local posters render
