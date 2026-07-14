@@ -17,6 +17,16 @@ class Auth {
   var simklAccessToken: String
   init() {
     let simpleKeychain = SimpleKeychain()
+    #if DEBUG
+      // App Store screenshot harness (marketing/app-store-screenshots): a sentinel
+      // token opens the Explore / Up Next gates so the seeded public-domain
+      // fixtures render. It is never sent to the network (sync is disabled in this
+      // mode) and never written to the keychain. See ScreenshotMode.
+      if ScreenshotMode.isActive {
+        self.simklAccessToken = ScreenshotMode.sentinelToken
+        return
+      }
+    #endif
     do {
       let accessToken = try simpleKeychain.string(forKey: "simkl-access-token")
       self.simklAccessToken = accessToken
@@ -48,6 +58,13 @@ struct SimalyticsApp: App {
   }
 
   let modelContainer: ModelContainer = {
+    #if DEBUG
+      // Screenshot harness: an in-memory store pre-seeded with public-domain
+      // fixtures, so captures are deterministic and fully offline.
+      if ScreenshotMode.isActive {
+        return ScreenshotMode.makeSeededContainer()
+      }
+    #endif
     do {
       let schema = Schema([
         V1.SDLastSync.self, V1.SDMovies.self, V1.SDShows.self, V1.SDAnimes.self,
@@ -66,6 +83,10 @@ struct SimalyticsApp: App {
   }()
 
   init() {
+    #if DEBUG
+      // Screenshot harness: force grid layout + route posters through local PD JPEGs.
+      ScreenshotMode.setUp()
+    #endif
     URLCache.shared = URLCache(
       memoryCapacity: Self.urlMemoryCacheSizeLimit,
       diskCapacity: 0

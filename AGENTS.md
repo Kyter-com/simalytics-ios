@@ -47,6 +47,16 @@ When using Xcode Cloud:
 4. Verify the Xcode Cloud run and wait for the App Store Connect build to exist.
 5. Update TestFlight build notes on the Cloud-produced build.
 
+## App Store Screenshots
+
+Marketing screenshots live in `marketing/app-store-screenshots/` (see its README).
+They are generated from a **DEBUG-only** screenshot mode (`simalytics/Utils/ScreenshotMode.swift`,
+compiled out of Release) that seeds an in-memory store with **public-domain**
+fixtures and serves local PD poster images — no Simkl account, no network, and no
+copyrighted artwork (avoids App Store review issues). Reproduce with
+`capture.sh <sim-udid> raw/<device>` then `python3 generate.py`; regenerate the
+fixtures with `seed-fixtures.py`. The screenshot hooks never affect Release builds.
+
 ## Release Tracking
 
 ASC plus git plus Changesets are the release source of truth.

@@ -57,6 +57,12 @@ func syncLatestActivities(
   modelContainer: ModelContainer,
   forceRefresh: Bool = false
 ) async {
+  #if DEBUG
+    // Screenshot harness: the store is pre-seeded with public-domain fixtures and
+    // must stay offline, so every sync path (launch, pull-to-refresh, tab .task,
+    // mark-watched) is a no-op. See ScreenshotMode.
+    if ScreenshotMode.isActive { return }
+  #endif
   var runForceRefresh = forceRefresh
   guard await syncLatestActivitiesGate.begin(forceRefresh: forceRefresh) else { return }
 
