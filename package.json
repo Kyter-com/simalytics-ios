@@ -1,13 +1,14 @@
 {
   "name": "@kyter/simalytics-ios",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "private": true,
   "description": "Release notes and changelog tooling for Simalytics iOS.",
   "packageManager": "npm@11.8.0",
   "scripts": {
     "changeset": "changeset",
-    "version": "node scripts/release/ios-release.mjs notes --write-default --allow-empty && changeset version && node scripts/release/ios-release.mjs sync-xcode-version",
+    "version": "node scripts/release/ios-release.mjs notes --write-default --allow-empty && changeset version && npm install --package-lock-only --ignore-scripts && node scripts/release/ios-release.mjs sync-xcode-version && node scripts/release/ios-release.mjs check",
     "release:notes": "node scripts/release/ios-release.mjs notes",
+    "release:check": "node scripts/release/ios-release.mjs check",
     "release:status": "node scripts/release/ios-release.mjs status",
     "release:next-build": "node scripts/release/ios-release.mjs next-build",
     "release:apply-notes": "node scripts/release/ios-release.mjs apply-notes",

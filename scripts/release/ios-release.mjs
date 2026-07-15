@@ -142,6 +142,43 @@ function syncXcodeVersion() {
   console.log(`${config.xcodeProject} MARKETING_VERSION is ${pkg.version}.`);
 }
 
+function checkReleaseState() {
+  const pkg = readJson("package.json");
+  const lock = readJson("package-lock.json");
+  const xcode = readXcodeSettings();
+  const changelog = readFileSync(path.join(rootDir, "CHANGELOG.md"), "utf8");
+  const notes = readFileSync(path.join(rootDir, config.nextReleaseNotesPath), "utf8").trim();
+  const metadataFile = path.join(rootDir, config.appStoreMetadataPath, "version", pkg.version, `${config.locale}.json`);
+  const errors = [];
+
+  if (lock.version !== pkg.version || lock.packages?.[""]?.version !== pkg.version) {
+    errors.push(`package-lock.json is not synchronized to ${pkg.version}.`);
+  }
+  if (xcode.marketingVersion !== pkg.version) {
+    errors.push(`Xcode MARKETING_VERSION ${xcode.marketingVersion} does not match package.json ${pkg.version}.`);
+  }
+  if (!/^\d+$/.test(String(xcode.buildNumber || ""))) {
+    errors.push(`Xcode CURRENT_PROJECT_VERSION is not numeric: ${xcode.buildNumber || "missing"}.`);
+  }
+  if (!changelog.includes(`\n## ${pkg.version}\n`)) {
+    errors.push(`CHANGELOG.md has no ${pkg.version} section.`);
+  }
+  if (!notes) errors.push(`${config.nextReleaseNotesPath} is empty.`);
+  if (!existsSync(metadataFile)) {
+    errors.push(`Canonical App Store metadata is missing ${path.relative(rootDir, metadataFile)}.`);
+  }
+  if (!existsSync(path.join(rootDir, config.appStorePrivacyPath))) {
+    errors.push(`Canonical App Store privacy declaration is missing ${config.appStorePrivacyPath}.`);
+  }
+
+  if (errors.length > 0) {
+    for (const error of errors) console.error(`- ${error}`);
+    throw new Error(`Release consistency check failed with ${errors.length} issue(s).`);
+  }
+
+  console.log(`Release files are consistent for ${pkg.version} (${xcode.buildNumber}).`);
+}
+
 function changesetFiles() {
   const changesetDir = path.join(rootDir, ".changeset");
   if (!existsSync(changesetDir)) return [];
@@ -304,6 +341,42 @@ function status() {
 function nextBuild() {
   const xcode = readXcodeSettings();
   const version = flagValue("--version", xcode.marketingVersion);
+  const buildNumber = config.xcodeCloudWorkflowId
+    ? nextXcodeCloudBuildNumber(config.xcodeCloudWorkflowId)
+    : nextUploadedBuildNumber(version);
+
+  if (!buildNumber) {
+    throw new Error("Could not find the next build number in asc output.");
+  }
+
+  const source = config.xcodeCloudWorkflowId ? "Xcode Cloud" : "App Store Connect";
+  console.log(`Next ${config.appName} ${version} ${source} build number: ${buildNumber}`);
+
+  if (hasFlag("--apply")) {
+    replaceXcodeSetting("CURRENT_PROJECT_VERSION", String(buildNumber));
+    console.log(`Synced ${config.xcodeProject} CURRENT_PROJECT_VERSION to ${buildNumber}.`);
+  }
+}
+
+function nextXcodeCloudBuildNumber(workflowId) {
+  const result = run(ascBin, [
+    "xcode-cloud",
+    "build-runs",
+    "list",
+    "--workflow-id",
+    workflowId,
+    "--sort=-number",
+    "--limit",
+    "1",
+    "--output",
+    "json",
+  ], { env: ascEnv() });
+  const payload = parseJson(result.stdout);
+  const latest = Number(payload?.data?.[0]?.attributes?.number || 0);
+  return latest + 1;
+}
+
+function nextUploadedBuildNumber(version) {
   const app = resolveAppRef();
   const result = run(ascBin, [
     "builds",
@@ -318,21 +391,8 @@ function nextBuild() {
     "json",
     "--pretty",
   ], { env: ascEnv() });
-
   const payload = parseJson(result.stdout);
-  const buildNumber = findValue(payload, ["nextBuildNumber", "buildNumber", "next"]);
-
-  if (!buildNumber) {
-    console.log(result.stdout.trim());
-    throw new Error("Could not find the next build number in asc output.");
-  }
-
-  console.log(`Next ${config.appName} ${version} build number: ${buildNumber}`);
-
-  if (hasFlag("--apply")) {
-    replaceXcodeSetting("CURRENT_PROJECT_VERSION", String(buildNumber));
-    console.log(`Synced ${config.xcodeProject} CURRENT_PROJECT_VERSION to ${buildNumber}.`);
-  }
+  return findValue(payload, ["nextBuildNumber", "buildNumber", "next"]);
 }
 
 function applyNotes() {
@@ -443,30 +503,57 @@ function backfill() {
   const versionsPayload = ascJson(["versions", "list", "--app", app, "--platform", config.platform, "--paginate", "--output", "json", "--pretty"]);
   const buildsPayload = ascJson(["builds", "list", "--app", app, "--platform", config.platform, "--processing-state", "all", "--paginate", "--output", "json", "--pretty"]);
   const versions = asArray(versionsPayload).map(normalizeVersion).filter((version) => version.version);
-  const builds = asArray(buildsPayload).map(normalizeBuild).filter((build) => build.buildNumber || build.version);
+  const preReleaseVersions = preReleaseVersionLookup(buildsPayload);
+  const builds = asArray(buildsPayload)
+    .map((build) => normalizeBuild(build, preReleaseVersions))
+    .filter((build) => build.buildNumber || build.version);
   const snapshots = gitVersionSnapshots();
+  const cloudBuilds = xcodeCloudBuildSnapshots();
+  const releaseTags = gitReleaseTags();
 
-  const versionNotes = new Map();
   for (const version of versions) {
-    const notes = fetchWhatsNew(version.version);
-    if (notes) versionNotes.set(version.version, notes);
+    version.whatsNew = fetchWhatsNew(version.id);
+    version.buildNumber = fetchAttachedBuildNumber(version.id);
   }
+
+  const sortedBuilds = sortBuilds(builds);
+  const buildMatches = new Map(
+    sortedBuilds.map((build) => [buildKey(build), findBuildSnapshot(build, releaseTags, cloudBuilds, snapshots)])
+  );
 
   const lines = [];
   lines.push("# Apple Release History");
   lines.push("");
   lines.push(`Generated from App Store Connect and git on ${new Date().toISOString()}.`);
   lines.push("");
-  lines.push("ASC is the source of truth for Apple versions and builds. Git commits are correlated by Xcode `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` snapshots.");
+  lines.push("ASC is the source of truth for Apple versions and builds. Release tags and Xcode Cloud source commits are authoritative for git correlation; Xcode project snapshots are used only as a historical fallback.");
+  lines.push("");
+  lines.push("The Created column is the App Store version-record creation date. Apple does not expose every historical storefront release date through the public API.");
   lines.push("");
   lines.push("## App Store Versions");
   lines.push("");
-  lines.push("| Version | State | Created | Released | Matched Git Commit | What's New |");
+  lines.push("| Version | State | Created | Attached Build | Matched Git Commit | What's New |");
   lines.push("| --- | --- | --- | --- | --- | --- |");
 
   for (const version of sortVersions(versions)) {
-    const matched = findSnapshot(snapshots, version.version);
-    lines.push(`| ${version.version} | ${version.state || ""} | ${version.createdDate || ""} | ${version.releaseDate || ""} | ${formatSnapshot(matched)} | ${singleLine(versionNotes.get(version.version))} |`);
+    const build = attachedBuildForVersion(version, sortedBuilds);
+    const matched = build ? buildMatches.get(buildKey(build)) : undefined;
+    lines.push(`| ${version.version} | ${version.state || ""} | ${version.createdDate || ""} | ${version.buildNumber || ""} | ${formatSnapshot(matched)} | ${singleLine(version.whatsNew)} |`);
+  }
+
+  const appStoreVersions = new Set(versions.map((version) => version.version));
+  const testFlightOnly = testFlightOnlyVersions(sortedBuilds, appStoreVersions);
+  if (testFlightOnly.length > 0) {
+    lines.push("");
+    lines.push("## TestFlight-Only Versions");
+    lines.push("");
+    lines.push("These versions have processed builds but no App Store version record.");
+    lines.push("");
+    lines.push("| Version | Builds | First Upload | Last Upload |");
+    lines.push("| --- | ---: | --- | --- |");
+    for (const version of testFlightOnly) {
+      lines.push(`| ${version.version} | ${version.count} | ${version.firstUpload || ""} | ${version.lastUpload || ""} |`);
+    }
   }
 
   lines.push("");
@@ -475,31 +562,36 @@ function backfill() {
   lines.push("| Version | Build | Uploaded | Processing State | Expired | Matched Git Commit |");
   lines.push("| --- | --- | --- | --- | --- | --- |");
 
-  const sortedBuilds = sortBuilds(builds);
   for (const build of sortedBuilds) {
-    const matched = findSnapshot(snapshots, build.version, build.buildNumber);
+    const matched = buildMatches.get(buildKey(build));
     lines.push(`| ${build.version || ""} | ${build.buildNumber || ""} | ${build.uploadedDate || ""} | ${build.processingState || ""} | ${build.expired ?? ""} | ${formatSnapshot(matched)} |`);
   }
 
   lines.push("");
-  lines.push("## Correlated Commits");
+  lines.push("## Release Commits");
 
   let previousCommit;
-  for (const build of sortedBuilds) {
-    const matched = findSnapshot(snapshots, build.version, build.buildNumber);
+  for (const version of sortVersions(versions)) {
+    const build = attachedBuildForVersion(version, sortedBuilds);
+    if (!build) continue;
+    const matched = buildMatches.get(buildKey(build));
     if (!matched) continue;
 
     lines.push("");
-    lines.push(`### ${build.version || matched.marketingVersion} (${build.buildNumber || matched.buildNumber})`);
+    lines.push(`### ${version.version} (${version.buildNumber})`);
     lines.push("");
-    lines.push(`Matched ${matched.shortSha} from ${matched.date}: ${matched.subject}`);
+    lines.push(`Matched ${matched.shortSha} from ${matched.date}: ${matched.subject} [${matched.source}]`);
     lines.push("");
 
-    const commits = commitsBetween(previousCommit, matched.sha);
-    if (commits.length === 0) {
-      lines.push("No commits found in this range.");
+    if (!previousCommit) {
+      lines.push("No prior reliably correlated release commit; commit range omitted.");
     } else {
-      for (const commit of commits) lines.push(`- ${commit}`);
+      const commits = commitsBetween(previousCommit, matched.sha);
+      if (commits.length === 0) {
+        lines.push("No commits found in this range.");
+      } else {
+        for (const commit of commits) lines.push(`- ${commit}`);
+      }
     }
 
     previousCommit = matched.sha;
@@ -508,6 +600,17 @@ function backfill() {
   lines.push("");
   writeFileSync(path.join(rootDir, config.releaseHistoryPath), `${lines.join("\n")}\n`);
   console.log(`Wrote ${config.releaseHistoryPath}.`);
+}
+
+function attachedBuildForVersion(version, builds) {
+  if (!version.buildNumber) return undefined;
+
+  const candidates = builds.filter(
+    (build) => String(build.buildNumber) === String(version.buildNumber)
+  );
+  if (candidates.length === 1) return candidates[0];
+
+  return candidates.find((build) => build.version === version.version);
 }
 
 function ascJson(commandArgs) {
@@ -550,22 +653,32 @@ function asArray(payload) {
 
 function normalizeVersion(item) {
   return {
+    id: item?.id,
     version: attr(item, "versionString") || attr(item, "version"),
     state: attr(item, "appStoreState") || attr(item, "state"),
     createdDate: dateOnly(attr(item, "createdDate") || attr(item, "createdAt")),
-    releaseDate: dateOnly(attr(item, "releaseDate") || attr(item, "releasedDate")),
   };
 }
 
-function normalizeBuild(item) {
+function normalizeBuild(item, preReleaseVersions = new Map()) {
+  const preReleaseVersionId = item?.relationships?.preReleaseVersion?.data?.id;
   return {
     id: item?.id,
-    version: findBuildMarketingVersion(item),
+    version: preReleaseVersions.get(preReleaseVersionId) || findBuildMarketingVersion(item),
     buildNumber: findValue(item, ["buildNumber", "version"]),
     uploadedDate: dateOnly(findValue(item, ["uploadedDate", "uploadedAt", "createdDate"])),
     processingState: findValue(item, ["processingState"]),
     expired: findValue(item, ["expired"]),
   };
+}
+
+function preReleaseVersionLookup(payload) {
+  const versions = new Map();
+  for (const item of payload?.included || []) {
+    if (item?.type !== "preReleaseVersions") continue;
+    versions.set(item.id, attr(item, "version"));
+  }
+  return versions;
 }
 
 function findBuildMarketingVersion(item) {
@@ -616,18 +729,154 @@ function findValue(value, keys) {
   return undefined;
 }
 
-function fetchWhatsNew(version) {
-  const app = resolveAppRef();
+function fetchWhatsNew(versionId) {
   const result = run(
     ascBin,
-    ["apps", "info", "view", "--app", app, "--version", version, "--platform", config.platform, "--locale", config.locale, "--output", "json", "--pretty"],
+    ["localizations", "list", "--version", versionId, "--output", "json", "--pretty"],
     { allowFailure: true, env: ascEnv() }
   );
 
   if (result.status !== 0) return undefined;
 
   const payload = parseJson(result.stdout);
-  return findValue(payload, ["whatsNew", "whats_new"]);
+  const localization = asArray(payload).find((item) => attr(item, "locale") === config.locale);
+  return attr(localization, "whatsNew") || attr(localization, "whats_new");
+}
+
+function fetchAttachedBuildNumber(versionId) {
+  const result = run(
+    ascBin,
+    ["versions", "view", "--version-id", versionId, "--include-build", "--output", "json", "--pretty"],
+    { allowFailure: true, env: ascEnv() }
+  );
+  if (result.status !== 0) return undefined;
+
+  const payload = parseJson(result.stdout);
+  return payload.buildVersion || findValue(payload, ["buildVersion", "buildNumber"]);
+}
+
+function xcodeCloudBuildSnapshots() {
+  const snapshots = new Map();
+  if (!config.xcodeCloudWorkflowId) return snapshots;
+
+  const result = run(
+    ascBin,
+    [
+      "xcode-cloud", "build-runs", "list",
+      "--workflow-id", config.xcodeCloudWorkflowId,
+      "--sort", "number",
+      "--paginate",
+      "--output", "json",
+    ],
+    { allowFailure: true, env: ascEnv() }
+  );
+  if (result.status !== 0) return snapshots;
+
+  for (const item of asArray(parseJson(result.stdout))) {
+    const number = attr(item, "number");
+    const sourceCommit = attr(item, "sourceCommit");
+    const sha = sourceCommit?.commitSha;
+    if (number === undefined || !sha) continue;
+
+    snapshots.set(
+      String(number),
+      gitCommitMetadata(
+        sha,
+        dateOnly(attr(item, "createdDate")),
+        String(sourceCommit.message || "").split("\n")[0],
+        "Xcode Cloud"
+      )
+    );
+  }
+  return snapshots;
+}
+
+function gitReleaseTags() {
+  const snapshots = new Map();
+  const output = run("git", ["tag", "--list", `${config.gitTagPrefix}*`]).stdout.trim();
+  if (!output) return snapshots;
+
+  for (const tag of output.split("\n")) {
+    const suffix = tag.slice(config.gitTagPrefix.length);
+    const separator = suffix.lastIndexOf("+");
+    if (separator === -1) continue;
+
+    const version = suffix.slice(0, separator);
+    const buildNumber = suffix.slice(separator + 1);
+    const sha = run("git", ["rev-list", "-n", "1", tag], { allowFailure: true }).stdout.trim();
+    if (!sha) continue;
+    snapshots.set(
+      `${version}+${buildNumber}`,
+      gitCommitMetadata(sha, undefined, undefined, `release tag ${tag}`)
+    );
+  }
+  return snapshots;
+}
+
+function gitCommitMetadata(sha, fallbackDate, fallbackSubject, source) {
+  const result = run(
+    "git",
+    ["show", "-s", "--format=%H%x09%ad%x09%s", "--date=short", sha],
+    { allowFailure: true }
+  );
+  if (result.status === 0 && result.stdout.trim()) {
+    const [resolvedSha, date, ...subjectParts] = result.stdout.trim().split("\t");
+    return {
+      sha: resolvedSha,
+      shortSha: resolvedSha.slice(0, 7),
+      date,
+      subject: subjectParts.join("\t"),
+      source,
+    };
+  }
+
+  return {
+    sha,
+    shortSha: sha.slice(0, 7),
+    date: fallbackDate || "",
+    subject: fallbackSubject || "",
+    source,
+  };
+}
+
+function findBuildSnapshot(build, releaseTags, cloudBuilds, snapshots) {
+  const tagged = releaseTags.get(`${build.version}+${build.buildNumber}`);
+  if (tagged) return tagged;
+
+  const cloud = cloudBuilds.get(String(build.buildNumber));
+  if (cloud) return cloud;
+
+  const exact = snapshots.find(
+    (snapshot) => snapshot.marketingVersion === build.version
+      && String(snapshot.buildNumber) === String(build.buildNumber)
+  );
+  return exact ? { ...exact, source: "Xcode project snapshot" } : undefined;
+}
+
+function buildKey(build) {
+  return build.id || `${build.version || ""}+${build.buildNumber || ""}`;
+}
+
+function testFlightOnlyVersions(builds, appStoreVersions) {
+  const grouped = new Map();
+  for (const build of builds) {
+    if (!build.version || appStoreVersions.has(build.version)) continue;
+    const existing = grouped.get(build.version) || {
+      version: build.version,
+      count: 0,
+      firstUpload: undefined,
+      lastUpload: undefined,
+    };
+    existing.count += 1;
+    existing.firstUpload = existing.firstUpload
+      ? [existing.firstUpload, build.uploadedDate].filter(Boolean).sort()[0]
+      : build.uploadedDate;
+    existing.lastUpload = existing.lastUpload
+      ? [existing.lastUpload, build.uploadedDate].filter(Boolean).sort().at(-1)
+      : build.uploadedDate;
+    grouped.set(build.version, existing);
+  }
+  return [...grouped.values()].sort((left, right) => compareNullable(left.firstUpload, right.firstUpload));
 }
 
 function gitVersionSnapshots() {
@@ -655,6 +904,7 @@ function gitVersionSnapshots() {
         subject,
         marketingVersion,
         buildNumber,
+        source: "Xcode project snapshot",
       });
     }
 
@@ -662,14 +912,6 @@ function gitVersionSnapshots() {
   }
 
   return snapshots;
-}
-
-function findSnapshot(snapshots, version, buildNumber) {
-  const exact = snapshots.find((snapshot) => snapshot.marketingVersion === version && String(snapshot.buildNumber) === String(buildNumber));
-  if (exact) return exact;
-
-  const versionOnly = [...snapshots].reverse().find((snapshot) => snapshot.marketingVersion === version);
-  return versionOnly;
 }
 
 function commitsBetween(previousSha, sha) {
@@ -711,12 +953,18 @@ function singleLine(value) {
 }
 
 function formatSnapshot(snapshot) {
-  return snapshot ? `${snapshot.shortSha} (${snapshot.date})` : "";
+  if (!snapshot) return "";
+  const source = snapshot.source?.startsWith("release tag")
+    ? "tag"
+    : snapshot.source === "Xcode Cloud" ? "cloud" : "project";
+  return `${snapshot.shortSha} (${snapshot.date}; ${source})`;
 }
 
 function tagRelease() {
   const xcode = readXcodeSettings();
-  const tag = flagValue("--tag", `${config.gitTagPrefix}${xcode.marketingVersion}+${xcode.buildNumber}`);
+  const version = flagValue("--version", xcode.marketingVersion);
+  const buildNumber = flagValue("--build-number", xcode.buildNumber);
+  const tag = flagValue("--tag", `${config.gitTagPrefix}${version}+${buildNumber}`);
 
   if (!hasFlag("--confirm")) {
     console.log(`Dry run. Re-run with --confirm to create tag ${tag}.`);
@@ -735,7 +983,7 @@ function tagRelease() {
     return;
   }
 
-  run("git", ["tag", "-a", tag, "-m", `${config.appName} ${xcode.marketingVersion} (${xcode.buildNumber})`]);
+  run("git", ["tag", "-a", tag, "-m", `${config.appName} ${version} (${buildNumber})`]);
   console.log(`Created tag ${tag}.`);
 }
 
@@ -747,11 +995,13 @@ Commands:
   notes --from-git              Print notes from git commits since the latest release tag.
   notes --write-default         Write notes to ${config.nextReleaseNotesPath}.
   status                        Show local version/build and ASC release status.
-  next-build [--apply]          Ask ASC for the next build number and optionally update Xcode.
+  next-build [--apply]          Ask ASC/Xcode Cloud for the next build number and optionally update Xcode.
   sync-xcode-version            Sync Xcode MARKETING_VERSION from package.json.
   apply-notes [--confirm]       Apply generated notes to ASC metadata/TestFlight.
+  check                         Verify package, lockfile, Xcode, changelog, notes, and metadata agree.
   backfill                      Pull ASC versions/builds and correlate them with git commits.
   tag [--confirm]               Create a git release tag using ${config.gitTagPrefix}<version>+<build>.
+                                Override with --version and --build-number after Cloud processing.
 `);
 }
 
@@ -771,6 +1021,9 @@ try {
       break;
     case "apply-notes":
       applyNotes();
+      break;
+    case "check":
+      checkReleaseState();
       break;
     case "backfill":
       backfill();
