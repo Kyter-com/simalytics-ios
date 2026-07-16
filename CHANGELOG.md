@@ -1,12 +1,21 @@
 # @kyter/simalytics-ios
 
+## 1.0.15
+
+### Patch Changes
+
+- Updated the App Store presentation with clearer feature details and refreshed screenshots.
+
 ## 1.0.14
 
 ### Patch Changes
 
 - Updated app dependencies and kept OAuth callback URL details out of diagnostics.
+- Refreshed the Simalytics app icon for light, dark, and tinted appearances.
 
 ## 1.0.13
+
+TestFlight-only; superseded by 1.0.14 before App Store release.
 
 ### Patch Changes
 

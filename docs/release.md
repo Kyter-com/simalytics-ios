@@ -79,8 +79,13 @@ npm run version
 ```
 
 This writes `docs/next-release-notes.md` before Changesets consumes the pending changesets, so the exact notes can still be applied after the Apple build finishes processing.
+It also refreshes `package-lock.json`, syncs Xcode `MARKETING_VERSION`, and runs
+the local release consistency check. `package.json`, the lockfile, the Xcode
+marketing version, `CHANGELOG.md`, release notes, and canonical App Store
+metadata must all identify the same version.
 
-3. Ask ASC for the next build number and apply it to Xcode:
+3. Ask ASC for the next configured Xcode Cloud workflow build number and apply
+   it to Xcode:
 
 ```sh
 op run --env-file <private-asc-env> -- npm run release:next-build -- --apply
@@ -94,10 +99,30 @@ op run --env-file <private-asc-env> -- npm run release:next-build -- --apply
 op run --env-file <private-asc-env> -- npm run release:apply-notes -- --target both --confirm
 ```
 
-6. Tag the exact git commit that produced the Apple build:
+Keep the canonical storefront copy in `marketing/app-store-metadata/` aligned
+with the screenshots. Before applying copy changes, run `asc metadata plan` and
+review the generated artifact; screenshots, age ratings, categories,
+accessibility declarations, privacy labels, and copyright remain separate ASC
+workflows.
+
+Keep `marketing/app-store-privacy/privacy.json` aligned with the app, its
+third-party SDK manifests, the Kyter API, and Simkl data flows. Use `asc web
+privacy plan`, review the exact additions and removals, then run `apply` and the
+separate explicit `publish` command. Confirm the final state with `privacy pull`.
+
+Run the same consistency check independently with:
+
+```sh
+npm run release:check
+```
+
+6. Tag the exact git commit that produced the Apple build. If the processed
+   Cloud build differs from the staged setting, pass its actual number with
+   `--build-number`:
 
 ```sh
 npm run release:tag -- --confirm
+# npm run release:tag -- --build-number <cloud-build-number> --confirm
 git push --tags
 ```
 
@@ -111,4 +136,8 @@ When ASC credentials are active, generate correlated Apple release history:
 op run --env-file <private-asc-env> -- npm run release:backfill
 ```
 
-This writes `docs/apple-release-history.md` from ASC versions/builds and git commits that changed Xcode version/build settings.
+This rewrites `docs/apple-release-history.md`; do not edit that generated file by
+hand. App Store version records and attached builds come from ASC. Exact release
+tags and Xcode Cloud source commits provide authoritative git correlation, with
+Xcode project snapshots used only as a historical fallback. Processed build
+trains without an App Store version record are listed as TestFlight-only.

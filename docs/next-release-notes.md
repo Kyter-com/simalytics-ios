@@ -1,1 +1,1 @@
-• Updated app dependencies and kept OAuth callback URL details out of diagnostics.
+• Updated the App Store presentation with clearer feature details and refreshed screenshots.

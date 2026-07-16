@@ -1,0 +1,8 @@
+{
+  "description": "Simalytics is a focused companion for Simkl that keeps your movies, TV shows, and anime organized in one place.\n\nTRACK YOUR LIBRARY\nBrowse your watching, completed, planned, on-hold, and dropped titles in clean lists or poster grids. Sort your collection and open rich detail pages for every title.\n\nSTAY ON TOP OF EPISODES\nSee upcoming episodes in one Up Next queue, keep track of your progress, and mark episodes watched without losing your place.\n\nDISCOVER MORE\nExplore trending movies, shows, and anime. Search the catalog, view ratings and cast details, and find where supported titles are available to watch.\n\nSYNC WITH SIMKL\nSign in with your Simkl account to sync watchlists, progress, and ratings across devices. Choose 5-star or 10-point ratings, blur episode images, or hide anime for a more focused view.\n\nSimalytics requires a Simkl account. Simalytics is an independent app and is not affiliated with or endorsed by Simkl.",
+  "keywords": "watchlist,tracker,shows,series,episodes,progress,ratings,discover,streaming,television,film,cinema",
+  "marketingUrl": "https://kyter.com/#simalytics",
+  "promotionalText": "Track every movie, show, and anime in your Simkl library, stay current with Up Next, and discover what to watch from one focused companion.",
+  "supportUrl": "https://github.com/Kyter-com/simalytics-ios/issues",
+  "whatsNew": "• Updated the App Store presentation with clearer feature details and refreshed screenshots."
+}
