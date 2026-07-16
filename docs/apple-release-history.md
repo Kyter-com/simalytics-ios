@@ -1,6 +1,6 @@
 # Apple Release History
 
-Generated from App Store Connect and git on 2026-07-15T14:28:33.226Z.
+Generated from App Store Connect and git on 2026-07-16T01:46:07.886Z.
 
 ASC is the source of truth for Apple versions and builds. Release tags and Xcode Cloud source commits are authoritative for git correlation; Xcode project snapshots are used only as a historical fallback.
 
@@ -24,7 +24,7 @@ The Created column is the App Store version-record creation date. Apple does not
 | 1.0.11 | READY_FOR_SALE | 2026-05-22 | 117 | 7973fba (2026-06-03; project) | • Adds per-screen list/grid toggles for Movies, TV, Anime, Up Next, and Search Results. • Expands Explore “See All” into full trending grids with year labels, plus cleaner poster-grid alignment. • Hardens Simkl sync and mark-as-watched flows so Up Next updates more consistently, anime episodes mark correctly, and API failures are easier to recover from. • Fixes an image-cache crash seen while switching layouts and improves auth error reporting. |
 | 1.0.12 | READY_FOR_SALE | 2026-07-03 | 122 | e033dbb (2026-07-03; tag) | • Restored the parallax banner and refined spacing on title detail pages • Re-centered the detail action controls and tidied poster and info layout • Made the Where to Watch section more reliable • Hardened Simkl requests and media views for smoother, more consistent loading |
 | 1.0.14 | READY_FOR_SALE | 2026-07-09 | 129 | b701890 (2026-07-13; tag) | • Updated app dependencies and kept OAuth callback URL details out of diagnostics. |
-| 1.0.15 | PREPARE_FOR_SUBMISSION | 2026-07-14 |  |  | • Updated the App Store presentation with clearer feature details and refreshed screenshots. |
+| 1.0.15 | PREPARE_FOR_SUBMISSION | 2026-07-14 | 131 | f37542b (2026-07-15; tag) | • Updated the App Store presentation with clearer feature details and refreshed screenshots. |
 
 ## TestFlight-Only Versions
 
@@ -141,6 +141,7 @@ These versions have processed builds but no App Store version record.
 | 1.0.14 | 128 | 2026-07-12 | VALID |  | abc228a (2026-07-12; cloud) |
 | 1.0.14 | 129 | 2026-07-13 | VALID |  | b701890 (2026-07-13; tag) |
 | 1.0.14 | 130 | 2026-07-14 | VALID |  | dffd478 (2026-07-14; cloud) |
+| 1.0.15 | 131 | 2026-07-15 | VALID |  | f37542b (2026-07-15; tag) |
 
 ## Release Commits
 
@@ -176,4 +177,11 @@ Matched b701890 from 2026-07-13: chore(marketing): add public-domain App Store s
 - chore: sync 1.0.14 build number
 - icon
 - chore(marketing): add public-domain App Store screenshot pipeline (#30)
+
+### 1.0.15 (131)
+
+Matched f37542b from 2026-07-15: chore: stage App Store 1.0.15 release (#32) [release tag simalytics-ios@1.0.15+131]
+
+- chore(marketing): add movie-detail screenshot slide and color PD posters (#31)
+- chore: stage App Store 1.0.15 release (#32)
 
