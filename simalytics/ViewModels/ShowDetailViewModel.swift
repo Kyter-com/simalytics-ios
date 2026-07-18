@@ -23,7 +23,9 @@ extension ShowDetailView {
       let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
-      if String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) == "[]" {
+      if String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        == "[]"
+      {
         return nil
       }
 
@@ -37,13 +39,17 @@ extension ShowDetailView {
   // Batched variant for callers (e.g. up-next sync) that need watched data
   // for many shows at once. Thin wrapper around the shared helper so the
   // call site stays clean and TV/anime behaviour can't drift apart.
-  static func getShowWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async -> SimklWatchedBatch<ShowWatchlistModel> {
+  static func getShowWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async
+    -> SimklWatchedBatch<ShowWatchlistModel>
+  {
     await simklWatchedBatch(simklIDs: simklIDs, type: "show", accessToken: accessToken)
   }
 
-  static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async -> ShowWatchlistModel? {
+  static func getShowWatchlist(_ simkl_id: Int, _ accessToken: String) async -> ShowWatchlistModel?
+  {
     do {
-      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
+      let urlComponents = URLComponents(
+        string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -55,7 +61,16 @@ extension ShowDetailView {
       let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
 
-      return try JSONDecoder().decode([ShowWatchlistModel].self, from: data).first
+      let decoded = try decodeSimklWatchedResponse(ShowWatchlistModel.self, from: data)
+      if decoded.malformedItemCount > 0 {
+        reportSimklWatchedSchemaIssue(
+          type: "show",
+          malformedItemCount: decoded.malformedItemCount,
+          responseItemCount: decoded.items.count + decoded.terminalRejectionCount
+            + decoded.malformedItemCount
+        )
+      }
+      return decoded.items.first
     } catch {
       reportError(error)
       return nil
@@ -63,7 +78,21 @@ extension ShowDetailView {
   }
 
   @discardableResult
-  static func markEpisodeUnwatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async -> String? {
+  static func markEpisodeUnwatched(
+    _ accessToken: String,
+    _ title: String,
+    _ simklId: Int,
+    _ season: Int,
+    _ episode: Int
+  ) async -> SimklMutationResult {
+    guard simklId > 0,
+      let selection = validatedSimklEpisode(season: season, episode: episode)
+    else {
+      let error = SimklMutationError.invalidEpisode
+      reportError(error)
+      return .failed(userMessage: simklMutationUserMessage(for: error))
+    }
+
     do {
       let url = URL(string: "https://api.simkl.com/sync/history/remove")!
       var request = URLRequest(url: url)
@@ -81,10 +110,10 @@ extension ShowDetailView {
             ],
             "seasons": [
               [
-                "number": season,
+                "number": selection.season,
                 "episodes": [
                   [
-                    "number": episode
+                    "number": selection.episode
                   ]
                 ],
               ]
@@ -94,16 +123,30 @@ extension ShowDetailView {
       ]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       try await performSimklMutationRequest(request)
-      return nil
+      return .succeeded
     } catch {
-      if isSimklCancellationError(error) { return nil }
+      if isSimklCancellationError(error) { return .cancelled }
       reportError(error)
-      return simklMutationUserMessage(for: error)
+      return .failed(userMessage: simklMutationUserMessage(for: error))
     }
   }
 
   @discardableResult
-  static func markEpisodeWatched(_ accessToken: String, _ title: String, _ simklId: Int, _ season: Int, _ episode: Int) async -> String? {
+  static func markEpisodeWatched(
+    _ accessToken: String,
+    _ title: String,
+    _ simklId: Int,
+    _ season: Int,
+    _ episode: Int
+  ) async -> SimklMutationResult {
+    guard simklId > 0,
+      let selection = validatedSimklEpisode(season: season, episode: episode)
+    else {
+      let error = SimklMutationError.invalidEpisode
+      reportError(error)
+      return .failed(userMessage: simklMutationUserMessage(for: error))
+    }
+
     do {
       let url = URL(string: "https://api.simkl.com/sync/history")!
       var request = URLRequest(url: url)
@@ -123,10 +166,10 @@ extension ShowDetailView {
             ],
             "seasons": [
               [
-                "number": season,
+                "number": selection.season,
                 "episodes": [
                   [
-                    "number": episode,
+                    "number": selection.episode,
                     "watched_at": dateString,
                   ]
                 ],
@@ -137,11 +180,11 @@ extension ShowDetailView {
       ]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
       try await performSimklMutationRequest(request)
-      return nil
+      return .succeeded
     } catch {
-      if isSimklCancellationError(error) { return nil }
+      if isSimklCancellationError(error) { return .cancelled }
       reportError(error)
-      return simklMutationUserMessage(for: error)
+      return .failed(userMessage: simklMutationUserMessage(for: error))
     }
   }
 
@@ -191,7 +234,9 @@ extension ShowDetailView {
 }
 
 extension ShowWatchlistButton {
-  static func updateShowList(_ simkl_id: Int, _ accessToken: String, _ list: String) async -> String? {
+  static func updateShowList(_ simkl_id: Int, _ accessToken: String, _ list: String) async
+    -> String?
+  {
     do {
       if list == "nil" {
         let urlComponents = URLComponents(string: "https://api.simkl.com/sync/history/remove")!

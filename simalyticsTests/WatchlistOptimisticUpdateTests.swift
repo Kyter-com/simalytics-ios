@@ -12,7 +12,7 @@
 
 import Testing
 
-@testable import simalytics
+@testable import Simalytics
 
 @Suite("Watchlist optimistic update")
 struct WatchlistOptimisticUpdateTests {
@@ -31,7 +31,8 @@ struct WatchlistOptimisticUpdateTests {
         eps[epIdx].watched = watched
       } else {
         eps.append(
-          WatchlistEpisode(number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
+          WatchlistEpisode(
+            number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
         )
       }
       s.episodes = eps

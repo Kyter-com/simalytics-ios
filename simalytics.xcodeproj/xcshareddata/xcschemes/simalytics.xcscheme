@@ -41,17 +41,6 @@
                ReferencedContainer = "container:simalytics.xcodeproj">
             </BuildableReference>
          </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "3427C3042D6D20C70064B137"
-               BuildableName = "simalyticsUITests.xctest"
-               BlueprintName = "simalyticsUITests"
-               ReferencedContainer = "container:simalytics.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

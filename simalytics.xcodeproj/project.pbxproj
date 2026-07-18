@@ -12,14 +12,30 @@
 		7CB91517D96B46F0B1618000 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 910C0B921C474ACE9F4A7C1B /* Sentry */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		3427C2FC2D6D20C70064B137 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3427C2E22D6D20C60064B137 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3427C2E92D6D20C60064B137;
+			remoteInfo = simalytics;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		3427C2EA2D6D20C60064B137 /* Simalytics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Simalytics.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3427C2FB2D6D20C70064B137 /* simalyticsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = simalyticsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3427C2EC2D6D20C60064B137 /* simalytics */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = simalytics;
+			sourceTree = "<group>";
+		};
+		3427C2FE2D6D20C70064B137 /* simalyticsTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = simalyticsTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -35,6 +51,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3427C2F82D6D20C70064B137 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -42,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				3427C2EC2D6D20C60064B137 /* simalytics */,
+				3427C2FE2D6D20C70064B137 /* simalyticsTests */,
 				3427C2EB2D6D20C60064B137 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -50,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				3427C2EA2D6D20C60064B137 /* Simalytics.app */,
+				3427C2FB2D6D20C70064B137 /* simalyticsTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +108,29 @@
 			productReference = 3427C2EA2D6D20C60064B137 /* Simalytics.app */;
 			productType = "com.apple.product-type.application";
 		};
+		3427C2FA2D6D20C70064B137 /* simalyticsTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3427C3122D6D20C70064B137 /* Build configuration list for PBXNativeTarget "simalyticsTests" */;
+			buildPhases = (
+				3427C2F72D6D20C70064B137 /* Sources */,
+				3427C2F82D6D20C70064B137 /* Frameworks */,
+				3427C2F92D6D20C70064B137 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3427C2FD2D6D20C70064B137 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				3427C2FE2D6D20C70064B137 /* simalyticsTests */,
+			);
+			name = simalyticsTests;
+			packageProductDependencies = (
+			);
+			productName = simalyticsTests;
+			productReference = 3427C2FB2D6D20C70064B137 /* simalyticsTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -95,6 +143,10 @@
 				TargetAttributes = {
 					3427C2E92D6D20C60064B137 = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					3427C2FA2D6D20C70064B137 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 3427C2E92D6D20C60064B137;
 					};
 				};
 			};
@@ -118,12 +170,20 @@
 			projectRoot = "";
 			targets = (
 				3427C2E92D6D20C60064B137 /* simalytics */,
+				3427C2FA2D6D20C70064B137 /* simalyticsTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		3427C2E82D6D20C60064B137 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3427C2F92D6D20C70064B137 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -192,7 +252,22 @@ fi
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3427C2F72D6D20C70064B137 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3427C2FD2D6D20C70064B137 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3427C2E92D6D20C60064B137 /* simalytics */;
+			targetProxy = 3427C2FC2D6D20C70064B137 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		3427C30D2D6D20C70064B137 /* Debug */ = {
@@ -423,6 +498,52 @@ fi
 			};
 			name = Release;
 		};
+		3427C3132D6D20C70064B137 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 131;
+				DEVELOPMENT_TEAM = W2W286Y75F;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyter.simalyticsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Simalytics.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Simalytics";
+				XROS_DEPLOYMENT_TARGET = 1.0;
+			};
+			name = Debug;
+		};
+		3427C3142D6D20C70064B137 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 131;
+				DEVELOPMENT_TEAM = W2W286Y75F;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyter.simalyticsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Simalytics.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Simalytics";
+				XROS_DEPLOYMENT_TARGET = 1.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -440,6 +561,15 @@ fi
 			buildConfigurations = (
 				3427C3102D6D20C70064B137 /* Debug */,
 				3427C3112D6D20C70064B137 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3427C3122D6D20C70064B137 /* Build configuration list for PBXNativeTarget "simalyticsTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3427C3132D6D20C70064B137 /* Debug */,
+				3427C3142D6D20C70064B137 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

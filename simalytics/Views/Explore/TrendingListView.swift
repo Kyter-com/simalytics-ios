@@ -43,16 +43,41 @@ struct TrendingListView: View {
   @State private var movies: [V1.TrendingMovies] = []
   @State private var shows: [V1.TrendingShows] = []
   @State private var animes: [V1.TrendingAnimes] = []
+  @State private var localSnapshots = LocalMediaSnapshots()
+
+  private var localSnapshotRequest: LocalMediaSnapshots.Request {
+    switch category {
+    case .movies:
+      LocalMediaSnapshots.Request(movieIDs: movies.map(\.simkl))
+    case .tv:
+      LocalMediaSnapshots.Request(showIDs: shows.map(\.simkl))
+    case .anime:
+      LocalMediaSnapshots.Request(animeIDs: animes.map(\.simkl))
+    }
+  }
+
+  private func refreshLocalSnapshots() {
+    localSnapshots = LocalMediaSnapshots.fetch(localSnapshotRequest, context: context)
+  }
 
   private func fetchData() {
     do {
       switch category {
       case .movies:
-        movies = try context.fetch(FetchDescriptor<V1.TrendingMovies>(sortBy: [SortDescriptor(\V1.TrendingMovies.order, order: .forward)]))
+        movies = try context.fetch(
+          FetchDescriptor<V1.TrendingMovies>(sortBy: [
+            SortDescriptor(\V1.TrendingMovies.order, order: .forward)
+          ]))
       case .tv:
-        shows = try context.fetch(FetchDescriptor<V1.TrendingShows>(sortBy: [SortDescriptor(\V1.TrendingShows.order, order: .forward)]))
+        shows = try context.fetch(
+          FetchDescriptor<V1.TrendingShows>(sortBy: [
+            SortDescriptor(\V1.TrendingShows.order, order: .forward)
+          ]))
       case .anime:
-        animes = try context.fetch(FetchDescriptor<V1.TrendingAnimes>(sortBy: [SortDescriptor(\V1.TrendingAnimes.order, order: .forward)]))
+        animes = try context.fetch(
+          FetchDescriptor<V1.TrendingAnimes>(sortBy: [
+            SortDescriptor(\V1.TrendingAnimes.order, order: .forward)
+          ]))
       }
     } catch {
       // Leave empty on failure; grid will just show no items.
@@ -87,7 +112,7 @@ struct TrendingListView: View {
       year: year,
       poster: poster,
       mediaType: category.mediaType,
-      localData: LocalDataLookup.lookup(simklId: simkl, mediaType: category.mediaType, context: context)
+      localData: localSnapshots.data(simklID: simkl, mediaType: category.mediaType)
     )
   }
 
@@ -127,6 +152,13 @@ struct TrendingListView: View {
     }
     .navigationTitle(category.title)
     .navigationBarTitleDisplayMode(.inline)
-    .onAppear { fetchData() }
+    .task { fetchData() }
+    .task(id: localSnapshotRequest) {
+      refreshLocalSnapshots()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .localMediaSnapshotsDidChange)) { _ in
+      fetchData()
+      refreshLocalSnapshots()
+    }
   }
 }

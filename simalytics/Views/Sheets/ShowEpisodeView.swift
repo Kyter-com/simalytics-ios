@@ -17,13 +17,17 @@ struct ShowEpisodeView: View {
   @Binding var showWatchlist: ShowWatchlistModel?
   @Binding var showDetails: ShowDetailsModel?
   var simklId: Int
+  @State private var mutationCoordinator = EpisodeMutationCoordinator()
+  @State private var mutationTask: Task<Void, Never>?
 
   var body: some View {
-    let hasWatched = hasWatchedEpisode(season: episode?.season ?? -1, episode: episode?.episode ?? -1)
+    let hasWatched = hasWatchedEpisode(
+      season: episode?.season ?? -1, episode: episode?.episode ?? -1)
     VStack {
       HStack {
         CustomKFImage(
-          imageUrlString: episode?.img != nil ? "\(SIMKL_CDN_URL)/episodes/\(episode?.img! ?? "")_w.jpg" : nil,
+          imageUrlString: episode?.img != nil
+            ? "\(SIMKL_CDN_URL)/episodes/\(episode?.img! ?? "")_w.jpg" : nil,
           memoryCacheOnly: true,
           height: 70.42,
           width: 125
@@ -47,75 +51,29 @@ struct ShowEpisodeView: View {
       }
 
       if episode?.episode != nil && episode?.season != nil {
-        Button(action: {
-          Task {
-            guard let ep = episode,
-              let epNum = ep.episode,
-              let seasonNum = ep.season
-            else { return }
-
-            let willMarkWatched = !hasWatched
-
-            // Optimistic local update to the in-memory watchlist so the
-            // button flips immediately without waiting on the round-trip.
-            applyOptimisticWatchlistUpdate(
-              season: seasonNum, episode: epNum, watched: willMarkWatched)
-
-            if willMarkWatched {
-              optimisticallyClearNextToWatch(
-                simklId: simklId, season: seasonNum, episode: epNum,
-                kind: .tv, modelContainer: context.container)
-            }
-            invalidateUpNextCache(modelContainer: context.container)
-
-            let errorMessage: String?
-            if willMarkWatched {
-              errorMessage = await ShowDetailView.markEpisodeWatched(
-                auth.simklAccessToken,
-                showDetails?.title ?? "",
-                simklId,
-                seasonNum,
-                epNum
-              )
+        Button {
+          startMutation(hasWatched: hasWatched)
+        } label: {
+          Group {
+            if mutationCoordinator.isUpdating {
+              ProgressView()
+                .accessibilityLabel("Updating episode")
             } else {
-              errorMessage = await ShowDetailView.markEpisodeUnwatched(
-                auth.simklAccessToken,
-                showDetails?.title ?? "",
-                simklId,
-                seasonNum,
-                epNum
-              )
-            }
-
-            if errorMessage != nil {
-              // Revert optimistic UI change and resync from server.
-              applyOptimisticWatchlistUpdate(
-                season: seasonNum, episode: epNum, watched: !willMarkWatched)
-            }
-
-            await syncLatestActivities(
-              auth.simklAccessToken,
-              modelContainer: context.container,
-              forceRefresh: true
-            )
-
-            // Pull fresh server-side watched state for this show so the
-            // sheet and detail view both reflect the new truth.
-            if let refreshed = await ShowDetailView.getShowWatchlist(simklId, auth.simklAccessToken) {
-              showWatchlist = refreshed
+              Text(hasWatched ? "Watched" : "Watch")
             }
           }
-        }) {
-          Text(hasWatched ? "Watched" : "Watch")
-            .frame(maxWidth: .infinity)
-            .padding()
-            .bold()
-            .background(hasWatched ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
-            .foregroundStyle(
-              hasWatched ? colorScheme == .dark ? Color.green : Color.green.darker() : colorScheme == .dark ? Color.gray : Color.gray.darker()
-            )
-            .clipShape(.rect(cornerRadius: 8))
+          .frame(maxWidth: .infinity)
+          .padding()
+          .bold()
+          .background(hasWatched ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
+          .foregroundStyle(
+            hasWatched
+              ? colorScheme == .dark ? Color.green : Color.green.darker()
+              : colorScheme == .dark ? Color.gray : Color.gray.darker()
+          )
+          .clipShape(.rect(cornerRadius: 8))
         }
+        .disabled(mutationCoordinator.isUpdating)
       }
 
       if let description = episode?.description {
@@ -126,7 +84,73 @@ struct ShowEpisodeView: View {
       }
     }
     .padding([.leading, .trailing, .top])
+    .onDisappear {
+      mutationTask?.cancel()
+    }
     Spacer()
+  }
+
+  private func startMutation(hasWatched: Bool) {
+    guard mutationTask == nil,
+      let ep = episode,
+      let selection = validatedSimklEpisode(season: ep.season, episode: ep.episode)
+    else { return }
+
+    let originalWatchlist = showWatchlist
+    let willMarkWatched = !hasWatched
+    let accessToken = auth.simklAccessToken
+    let title = showDetails?.title ?? ""
+    let modelContainer = context.container
+
+    mutationTask = Task { @MainActor in
+      _ = await mutationCoordinator.run(
+        optimisticUpdate: {
+          applyOptimisticWatchlistUpdate(
+            season: selection.season,
+            episode: selection.episode,
+            watched: willMarkWatched
+          )
+          invalidateUpNextCache(modelContainer: modelContainer)
+        },
+        rollback: {
+          showWatchlist = originalWatchlist
+        },
+        mutation: {
+          if willMarkWatched {
+            await ShowDetailView.markEpisodeWatched(
+              accessToken, title, simklId, selection.season, selection.episode)
+          } else {
+            await ShowDetailView.markEpisodeUnwatched(
+              accessToken, title, simklId, selection.season, selection.episode)
+          }
+        },
+        commit: {
+          if willMarkWatched {
+            optimisticallyClearNextToWatch(
+              simklId: simklId,
+              season: selection.season,
+              episode: selection.episode,
+              kind: .tv,
+              modelContainer: modelContainer
+            )
+          }
+        },
+        reconcile: {
+          await syncLatestActivities(
+            accessToken,
+            modelContainer: modelContainer,
+            forceRefresh: true
+          )
+          guard !Task.isCancelled else { return }
+          if let refreshed = await ShowDetailView.getShowWatchlist(simklId, accessToken),
+            !Task.isCancelled
+          {
+            showWatchlist = refreshed
+          }
+        }
+      )
+      mutationTask = nil
+    }
   }
 
   func hasWatchedEpisode(season targetSeason: Int, episode targetEpisode: Int) -> Bool {
@@ -145,7 +169,9 @@ struct ShowEpisodeView: View {
   // Updates showWatchlist in place. Synthesizes the season / episode entry
   // if it isn't already in the /sync/watched response (which happens on a
   // show with no prior watched episodes — the original code silently no-op'd).
-  func applyOptimisticWatchlistUpdate(season targetSeason: Int, episode targetEpisode: Int, watched: Bool) {
+  func applyOptimisticWatchlistUpdate(
+    season targetSeason: Int, episode targetEpisode: Int, watched: Bool
+  ) {
     guard showWatchlist != nil else { return }
     var working = showWatchlist!
     var seasons = working.seasons ?? []
@@ -157,7 +183,8 @@ struct ShowEpisodeView: View {
         episodes[epIdx].watched = watched
       } else {
         episodes.append(
-          WatchlistEpisode(number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
+          WatchlistEpisode(
+            number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
         )
       }
       season.episodes = episodes

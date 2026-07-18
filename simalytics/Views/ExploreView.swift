@@ -23,12 +23,34 @@ struct ExploreView: View {
   @State private var searchText: String = ""
   @State private var searchCategory: SearchCategory = .all
   @State private var isSearchPresented = false
+  @State private var localSnapshots = LocalMediaSnapshots()
+
+  private var localSnapshotRequest: LocalMediaSnapshots.Request {
+    LocalMediaSnapshots.Request(
+      movieIDs: sdTrendingMovies.map(\.simkl),
+      showIDs: sdTrendingShows.map(\.simkl),
+      animeIDs: hideAnime ? [] : sdTrendingAnimes.map(\.simkl)
+    )
+  }
+
+  private func refreshLocalSnapshots() {
+    localSnapshots = LocalMediaSnapshots.fetch(localSnapshotRequest, context: context)
+  }
 
   private func fetchData() {
     do {
-      sdTrendingMovies = try context.fetch(FetchDescriptor<V1.TrendingMovies>(sortBy: [SortDescriptor(\V1.TrendingMovies.order, order: .forward)]))
-      sdTrendingShows = try context.fetch(FetchDescriptor<V1.TrendingShows>(sortBy: [SortDescriptor(\V1.TrendingShows.order, order: .forward)]))
-      sdTrendingAnimes = try context.fetch(FetchDescriptor<V1.TrendingAnimes>(sortBy: [SortDescriptor(\V1.TrendingAnimes.order, order: .forward)]))
+      sdTrendingMovies = try context.fetch(
+        FetchDescriptor<V1.TrendingMovies>(sortBy: [
+          SortDescriptor(\V1.TrendingMovies.order, order: .forward)
+        ]))
+      sdTrendingShows = try context.fetch(
+        FetchDescriptor<V1.TrendingShows>(sortBy: [
+          SortDescriptor(\V1.TrendingShows.order, order: .forward)
+        ]))
+      sdTrendingAnimes = try context.fetch(
+        FetchDescriptor<V1.TrendingAnimes>(sortBy: [
+          SortDescriptor(\V1.TrendingAnimes.order, order: .forward)
+        ]))
     } catch {
       sdTrendingMovies = []
       sdTrendingShows = []
@@ -89,7 +111,7 @@ struct ExploreView: View {
                             year: nil,
                             poster: showItem.poster,
                             mediaType: "tv",
-                            localData: LocalDataLookup.lookup(simklId: showItem.simkl, mediaType: "tv", context: context)
+                            localData: localSnapshots.data(simklID: showItem.simkl, mediaType: "tv")
                           )
                         }
                       }
@@ -136,7 +158,8 @@ struct ExploreView: View {
                             year: nil,
                             poster: movieItem.poster,
                             mediaType: "movie",
-                            localData: LocalDataLookup.lookup(simklId: movieItem.simkl, mediaType: "movie", context: context)
+                            localData: localSnapshots.data(
+                              simklID: movieItem.simkl, mediaType: "movie")
                           )
                         }
                       }
@@ -184,7 +207,8 @@ struct ExploreView: View {
                               year: nil,
                               poster: animeItem.poster,
                               mediaType: "anime",
-                              localData: LocalDataLookup.lookup(simklId: animeItem.simkl, mediaType: "anime", context: context)
+                              localData: localSnapshots.data(
+                                simklID: animeItem.simkl, mediaType: "anime")
                             )
                           }
                         }
@@ -212,8 +236,15 @@ struct ExploreView: View {
           }
         }
       }
-      .onAppear {
+      .task {
         fetchData()
+      }
+      .task(id: localSnapshotRequest) {
+        refreshLocalSnapshots()
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .localMediaSnapshotsDidChange)) { _ in
+        fetchData()
+        refreshLocalSnapshots()
       }
       .searchable(text: $searchText, isPresented: $isSearchPresented, placement: .automatic)
       .searchScopes($searchCategory) {

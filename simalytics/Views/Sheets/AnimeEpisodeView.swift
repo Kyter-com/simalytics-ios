@@ -17,13 +17,17 @@ struct AnimeEpisodeView: View {
   @Binding var animeWatchlist: AnimeWatchlistModel?
   @Binding var animeDetails: AnimeDetailsModel?
   var simklId: Int
+  @State private var mutationCoordinator = EpisodeMutationCoordinator()
+  @State private var mutationTask: Task<Void, Never>?
 
   var body: some View {
-    let hasWatched = hasWatchedEpisode(season: episode?.type == "special" ? 0 : 1, episode: episode?.episode ?? -1)
+    let hasWatched = hasWatchedEpisode(
+      season: episode?.type == "special" ? 0 : 1, episode: episode?.episode ?? -1)
     VStack {
       HStack {
         CustomKFImage(
-          imageUrlString: episode?.img != nil ? "\(SIMKL_CDN_URL)/episodes/\(episode?.img! ?? "")_w.jpg" : nil,
+          imageUrlString: episode?.img != nil
+            ? "\(SIMKL_CDN_URL)/episodes/\(episode?.img! ?? "")_w.jpg" : nil,
           memoryCacheOnly: true,
           height: 70.42,
           width: 125
@@ -47,67 +51,29 @@ struct AnimeEpisodeView: View {
       }
 
       if episode?.episode != nil && episode?.season != nil && episode?.season != 0 {
-        Button(action: {
-          Task {
-            guard let ep = episode, let epNum = ep.episode else { return }
-            let seasonNum = ep.type == "special" ? 0 : 1
-            let willMarkWatched = !hasWatched
-
-            applyOptimisticAnimeWatchlistUpdate(
-              season: seasonNum, episode: epNum, watched: willMarkWatched)
-
-            if willMarkWatched {
-              optimisticallyClearNextToWatch(
-                simklId: simklId, season: seasonNum, episode: epNum,
-                kind: .anime, modelContainer: context.container)
-            }
-            invalidateUpNextCache(modelContainer: context.container)
-
-            let errorMessage: String?
-            if willMarkWatched {
-              errorMessage = await AnimeDetailView.markEpisodeWatched(
-                auth.simklAccessToken,
-                animeDetails?.title ?? "",
-                simklId,
-                seasonNum,
-                epNum
-              )
+        Button {
+          startMutation(hasWatched: hasWatched)
+        } label: {
+          Group {
+            if mutationCoordinator.isUpdating {
+              ProgressView()
+                .accessibilityLabel("Updating episode")
             } else {
-              errorMessage = await AnimeDetailView.markEpisodeUnwatched(
-                auth.simklAccessToken,
-                animeDetails?.title ?? "",
-                simklId,
-                seasonNum,
-                epNum
-              )
-            }
-
-            if errorMessage != nil {
-              applyOptimisticAnimeWatchlistUpdate(
-                season: seasonNum, episode: epNum, watched: !willMarkWatched)
-            }
-
-            await syncLatestActivities(
-              auth.simklAccessToken,
-              modelContainer: context.container,
-              forceRefresh: true
-            )
-
-            if let refreshed = await AnimeDetailView.getAnimeWatchlist(simklId, auth.simklAccessToken) {
-              animeWatchlist = refreshed
+              Text(hasWatched ? "Watched" : "Watch")
             }
           }
-        }) {
-          Text(hasWatched ? "Watched" : "Watch")
-            .frame(maxWidth: .infinity)
-            .padding()
-            .bold()
-            .background(hasWatched ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
-            .foregroundStyle(
-              hasWatched ? colorScheme == .dark ? Color.green : Color.green.darker() : colorScheme == .dark ? Color.gray : Color.gray.darker()
-            )
-            .clipShape(.rect(cornerRadius: 8))
+          .frame(maxWidth: .infinity)
+          .padding()
+          .bold()
+          .background(hasWatched ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
+          .foregroundStyle(
+            hasWatched
+              ? colorScheme == .dark ? Color.green : Color.green.darker()
+              : colorScheme == .dark ? Color.gray : Color.gray.darker()
+          )
+          .clipShape(.rect(cornerRadius: 8))
         }
+        .disabled(mutationCoordinator.isUpdating)
       }
 
       if let description = episode?.description {
@@ -118,7 +84,75 @@ struct AnimeEpisodeView: View {
       }
     }
     .padding([.leading, .trailing, .top])
+    .onDisappear {
+      mutationTask?.cancel()
+    }
     Spacer()
+  }
+
+  private func startMutation(hasWatched: Bool) {
+    guard mutationTask == nil, let ep = episode,
+      let selection = validatedSimklEpisode(
+        season: ep.type == "special" ? 0 : 1,
+        episode: ep.episode
+      )
+    else { return }
+
+    let originalWatchlist = animeWatchlist
+    let willMarkWatched = !hasWatched
+    let accessToken = auth.simklAccessToken
+    let title = animeDetails?.title ?? ""
+    let modelContainer = context.container
+
+    mutationTask = Task { @MainActor in
+      _ = await mutationCoordinator.run(
+        optimisticUpdate: {
+          applyOptimisticAnimeWatchlistUpdate(
+            season: selection.season,
+            episode: selection.episode,
+            watched: willMarkWatched
+          )
+          invalidateUpNextCache(modelContainer: modelContainer)
+        },
+        rollback: {
+          animeWatchlist = originalWatchlist
+        },
+        mutation: {
+          if willMarkWatched {
+            await AnimeDetailView.markEpisodeWatched(
+              accessToken, title, simklId, selection.season, selection.episode)
+          } else {
+            await AnimeDetailView.markEpisodeUnwatched(
+              accessToken, title, simklId, selection.season, selection.episode)
+          }
+        },
+        commit: {
+          if willMarkWatched {
+            optimisticallyClearNextToWatch(
+              simklId: simklId,
+              season: selection.season,
+              episode: selection.episode,
+              kind: .anime,
+              modelContainer: modelContainer
+            )
+          }
+        },
+        reconcile: {
+          await syncLatestActivities(
+            accessToken,
+            modelContainer: modelContainer,
+            forceRefresh: true
+          )
+          guard !Task.isCancelled else { return }
+          if let refreshed = await AnimeDetailView.getAnimeWatchlist(simklId, accessToken),
+            !Task.isCancelled
+          {
+            animeWatchlist = refreshed
+          }
+        }
+      )
+      mutationTask = nil
+    }
   }
 
   func hasWatchedEpisode(season targetSeason: Int, episode targetEpisode: Int) -> Bool {
@@ -134,7 +168,9 @@ struct AnimeEpisodeView: View {
     return false
   }
 
-  func applyOptimisticAnimeWatchlistUpdate(season targetSeason: Int, episode targetEpisode: Int, watched: Bool) {
+  func applyOptimisticAnimeWatchlistUpdate(
+    season targetSeason: Int, episode targetEpisode: Int, watched: Bool
+  ) {
     guard animeWatchlist != nil else { return }
     var working = animeWatchlist!
     var seasons = working.seasons ?? []
@@ -146,7 +182,8 @@ struct AnimeEpisodeView: View {
         episodes[epIdx].watched = watched
       } else {
         episodes.append(
-          WatchlistEpisode(number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
+          WatchlistEpisode(
+            number: targetEpisode, watched: watched, aired: true, last_watched_at: nil)
         )
       }
       season.episodes = episodes
