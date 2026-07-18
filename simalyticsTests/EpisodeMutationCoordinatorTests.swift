@@ -40,7 +40,7 @@ struct EpisodeMutationCoordinatorTests {
     gate.open()
     #expect(await first.value == .succeeded)
     #expect(events.values == ["optimistic", "commit", "reconcile"])
-    #expect(!coordinator.isUpdating)
+    #expect(coordinator.isUpdating == false)
   }
 
   @Test("Failure rolls back once and reconciles once")
@@ -86,7 +86,7 @@ struct EpisodeMutationCoordinatorTests {
 
     #expect(await task.value == .cancelled)
     #expect(events.values == ["optimistic", "rollback"])
-    #expect(!coordinator.isUpdating)
+    #expect(coordinator.isUpdating == false)
   }
 }
 

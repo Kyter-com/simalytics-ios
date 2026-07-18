@@ -52,6 +52,23 @@ struct SimklWatchedBatchTests {
     #expect(response.malformedItemCount == 0)
   }
 
+  @Test(
+    "Not-in-watchlist item is terminal rather than malformed",
+    .bug("https://kyter.sentry.io/issues/7619519127/", "Valid result false response")
+  )
+  func notInWatchlistIsTerminalRejection() throws {
+    let response = try decode(
+      ShowWatchlistModel.self,
+      json: """
+        [{"ids":{"simkl":2032313},"result":false,"type":"show"}]
+        """
+    )
+
+    #expect(response.items.isEmpty)
+    #expect(response.terminalRejectionCount == 1)
+    #expect(response.malformedItemCount == 0)
+  }
+
   @Test("Malformed sibling cannot discard valid data")
   func mixedArrayPreservesValidSibling() throws {
     let response = try decode(

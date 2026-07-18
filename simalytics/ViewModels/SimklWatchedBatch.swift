@@ -52,7 +52,11 @@ private struct SimklWatchedResponseElement<T: Decodable>: Decodable {
       if container.contains(.result) {
         if let result = try? container.decode(Bool.self, forKey: .result) {
           guard result else {
-            disposition = .malformed
+            // Simkl documents `false` as a valid terminal response: the
+            // title exists, but it is not in the user's watchlist. Treat it
+            // like `not_found` so detail views return nil and batch syncs do
+            // not repeatedly retry an expected response.
+            disposition = hasIdentifier ? .terminalRejection : .malformed
             return
           }
         } else if let result = try? container.decode(String.self, forKey: .result) {

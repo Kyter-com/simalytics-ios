@@ -113,7 +113,7 @@ func performSimklRequest(_ request: URLRequest, retryCount: Int = 2) async throw
   Data, HTTPURLResponse
 ) {
   var attempt = 0
-  var retryDelayNanoseconds: UInt64 = 500_000_000
+  var retryDelay = Duration.milliseconds(500)
 
   while true {
     do {
@@ -135,8 +135,8 @@ func performSimklRequest(_ request: URLRequest, retryCount: Int = 2) async throw
         throw error
       }
 
-      try await Task.sleep(nanoseconds: retryDelayNanoseconds)
-      retryDelayNanoseconds *= 2
+      try await Task.sleep(for: retryDelay)
+      retryDelay += retryDelay
       attempt += 1
     }
   }

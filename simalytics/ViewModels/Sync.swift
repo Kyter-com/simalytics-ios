@@ -1479,16 +1479,21 @@ private func chunkedReleaseDateUpdates(
 }
 
 private func fetchMovieReleaseDateWithRetry(_ simklID: Int) async -> String? {
-  var retryDelayNanoseconds: UInt64 = 500_000_000
+  var retryDelay = Duration.milliseconds(500)
 
   for attempt in 0...releaseDateEnrichmentRetryCount {
+    guard !Task.isCancelled else { return nil }
     if let details = await MovieDetailView.getMovieDetails(simklID) {
       return normalizeReleaseDateString(details.released)
     }
 
     if attempt < releaseDateEnrichmentRetryCount {
-      try? await Task.sleep(nanoseconds: retryDelayNanoseconds)
-      retryDelayNanoseconds *= 2
+      do {
+        try await Task.sleep(for: retryDelay)
+      } catch {
+        return nil
+      }
+      retryDelay += retryDelay
     }
   }
 
@@ -1496,16 +1501,21 @@ private func fetchMovieReleaseDateWithRetry(_ simklID: Int) async -> String? {
 }
 
 private func fetchAnimeReleaseDateWithRetry(_ simklID: Int) async -> String? {
-  var retryDelayNanoseconds: UInt64 = 500_000_000
+  var retryDelay = Duration.milliseconds(500)
 
   for attempt in 0...releaseDateEnrichmentRetryCount {
+    guard !Task.isCancelled else { return nil }
     if let details = await AnimeDetailView.getAnimeDetails(simklID) {
       return normalizeReleaseDateString(details.first_aired)
     }
 
     if attempt < releaseDateEnrichmentRetryCount {
-      try? await Task.sleep(nanoseconds: retryDelayNanoseconds)
-      retryDelayNanoseconds *= 2
+      do {
+        try await Task.sleep(for: retryDelay)
+      } catch {
+        return nil
+      }
+      retryDelay += retryDelay
     }
   }
 
@@ -1513,16 +1523,21 @@ private func fetchAnimeReleaseDateWithRetry(_ simklID: Int) async -> String? {
 }
 
 private func fetchShowReleaseDateWithRetry(_ simklID: Int) async -> String? {
-  var retryDelayNanoseconds: UInt64 = 500_000_000
+  var retryDelay = Duration.milliseconds(500)
 
   for attempt in 0...releaseDateEnrichmentRetryCount {
+    guard !Task.isCancelled else { return nil }
     if let details = await ShowDetailView.getShowDetails(simklID) {
       return normalizeReleaseDateString(details.first_aired)
     }
 
     if attempt < releaseDateEnrichmentRetryCount {
-      try? await Task.sleep(nanoseconds: retryDelayNanoseconds)
-      retryDelayNanoseconds *= 2
+      do {
+        try await Task.sleep(for: retryDelay)
+      } catch {
+        return nil
+      }
+      retryDelay += retryDelay
     }
   }
 

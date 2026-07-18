@@ -13,7 +13,7 @@ struct SimklMutationRequestTests {
       isSimklCancellationError(
         NSError(domain: NSURLErrorDomain, code: URLError.cancelled.rawValue)
       ))
-    #expect(!isSimklCancellationError(URLError(.timedOut)))
+    #expect(isSimklCancellationError(URLError(.timedOut)) == false)
   }
 
   @Test(
@@ -40,12 +40,12 @@ struct SimklMutationRequestTests {
     let decoding = DecodingError.dataCorrupted(
       .init(codingPath: [], debugDescription: "contract mismatch")
     )
-    #expect(!isExpectedTransientNetworkError(decoding))
-    #expect(!isSimklCancellationError(decoding))
+    #expect(isExpectedTransientNetworkError(decoding) == false)
+    #expect(isSimklCancellationError(decoding) == false)
 
     let authentication = SimklMutationError.httpStatusCode(401, reason: nil)
-    #expect(!isExpectedTransientNetworkError(authentication))
-    #expect(!isSimklCancellationError(authentication))
+    #expect(isExpectedTransientNetworkError(authentication) == false)
+    #expect(isSimklCancellationError(authentication) == false)
   }
 
   @Test("Server reason retains only bounded safe categories")
@@ -59,8 +59,8 @@ struct SimklMutationRequestTests {
 
     #expect(reason.code == "invalid_episode")
     #expect(reason.message == "Episode selection was rejected.")
-    #expect(!String(describing: reason).contains("secret-value"))
-    #expect(!String(describing: reason).contains("private title"))
+    #expect(String(describing: reason).contains("secret-value") == false)
+    #expect(String(describing: reason).contains("private title") == false)
   }
 
   @Test("Unsafe server fields are discarded")

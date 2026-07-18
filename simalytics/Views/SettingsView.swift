@@ -323,7 +323,7 @@ struct SettingsView: View {
 
             Button(action: {
               if let url = URL(
-                string: "https://kyter.com/simalytics/privacy/")
+                string: "https://kyter.com/simalytics/privacy.html")
               {
                 UIApplication.shared.open(url)
               }
@@ -345,7 +345,7 @@ struct SettingsView: View {
 
             Button(action: {
               if let url = URL(
-                string: "https://kyter.com/simalytics/terms/")
+                string: "https://kyter.com/simalytics/terms.html")
               {
                 UIApplication.shared.open(url)
               }

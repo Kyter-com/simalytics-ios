@@ -4,5 +4,5 @@
   "marketingUrl": "https://kyter.com/#simalytics",
   "promotionalText": "Track every movie, show, and anime in your Simkl library, stay current with Up Next, and discover what to watch from one focused companion.",
   "supportUrl": "https://github.com/Kyter-com/simalytics-ios/issues",
-  "whatsNew": "• Updated the App Store presentation with clearer feature details and refreshed screenshots."
+  "whatsNew": "• Improved watch-history sync resilience, including titles that are not yet in your Simkl watchlist.\n• Prevented duplicate episode updates and made cancelled background refreshes stop promptly.\n• Reduced stalls while browsing image-heavy and preview-rich screens."
 }
