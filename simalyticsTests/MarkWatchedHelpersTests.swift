@@ -6,10 +6,11 @@
 //  invalidation used by the mark-watched flow.
 //
 
+import Foundation
 import SwiftData
 import Testing
 
-@testable import simalytics
+@testable import Simalytics
 
 @MainActor
 @Suite("MarkWatchedHelpers")

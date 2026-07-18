@@ -67,15 +67,42 @@ func syncLatestActivities(
   guard await syncLatestActivitiesGate.begin(forceRefresh: forceRefresh) else { return }
 
   while true {
+    let syncStartedAt = Date()
+    addSyncLifecycleBreadcrumb(message: "Sync started", forceRefresh: runForceRefresh)
     await runSyncLatestActivities(
       accessToken,
       modelContainer: modelContainer,
       forceRefresh: runForceRefresh
     )
+    addSyncLifecycleBreadcrumb(
+      message: Task.isCancelled ? "Sync cancelled" : "Sync completed",
+      forceRefresh: runForceRefresh,
+      duration: Date().timeIntervalSince(syncStartedAt)
+    )
 
     guard let nextForceRefresh = await syncLatestActivitiesGate.finishCurrentRun() else { break }
     runForceRefresh = nextForceRefresh
   }
+
+  await MainActor.run {
+    NotificationCenter.default.post(name: .localMediaSnapshotsDidChange, object: nil)
+  }
+}
+
+private func addSyncLifecycleBreadcrumb(
+  message: String,
+  forceRefresh: Bool,
+  duration: TimeInterval? = nil
+) {
+  let breadcrumb = Breadcrumb(level: .info, category: "sync.lifecycle")
+  breadcrumb.type = "debug"
+  breadcrumb.message = message
+  var data: [String: Any] = ["force_refresh": forceRefresh]
+  if let duration {
+    data["duration_ms"] = Int((duration * 1_000).rounded())
+  }
+  breadcrumb.data = data
+  SentrySDK.addBreadcrumb(breadcrumb)
 }
 
 private func runSyncLatestActivities(
@@ -1809,10 +1836,12 @@ func processUpNextEpisodes(
       }
     }
 
-    // Only stamp the 6h cache as fresh if every batch chunk succeeded.
-    // If a /sync/watched chunk failed (rate limit, auth, network), the
-    // affected shows/anime kept their previous next_to_watch_info — we
-    // need the next scheduled run to retry instead of skipping for 6h.
+    // Only stamp the 6h cache as fresh if every batch chunk succeeded and
+    // every non-terminal item decoded. Simkl's per-item `not_found` result
+    // is terminal for that stale ID, so it is skipped without blocking the
+    // stamp; otherwise every app-triggered sync would immediately retry the
+    // same unrecoverable record. It remains part of the normal six-hour
+    // batch, while transport or schema failures still keep the cache stale.
     if !showWatchedBatch.hadFailures && !animeWatchedBatch.hadFailures {
       syncRecord!.changes_api = now.ISO8601Format()
       shouldSave = true

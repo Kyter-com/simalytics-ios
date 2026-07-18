@@ -10,10 +10,11 @@
 //  during the May 2026 review).
 //
 
+import Foundation
 import SwiftData
 import Testing
 
-@testable import simalytics
+@testable import Simalytics
 
 @MainActor
 @Suite("processUpNextEpisodes — cache + sequencing")
@@ -45,7 +46,8 @@ struct ProcessUpNextCacheTests {
     let refreshed = try ModelContext(container).fetch(
       FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
     ).first
-    #expect(refreshed?.changes_api == nil, "changes_api must be the field invalidateUpNextCache nulls")
+    #expect(
+      refreshed?.changes_api == nil, "changes_api must be the field invalidateUpNextCache nulls")
   }
 
   @Test("Up Next mark-watched refuses missing or invalid episode numbers")

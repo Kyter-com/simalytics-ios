@@ -39,11 +39,17 @@ struct CustomKFImage: View {
 
   var body: some View {
     Group {
-      if let imageUrlString = imageUrlString, !imageUrlString.isEmpty, let url = URL(string: imageUrlString) {
-        let processorSize = CGSize(width: max(width * displayScale, 1), height: max(height * displayScale, 1))
+      if let imageUrlString = imageUrlString, !imageUrlString.isEmpty,
+        let url = URL(string: imageUrlString)
+      {
+        let processorSize = CGSize(
+          width: max(width * displayScale, 1), height: max(height * displayScale, 1))
         KFImage(url)
           .requestModifier(Self.bypassURLCache)
-          .fade(duration: 0.33)
+          // Do not add a per-cell fade here. Collection screens can complete
+          // many poster requests together, and Kingfisher implements fade by
+          // publishing each completion inside `withAnimation` on the main
+          // actor. The resulting SwiftUI graph-update burst caused IOS-10.
           .placeholder {
             ProgressView()
           }

@@ -17,9 +17,22 @@ struct SearchResultsView: View {
   @Environment(\.modelContext) private var context
   @State private var searchResults: [SearchResultModel] = []
   @State private var searchTask: Task<Void, Never>?
+  @State private var localSnapshots = LocalMediaSnapshots()
 
   private var visibleResults: [SearchResultModel] {
     searchResults.filter { !hideAnime || $0.endpoint_type != "anime" }
+  }
+
+  private var localSnapshotRequest: LocalMediaSnapshots.Request {
+    LocalMediaSnapshots.Request(
+      movieIDs: visibleResults.filter { $0.endpoint_type == "movies" }.map { $0.ids.simkl_id },
+      showIDs: visibleResults.filter { $0.endpoint_type == "tv" }.map { $0.ids.simkl_id },
+      animeIDs: visibleResults.filter { $0.endpoint_type == "anime" }.map { $0.ids.simkl_id }
+    )
+  }
+
+  private func refreshLocalSnapshots() {
+    localSnapshots = LocalMediaSnapshots.fetch(localSnapshotRequest, context: context)
   }
 
   @ViewBuilder
@@ -54,7 +67,7 @@ struct SearchResultsView: View {
       year: result.year,
       poster: result.poster,
       mediaType: mediaType,
-      localData: LocalDataLookup.lookup(simklId: result.ids.simkl_id, mediaType: mediaType, context: context)
+      localData: localSnapshots.data(simklID: result.ids.simkl_id, mediaType: mediaType)
     )
   }
 
@@ -114,6 +127,12 @@ struct SearchResultsView: View {
           .padding(.vertical, 8)
         }
       }
+    }
+    .task(id: localSnapshotRequest) {
+      refreshLocalSnapshots()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .localMediaSnapshotsDidChange)) { _ in
+      refreshLocalSnapshots()
     }
     .onChange(of: searchText) { _, newValue in
       SearchResultsView.debounceSearch(
