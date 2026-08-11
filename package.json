@@ -16,6 +16,6 @@
     "release:tag": "node scripts/release/ios-release.mjs tag"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.7"
+    "@changesets/cli": "^3.0.0"
   }
 }
