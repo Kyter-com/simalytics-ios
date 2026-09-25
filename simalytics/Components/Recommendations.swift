@@ -42,8 +42,7 @@ struct Recommendations: View {
                 ForEach(
                   visibleRecommendations, id: \.ids.simkl
                 ) { item in
-                  NavigationLink(
-                    destination: {
+                  MediaDetailLink(sourceID: "rec-\(item.ids.simkl)") {
                       let type = item.type
                       let id = item.ids.simkl
                       if type == "tv" {
@@ -53,8 +52,7 @@ struct Recommendations: View {
                       } else if type == "anime" {
                         AnimeDetailView(simkl_id: id)
                       }
-                    }
-                  ) {
+                  } label: {
                     VStack {
                       CustomKFImage(
                         imageUrlString: item.poster != nil

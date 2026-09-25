@@ -118,7 +118,9 @@ struct TrendingListView: View {
 
   @ViewBuilder
   private func cell(simkl: Int, title: String?, poster: String?, year: Int?) -> some View {
-    NavigationLink(destination: destinationView(simkl: simkl)) {
+    MediaDetailLink(sourceID: "trending-\(simkl)") {
+      destinationView(simkl: simkl)
+    } label: {
       PosterGridCell(title: title ?? "", poster: poster, year: year)
     }
     .buttonStyle(.plain)
