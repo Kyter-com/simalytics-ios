@@ -364,7 +364,9 @@ private struct ActorCreditCard: View {
   var body: some View {
     Group {
       if let destination = item.destination {
-        NavigationLink(destination: MediaDestinationView(destination: destination)) {
+        MediaDetailLink(sourceID: "credit-\(item.id)") {
+          MediaDestinationView(destination: destination)
+        } label: {
           cardContent
         }
         .buttonStyle(.plain)

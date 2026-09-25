@@ -232,7 +232,7 @@ struct ShowDetailView: View {
                 .bold()
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .background(.regularMaterial, in: .rect(cornerRadius: 8))
+                .glassBackground()
               }
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding([.leading, .trailing])
