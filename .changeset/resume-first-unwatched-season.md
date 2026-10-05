@@ -2,4 +2,4 @@
 "@kyter/simalytics-ios": patch
 ---
 
-Show detail now opens on the first season with unwatched episodes instead of always starting on season 1.
+Show and anime detail now open on the first season with unwatched episodes instead of always starting on season 1.

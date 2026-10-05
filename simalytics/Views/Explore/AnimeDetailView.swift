@@ -45,16 +45,8 @@ struct AnimeDetailView: View {
   }
 
   func hasWatchedEpisode(season targetSeason: Int, episode targetEpisode: Int) -> Bool {
-    guard let seasons = animeWatchlist?.seasons else { return false }
-    for season in seasons {
-      guard let episodes = season.episodes else { continue }
-      if episodes.contains(where: {
-        $0.number == targetEpisode && season.number == targetSeason && $0.watched == true
-      }) {
-        return true
-      }
-    }
-    return false
+    AnimeDetailView.isEpisodeWatched(
+      animeWatchlist, season: targetSeason, episode: targetEpisode)
   }
 
   var body: some View {
@@ -78,10 +70,13 @@ struct AnimeDetailView: View {
             KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
           }
 
-          // Setup initial filteredShows to Season 1 or Specials if nothing is aired yet
-          if !animeEpisodes.filter({ $0.season! == 1 }).isEmpty {
-            filteredEpisodes = animeEpisodes.filter({ $0.season == 1 })
-            selectedSeason = "Season 1"
+          // Setup initial filteredEpisodes to the first season with unwatched
+          // episodes, or Specials if nothing is aired yet
+          if let resumeSeason = AnimeDetailView.defaultSeason(
+            episodes: animeEpisodes, watchlist: animeWatchlist
+          ) {
+            filteredEpisodes = animeEpisodes.filter({ $0.season == resumeSeason })
+            selectedSeason = "Season \(resumeSeason)"
           } else if !animeEpisodes.filter({ $0.type == "special" }).isEmpty {
             filteredEpisodes = animeEpisodes.filter({ $0.type == "special" })
             selectedSeason = "Specials"
@@ -258,7 +253,7 @@ struct AnimeDetailView: View {
                           height: 70.42,
                           width: 125
                         )
-                        if blurImages && !hasWatchedEpisode(season: episode.type == "special" ? 0 : 1, episode: episode.episode ?? -1) {
+                        if blurImages && !hasWatchedEpisode(season: AnimeDetailView.watchlistSeason(for: episode), episode: episode.episode ?? -1) {
                           Rectangle()
                             .fill(Color.clear)
                             .frame(width: 125, height: 70.42)
@@ -267,8 +262,9 @@ struct AnimeDetailView: View {
                         }
                       }
                       if hasWatchedEpisode(
-                        season: episode.type == "special" ? 0 : 1, episode: episode.episode ?? -1)
-                      {
+                        season: AnimeDetailView.watchlistSeason(for: episode),
+                        episode: episode.episode ?? -1
+                      ) {
                         Image(systemName: "checkmark.circle")
                           .resizable()
                           .scaledToFit()
