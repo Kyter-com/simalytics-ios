@@ -45,16 +45,8 @@ struct ShowDetailView: View {
   }
 
   func hasWatchedEpisode(season targetSeason: Int, episode targetEpisode: Int) -> Bool {
-    guard let seasons = showWatchlist?.seasons else { return false }
-    for season in seasons {
-      guard let episodes = season.episodes else { continue }
-      if episodes.contains(where: {
-        $0.number == targetEpisode && season.number == targetSeason && $0.watched == true
-      }) {
-        return true
-      }
-    }
-    return false
+    ShowDetailView.isEpisodeWatched(
+      showWatchlist, season: targetSeason, episode: targetEpisode)
   }
 
   var body: some View {
@@ -74,9 +66,11 @@ struct ShowDetailView: View {
             KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
           }
 
-          if let smallestSeason = showEpisodes.filter({ $0.season ?? 0 > 0 }).map({ $0.season ?? 0 }).min() {
-            filteredEpisodes = showEpisodes.filter({ $0.season == smallestSeason })
-            selectedSeason = "Season \(smallestSeason)"
+          if let resumeSeason = ShowDetailView.defaultSeason(
+            episodes: showEpisodes, watchlist: showWatchlist
+          ) {
+            filteredEpisodes = showEpisodes.filter({ $0.season == resumeSeason })
+            selectedSeason = "Season \(resumeSeason)"
           } else if !showEpisodes.filter({ $0.type == "special" }).isEmpty {
             filteredEpisodes = showEpisodes.filter({ $0.type == "special" })
             selectedSeason = "Specials"
