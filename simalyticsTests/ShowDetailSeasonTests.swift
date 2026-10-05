@@ -135,4 +135,28 @@ struct ShowDetailSeasonTests {
     #expect(ShowDetailView.isEpisodeWatched(list, season: 1, episode: 4) == false)
     #expect(ShowDetailView.isEpisodeWatched(nil, season: 2, episode: 4) == false)
   }
+
+  @Test("Explicitly unwatched entries count as unwatched")
+  func explicitUnwatchedEntries() {
+    let season = WatchlistSeason(
+      number: 1,
+      episodes_total: nil,
+      episodes_aired: nil,
+      episodes_to_be_aired: nil,
+      episodes_watched: 0,
+      episodes: [
+        WatchlistEpisode(number: 1, watched: false, aired: true, last_watched_at: nil),
+        WatchlistEpisode(number: 2, watched: nil, aired: true, last_watched_at: nil),
+        WatchlistEpisode(number: nil, watched: true, aired: true, last_watched_at: nil),
+      ]
+    )
+    let list = watchlist(seasons: [season])
+    #expect(ShowDetailView.isEpisodeWatched(list, season: 1, episode: 1) == false)
+    #expect(ShowDetailView.isEpisodeWatched(list, season: 1, episode: 2) == false)
+    #expect(ShowDetailView.isEpisodeWatched(list, season: 1, episode: 3) == false)
+    // A number-less entry never matches, not even the nil-episode fallback.
+    #expect(ShowDetailView.isEpisodeWatched(list, season: 1, episode: -1) == false)
+    let episodes = [episode(season: 1, number: 1), episode(season: 1, number: 2)]
+    #expect(ShowDetailView.defaultSeason(episodes: episodes, watchlist: list) == 1)
+  }
 }

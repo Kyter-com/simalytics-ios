@@ -333,5 +333,4 @@ extension ShowWatchlistButton {
       return simklMutationUserMessage(for: error)
     }
   }
-
 }
