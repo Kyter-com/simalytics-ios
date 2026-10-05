@@ -5,6 +5,7 @@
 //  Created by Nick Reisenauer on 3/21/25.
 //
 
+import SwiftData
 import SwiftUI
 
 struct ShowWatchlistButton: View {

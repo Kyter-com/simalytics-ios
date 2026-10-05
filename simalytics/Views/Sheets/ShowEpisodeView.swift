@@ -5,6 +5,7 @@
 //  Created by Nick Reisenauer on 6/5/25.
 //
 
+import SwiftData
 import SwiftUI
 
 struct ShowEpisodeView: View {

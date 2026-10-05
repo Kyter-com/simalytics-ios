@@ -137,10 +137,14 @@ struct SettingsView: View {
             } else {
               Button("Sign Out") {
                 Task {
-                  let simpleKeychain = SimpleKeychain()
-                  try simpleKeychain.deleteItem(forKey: "simkl-access-token")
-                  auth.simklAccessToken = ""
-                  clearLocalSwiftData()
+                  do {
+                    let simpleKeychain = SimpleKeychain()
+                    try simpleKeychain.deleteItem(forKey: "simkl-access-token")
+                    auth.simklAccessToken = ""
+                    clearLocalSwiftData()
+                  } catch {
+                    reportError(error)
+                  }
                 }
               }
               .foregroundStyle(.red)
@@ -385,10 +389,14 @@ struct SettingsView: View {
             Section(header: Text("Data Management")) {
               Button(action: {
                 Task {
-                  let simpleKeychain = SimpleKeychain()
-                  try simpleKeychain.deleteItem(forKey: "simkl-access-token")
-                  auth.simklAccessToken = ""
-                  clearLocalSwiftData()
+                  do {
+                    let simpleKeychain = SimpleKeychain()
+                    try simpleKeychain.deleteItem(forKey: "simkl-access-token")
+                    auth.simklAccessToken = ""
+                    clearLocalSwiftData()
+                  } catch {
+                    reportError(error)
+                  }
                 }
               }) {
                 HStack {

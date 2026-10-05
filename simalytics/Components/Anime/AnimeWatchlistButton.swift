@@ -5,6 +5,7 @@
 //  Created by Nick Reisenauer on 3/31/25.
 //
 
+import SwiftData
 import SwiftUI
 
 struct AnimeWatchlistButton: View {
