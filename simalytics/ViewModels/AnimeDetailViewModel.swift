@@ -263,6 +263,58 @@ extension AnimeDetailView {
       return []
     }
   }
+
+  // Nonisolated: pure logic over Sendable models, and member isolation is
+  // otherwise inferred as @MainActor from the View conformance, which would
+  // trap background callers (e.g. tests).
+  nonisolated static func isEpisodeWatched(
+    _ watchlist: AnimeWatchlistModel?,
+    season targetSeason: Int,
+    episode targetEpisode: Int
+  ) -> Bool {
+    guard let seasons = watchlist?.seasons else { return false }
+    for season in seasons {
+      guard let episodes = season.episodes else { continue }
+      if episodes.contains(where: {
+        $0.number == targetEpisode && season.number == targetSeason && $0.watched == true
+      }) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /// Watchlist season for an anime episode row. Anime seasons are synthetic
+  /// display groups (see getAnimeEpisodes) while Simkl tracks episodes flat,
+  /// so checkmarks and resume selection both resolve through here.
+  nonisolated static func watchlistSeason(for episode: AnimeEpisodeModel) -> Int {
+    episode.type == "special" ? 0 : 1
+  }
+
+  /// Season the episode list should open on: the first numbered season
+  /// (ascending) with at least one unwatched episode, so returning viewers
+  /// land where they left off instead of on season 1. Falls back to the
+  /// last season when everything is watched, and to nil when there are no
+  /// numbered seasons (caller shows specials instead).
+  nonisolated static func defaultSeason(
+    episodes: [AnimeEpisodeModel],
+    watchlist: AnimeWatchlistModel?
+  ) -> Int? {
+    let numberedSeasons =
+      episodes
+      .compactMap { $0.season }
+      .filter { $0 > 0 }
+      .unique()
+      .sorted()
+    return
+      numberedSeasons.first { season in
+        episodes.contains {
+          $0.season == season
+            && !isEpisodeWatched(
+              watchlist, season: watchlistSeason(for: $0), episode: $0.episode ?? -1)
+        }
+      } ?? numberedSeasons.last
+  }
 }
 
 extension AnimeWatchlistButton {

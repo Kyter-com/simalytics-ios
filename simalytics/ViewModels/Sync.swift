@@ -97,11 +97,10 @@ private func addSyncLifecycleBreadcrumb(
   let breadcrumb = Breadcrumb(level: .info, category: "sync.lifecycle")
   breadcrumb.type = "debug"
   breadcrumb.message = message
-  var data: [String: Any] = ["force_refresh": forceRefresh]
+  breadcrumb.setData(value: forceRefresh, key: "force_refresh")
   if let duration {
-    data["duration_ms"] = Int((duration * 1_000).rounded())
+    breadcrumb.setData(value: Int((duration * 1_000).rounded()), key: "duration_ms")
   }
-  breadcrumb.data = data
   SentrySDK.addBreadcrumb(breadcrumb)
 }
 

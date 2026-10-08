@@ -3,7 +3,7 @@
   "version": "1.0.15",
   "private": true,
   "description": "Release notes and changelog tooling for Simalytics iOS.",
-  "packageManager": "npm@11.8.0",
+  "packageManager": "npm@11.21.0",
   "scripts": {
     "changeset": "changeset",
     "version": "node scripts/release/ios-release.mjs notes --write-default --allow-empty && changeset version && npm install --package-lock-only --ignore-scripts && node scripts/release/ios-release.mjs sync-xcode-version && node scripts/release/ios-release.mjs check",
@@ -16,6 +16,6 @@
     "release:tag": "node scripts/release/ios-release.mjs tag"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.7"
+    "@changesets/cli": "^3.0.3"
   }
 }
