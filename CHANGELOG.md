@@ -1,5 +1,11 @@
 # @kyter/simalytics-ios
 
+## 1.0.16
+
+### Patch Changes
+
+- Show and anime detail now open on the first season with unwatched episodes instead of always starting on season 1.
+
 ## 1.0.15
 
 ### Patch Changes
