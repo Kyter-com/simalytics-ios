@@ -140,7 +140,9 @@ struct AnimeListView: View {
         ScrollView {
           LazyVGrid(columns: posterGridColumns, spacing: 16) {
             ForEach(sortedAnimes, id: \.self) { anime in
-              NavigationLink(destination: AnimeDetailView(simkl_id: anime.simkl)) {
+              MediaDetailLink(sourceID: "anime-\(anime.simkl)") {
+                AnimeDetailView(simkl_id: anime.simkl)
+              } label: {
                 PosterGridCell(title: anime.title ?? "", poster: anime.poster, year: anime.year)
               }
               .buttonStyle(.plain)
@@ -156,7 +158,9 @@ struct AnimeListView: View {
         }
       } else {
         List(sortedAnimes, id: \.self) { anime in
-          NavigationLink(destination: AnimeDetailView(simkl_id: anime.simkl)) {
+          MediaDetailLink(sourceID: "anime-\(anime.simkl)") {
+            AnimeDetailView(simkl_id: anime.simkl)
+          } label: {
             HStack {
               CustomKFImage(
                 imageUrlString: anime.poster != nil

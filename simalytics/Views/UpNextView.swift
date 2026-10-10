@@ -137,7 +137,9 @@ struct UpNextView: View {
             ScrollView {
               LazyVGrid(columns: posterGridColumns, spacing: 16) {
                 ForEach(filteredMedia, id: \.simkl) { mediaItem in
-                  NavigationLink(destination: destinationView(for: mediaItem)) {
+                  MediaDetailLink(sourceID: "upnext-\(mediaItem.simkl)") {
+                    destinationView(for: mediaItem)
+                  } label: {
                     PosterGridCell(
                       title: mediaItem.title ?? "",
                       poster: mediaItem.poster,
@@ -145,6 +147,7 @@ struct UpNextView: View {
                     )
                   }
                   .buttonStyle(.plain)
+                  .upNextGridSwipe(item: mediaItem, markWatched: markWatched)
                   .contextMenu {
                     contextMenu(for: mediaItem)
                   } preview: {
@@ -157,7 +160,9 @@ struct UpNextView: View {
             }
           } else {
             List(filteredMedia, id: \.simkl) { mediaItem in
-              NavigationLink(destination: destinationView(for: mediaItem)) {
+              MediaDetailLink(sourceID: "upnext-\(mediaItem.simkl)") {
+                destinationView(for: mediaItem)
+              } label: {
                 HStack {
                   if let poster = mediaItem.poster {
                     CustomKFImage(
@@ -241,6 +246,41 @@ struct UpNextView: View {
     default:
       ShowDetailView(simkl_id: mediaItem.simkl)
     }
+  }
+}
+
+/// Swipe-to-mark-watched for Up Next poster-grid cells.
+///
+/// iOS 27 renders swipe actions on views outside List rows; earlier releases
+/// skip this modifier entirely, so the grid keeps its context menu + preview
+/// only. Mirrors the trailing "Watched" swipe already on the list rows.
+private struct UpNextGridSwipe: ViewModifier {
+  let item: any UpNextMedia
+  let markWatched: (any UpNextMedia) -> Void
+
+  func body(content: Content) -> some View {
+    Group {
+      if #available(iOS 27, *) {
+        content.swipeActions(edge: .trailing) {
+          Button {
+            markWatched(item)
+          } label: {
+            Label("Watched", systemImage: "checkmark.circle")
+          }
+          .tint(.green)
+        }
+      } else {
+        content
+      }
+    }
+  }
+}
+
+private extension View {
+  func upNextGridSwipe(
+    item: any UpNextMedia, markWatched: @escaping (any UpNextMedia) -> Void
+  ) -> some View {
+    modifier(UpNextGridSwipe(item: item, markWatched: markWatched))
   }
 }
 

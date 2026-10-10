@@ -63,8 +63,7 @@ struct YearOverlayTitle: View {
       .bold()
       .padding(.horizontal, 6)
       .padding(.vertical, 4)
-      .background(.regularMaterial)
-      .clipShape(.rect(cornerRadius: 6))
+      .glassBackground(cornerRadius: 6)
       .padding([.leading, .bottom], 6)
   }
 }

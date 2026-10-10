@@ -77,7 +77,9 @@ struct SearchResultsView: View {
         ContentUnavailableView("No Results", systemImage: "magnifyingglass")
       } else if layout == .list {
         List(visibleResults, id: \.ids.simkl_id) { result in
-          NavigationLink(destination: destinationView(for: result)) {
+          MediaDetailLink(sourceID: "search-\(result.ids.simkl_id)") {
+            destinationView(for: result)
+          } label: {
             HStack {
               CustomKFImage(
                 imageUrlString: result.poster != nil
@@ -112,7 +114,9 @@ struct SearchResultsView: View {
         ScrollView {
           LazyVGrid(columns: posterGridColumns, spacing: 16) {
             ForEach(visibleResults, id: \.ids.simkl_id) { result in
-              NavigationLink(destination: destinationView(for: result)) {
+              MediaDetailLink(sourceID: "search-\(result.ids.simkl_id)") {
+                destinationView(for: result)
+              } label: {
                 PosterGridCell(title: result.title, poster: result.poster, year: result.year)
               }
               .buttonStyle(.plain)

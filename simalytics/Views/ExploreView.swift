@@ -80,9 +80,9 @@ struct ExploreView: View {
                   ScrollView(.horizontal) {
                     HStack(spacing: 16) {
                       ForEach(sdTrendingShows, id: \.simkl) { showItem in
-                        NavigationLink(
-                          destination: ShowDetailView(simkl_id: showItem.simkl)
-                        ) {
+                        MediaDetailLink(sourceID: "show-\(showItem.simkl)") {
+                          ShowDetailView(simkl_id: showItem.simkl)
+                        } label: {
                           VStack {
                             CustomKFImage(
                               imageUrlString: showItem.poster != nil
@@ -127,9 +127,9 @@ struct ExploreView: View {
                   ScrollView(.horizontal) {
                     HStack(spacing: 16) {
                       ForEach(sdTrendingMovies, id: \.simkl) { movieItem in
-                        NavigationLink(
-                          destination: MovieDetailView(simkl_id: movieItem.simkl)
-                        ) {
+                        MediaDetailLink(sourceID: "movie-\(movieItem.simkl)") {
+                          MovieDetailView(simkl_id: movieItem.simkl)
+                        } label: {
                           VStack {
                             CustomKFImage(
                               imageUrlString: movieItem.poster != nil
@@ -176,9 +176,9 @@ struct ExploreView: View {
                     ScrollView(.horizontal) {
                       HStack(spacing: 16) {
                         ForEach(sdTrendingAnimes, id: \.simkl) { animeItem in
-                          NavigationLink(
-                            destination: AnimeDetailView(simkl_id: animeItem.simkl)
-                          ) {
+                          MediaDetailLink(sourceID: "anime-\(animeItem.simkl)") {
+                            AnimeDetailView(simkl_id: animeItem.simkl)
+                          } label: {
                             VStack {
                               CustomKFImage(
                                 imageUrlString: animeItem.poster != nil
