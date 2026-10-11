@@ -110,6 +110,7 @@ private func runSyncLatestActivities(
   forceRefresh: Bool = false
 ) async {
   ensureLastSyncRecord(modelContainer)
+  let syncStartedTimestamp = Date().ISO8601Format()
   do {
     let urlComponents = URLComponents(string: "https://api.simkl.com/sync/activities")!
     var request = URLRequest(url: urlComponents.url!)
@@ -117,8 +118,16 @@ private func runSyncLatestActivities(
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
+    let (data, _) = try await performSimklRequest(request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
+
+    let cacheContext = ModelContext(modelContainer)
+    let lastSync = try cacheContext.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
+    let refreshUpNext = forceRefresh || shouldRefreshUpNext(lastRefresh: lastSync?.changes_api)
+    var showsRefreshed = false
+    var animeRefreshed = false
 
     // Phase 1: every task that mutates SDLastSync(id: 1) runs sequentially.
     // Each function fetches the row, writes its own field, then saves the
@@ -130,8 +139,8 @@ private func runSyncLatestActivities(
     //
     // The `step` helper folds the repeated `accessToken + new context`
     // boilerplate so future edits only have to touch the per-bucket list
-    // below. processUpNextEpisodes is intentionally NOT in this stage —
-    // it reads SDShows/SDAnimes that these tasks are writing.
+    // below. Watching summaries also refresh on the six-hour catalog gate,
+    // since catalog corrections need not appear in a user-activity delta.
     func step(_ activity: String?, _ handler: (String, String?, ModelContext) async -> Void) async {
       await handler(accessToken, activity, ModelContext(modelContainer))
     }
@@ -146,7 +155,8 @@ private func runSyncLatestActivities(
     await step(result.tv_shows?.hold, fetchAndStoreTVHold)
     await step(result.tv_shows?.dropped, fetchAndStoreTVDropped)
     await step(result.tv_shows?.watching) { token, activity, ctx in
-      await fetchAndStoreTVWatching(token, activity, ctx, forceRefresh: forceRefresh)
+      showsRefreshed = await fetchAndStoreTVWatching(
+        token, activity, ctx, forceRefresh: refreshUpNext)
     }
     await step(result.tv_shows?.removed_from_list, fetchAndStoreTVRemovedFromList)
     await step(result.tv_shows?.rated_at, fetchAndStoreTVRatedAt)
@@ -157,7 +167,8 @@ private func runSyncLatestActivities(
     await step(result.anime?.rated_at, fetchAndStoreAnimeRatedAt)
     await step(result.anime?.removed_from_list, fetchAndStoreAnimeRemovedFromList)
     await step(result.anime?.watching) { token, activity, ctx in
-      await fetchAndStoreAnimeWatching(token, activity, ctx, forceRefresh: forceRefresh)
+      animeRefreshed = await fetchAndStoreAnimeWatching(
+        token, activity, ctx, forceRefresh: refreshUpNext)
     }
 
     // Trending (CDN) and stale-data refresh (per-id detail endpoints) also
@@ -167,9 +178,18 @@ private func runSyncLatestActivities(
     await syncLatestTrending(accessToken, ModelContext(modelContainer))
     await refreshStaleData(accessToken, ModelContext(modelContainer))
 
-    // Phase 2: now that SDShows/SDAnimes are populated, compute up next.
-    let upNextContext = ModelContext(modelContainer)
-    await processUpNextEpisodes(accessToken, upNextContext, forceRefresh: forceRefresh)
+    // Trust SIMKL's next_to_watch marker instead of rebuilding it from counts
+    // and catalog episodes. A nil marker clears old info through the upsert.
+    // Failed requests must not make stale data look fresh for six hours.
+    if refreshUpNext, showsRefreshed, animeRefreshed, !Task.isCancelled {
+      let context = ModelContext(modelContainer)
+      if let record = try context.fetch(
+        FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+      ).first {
+        record.changes_api = syncStartedTimestamp
+        try context.save()
+      }
+    }
 
     let releaseDateContext = ModelContext(modelContainer)
     await backfillMissingPlanToWatchReleaseDates(releaseDateContext)
@@ -178,7 +198,9 @@ private func runSyncLatestActivities(
   }
 }
 
-func fetchAndStoreMoviesPlanToWatch(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesPlanToWatch(
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -659,30 +681,36 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
   }
 }
 
+@discardableResult
 func fetchAndStoreTVWatching(
   _ accessToken: String,
   _ lastActivity: String?,
   _ context: ModelContext,
-  forceRefresh: Bool = false
-) async {
-  guard let lastActivity = lastActivity else { return }
+  forceRefresh: Bool = false,
+  session: URLSession = .shared
+) async -> Bool {
+  guard lastActivity != nil || forceRefresh else { return true }
   let formatter = ISO8601DateFormatter()
 
   do {
-    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
     if syncRecord == nil {
       syncRecord = V1.SDLastSync(id: 1)
       context.insert(syncRecord!)
     }
 
-    if !forceRefresh, lastActivity == syncRecord!.tv_watching { return }
+    if !forceRefresh, lastActivity == syncRecord!.tv_watching { return true }
 
     var endpoint = URLComponents(
       string: "https://api.simkl.com/sync/all-items/shows/watching?memos=yes&next_watch_info=yes")!
 
-    let lastActivityDate = formatter.date(from: lastActivity)!
-    if let previousSyncDate = syncRecord!.tv_watching.flatMap(formatter.date(from:)) {
-      if forceRefresh || lastActivityDate > previousSyncDate {
+    if !forceRefresh,
+      let lastActivityDate = lastActivity.flatMap(formatter.date(from:)),
+      let previousSyncDate = syncRecord!.tv_watching.flatMap(formatter.date(from:))
+    {
+      if lastActivityDate > previousSyncDate {
         let dateFrom = formatter.string(
           from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
         endpoint = URLComponents(
@@ -698,27 +726,50 @@ func fetchAndStoreTVWatching(
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
-      syncRecord!.tv_watching = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request, session: session)
+    let shows = try decodeSimklWatchingResponse(TVModel_show.self, from: data, key: "shows")
+    guard shows.allSatisfy({ ($0.show?.ids?.simkl ?? 0) > 0 && $0.status == "watching" }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let shows = result.shows ?? []
+    // Clear queue metadata for absent titles only on a full response. They may
+    // have moved to another list; preserve their library row and other metadata.
+    if endpoint.queryItems?.contains(where: { $0.name == "date_from" }) != true {
+      let ids = Set(shows.compactMap { $0.show?.ids?.simkl })
+      for row in try context.fetch(FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.status == "watching" }))
+        where !ids.contains(row.simkl)
+      {
+        row.next_to_watch = nil
+        row.next_to_watch_info_title = nil
+        row.next_to_watch_info_season = nil
+        row.next_to_watch_info_episode = nil
+        row.next_to_watch_info_date = nil
+      }
+    }
     let syncTimestamp = formatter.string(from: Date())
+    var byID = Dictionary(try context.fetch(FetchDescriptor<V1.SDShows>()).map { ($0.simkl, $0) }, uniquingKeysWith: { first, _ in first })
     for showItem in shows {
-      context.insert(showItem.toSwiftData(syncedAt: syncTimestamp))
+      let id = showItem.show!.ids!.simkl  // Validated above before any mutations.
+      if let existing = byID[id] {
+        showItem.updateWatchingSummary(existing, syncedAt: syncTimestamp)
+      } else {
+        let row = showItem.toSwiftData(syncedAt: syncTimestamp)
+        context.insert(row)
+        byID[id] = row
+      }
     }
 
     syncRecord!.tv_watching = lastActivity
     try context.save()
+    return true
   } catch {
     reportError(error)
+    return false
   }
 }
 
-func fetchAndStoreTVRemovedFromList(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreTVRemovedFromList(
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+) async {
   guard let lastActivity = lastActivity else { return }
 
   do {
@@ -1034,30 +1085,36 @@ func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ co
   }
 }
 
+@discardableResult
 func fetchAndStoreAnimeWatching(
   _ accessToken: String,
   _ lastActivity: String?,
   _ context: ModelContext,
-  forceRefresh: Bool = false
-) async {
-  guard let lastActivity = lastActivity else { return }
+  forceRefresh: Bool = false,
+  session: URLSession = .shared
+) async -> Bool {
+  guard lastActivity != nil || forceRefresh else { return true }
   let formatter = ISO8601DateFormatter()
 
   do {
-    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
+    var syncRecord = try context.fetch(
+      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+    ).first
     if syncRecord == nil {
       syncRecord = V1.SDLastSync(id: 1)
       context.insert(syncRecord!)
     }
 
-    if !forceRefresh, lastActivity == syncRecord!.anime_watching { return }
+    if !forceRefresh, lastActivity == syncRecord!.anime_watching { return true }
 
     var endpoint = URLComponents(
       string: "https://api.simkl.com/sync/all-items/anime/watching?memos=yes&next_watch_info=yes")!
 
-    let lastActivityDate = formatter.date(from: lastActivity)!
-    if let previousSyncDate = syncRecord!.anime_watching.flatMap(formatter.date(from:)) {
-      if forceRefresh || lastActivityDate > previousSyncDate {
+    if !forceRefresh,
+      let lastActivityDate = lastActivity.flatMap(formatter.date(from:)),
+      let previousSyncDate = syncRecord!.anime_watching.flatMap(formatter.date(from:))
+    {
+      if lastActivityDate > previousSyncDate {
         let dateFrom = formatter.string(
           from: Calendar.current.date(byAdding: .minute, value: -5, to: previousSyncDate)!)
         endpoint = URLComponents(
@@ -1073,27 +1130,47 @@ func fetchAndStoreAnimeWatching(
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
-      syncRecord!.anime_watching = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request, session: session)
+    let animes = try decodeSimklWatchingResponse(AnimeModel_record.self, from: data, key: "anime")
+    guard animes.allSatisfy({ ($0.show?.ids.simkl ?? 0) > 0 && $0.status == "watching" }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let animes = result.anime ?? []
+    if endpoint.queryItems?.contains(where: { $0.name == "date_from" }) != true {
+      let ids = Set(animes.compactMap { $0.show?.ids.simkl })
+      for row in try context.fetch(FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.status == "watching" }))
+        where !ids.contains(row.simkl)
+      {
+        row.next_to_watch = nil
+        row.next_to_watch_info_title = nil
+        row.next_to_watch_info_episode = nil
+        row.next_to_watch_info_date = nil
+      }
+    }
     let syncTimestamp = formatter.string(from: Date())
+    var byID = Dictionary(try context.fetch(FetchDescriptor<V1.SDAnimes>()).map { ($0.simkl, $0) }, uniquingKeysWith: { first, _ in first })
     for animeItem in animes {
-      context.insert(animeItem.toSwiftData(syncedAt: syncTimestamp))
+      let id = animeItem.show!.ids.simkl  // Validated above before any mutations.
+      if let existing = byID[id] {
+        animeItem.updateWatchingSummary(existing, syncedAt: syncTimestamp)
+      } else {
+        let row = animeItem.toSwiftData(syncedAt: syncTimestamp)
+        context.insert(row)
+        byID[id] = row
+      }
     }
 
     syncRecord!.anime_watching = lastActivity
     try context.save()
+    return true
   } catch {
     reportError(error)
+    return false
   }
 }
 
-func fetchAndStoreAnimeRemovedFromList(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreAnimeRemovedFromList(
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+) async {
   guard let lastActivity = lastActivity else { return }
 
   do {
@@ -1632,240 +1709,6 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
   }
 }
 
-func processUpNextEpisodes(
-  _ accessToken: String,
-  _ context: ModelContext,
-  forceRefresh: Bool = false
-) async {
-  let formatter = ISO8601DateFormatter()
-  do {
-    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
-    if syncRecord == nil {
-      syncRecord = V1.SDLastSync(id: 1)
-      context.insert(syncRecord!)
-    }
 
-    let now = Date()
-    let sixHoursInSeconds: TimeInterval = 6 * 60 * 60
-    let sixHoursAgo = now.addingTimeInterval(-sixHoursInSeconds)
-    var needsSync = forceRefresh
-    if !needsSync {
-      if let lastSyncDateStr = syncRecord!.changes_api,
-        let lastSyncDate = formatter.date(from: lastSyncDateStr)
-      {
-        if lastSyncDate < sixHoursAgo {
-          needsSync = true
-        }
-      } else {
-        needsSync = true
-      }
-    }
-    if !needsSync { return }
-    let sdShowsFD = FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.status == "watching" })
-    let sdShows = try context.fetch(sdShowsFD)
-
-    let sdAnimesFD = FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.status == "watching" && $0.anime_type == "tv" })
-    let sdAnimes = try context.fetch(sdAnimesFD)
-    var shouldSave = false
-
-    // Batch the /sync/watched lookups: docs warn against per-item calls when
-    // /sync/all-items is also in use. One request handles up to 100 shows.
-    // We index by simkl with a last-write-wins merge so an unexpected
-    // duplicate from the server can't crash the sync (uniqueKeysWithValues
-    // would). `hadFailures` propagates so we can skip stamping the 6h cache
-    // when any chunk failed (otherwise stale rows stay stale for 6h).
-    let showWatchedBatch = await ShowDetailView.getShowWatchlistBatch(
-      sdShows.map { $0.simkl }, accessToken
-    )
-    let showWatchedByID = Dictionary(
-      showWatchedBatch.items.map { ($0.simkl, $0) },
-      uniquingKeysWith: { _, last in last }
-    )
-
-    for show in sdShows {
-      if Task.isCancelled { return }
-      let watchedEpisodes = showWatchedByID[show.simkl]
-
-      guard
-        let watched = watchedEpisodes,
-        (watched.episodes_aired ?? 0) > (watched.episodes_watched ?? 0),
-        let seasons = watched.seasons
-      else { continue }
-
-      let allEpisodes = await ShowDetailView.getShowEpisodes(show.simkl)
-
-      // All episodes that have aired but are not marked as watched
-      let unwatched =
-        allEpisodes
-        .filter { $0.aired == true }
-        .filter { episode in
-          guard
-            let seasonNum = episode.season,
-            let epNum = episode.episode
-          else { return false }
-
-          let isWatched =
-            seasons
-            .first(where: { $0.number == seasonNum })?
-            .episodes?
-            .first(where: { $0.number == epNum })?
-            .watched ?? false
-
-          return !isWatched
-        }
-
-      // All episodes that *have* been watched
-      let actuallyWatchedEpisodes = allEpisodes.filter { episode in
-        guard
-          let seasonNum = episode.season,
-          let epNum = episode.episode
-        else { return false }
-
-        return
-          seasons
-          .first(where: { $0.number == seasonNum })?
-          .episodes?
-          .first(where: { $0.number == epNum })?
-          .watched ?? false
-      }
-
-      // Find the highest watched episode (latest)
-      let highestWatched =
-        actuallyWatchedEpisodes
-        .sorted(by: { ($0.season ?? 0, $0.episode ?? 0) > ($1.season ?? 0, $1.episode ?? 0) })
-        .first
-
-      // Find the first unwatched episode that comes *after* the highest watched
-      let nextUnwatched =
-        unwatched
-        .filter { episode in
-          guard let highest = highestWatched else { return true }  // no episodes watched yet
-          let current = (episode.season ?? 0, episode.episode ?? 0)
-          let highestSeen = (highest.season ?? 0, highest.episode ?? 0)
-          return current > highestSeen
-        }
-        .sorted(by: { ($0.season ?? 0, $0.episode ?? 0) < ($1.season ?? 0, $1.episode ?? 0) })  // get the next in order
-        .first
-
-      if let latest = nextUnwatched {
-        if show.next_to_watch_info_title != latest.title
-          || show.next_to_watch_info_season != latest.season
-          || show.next_to_watch_info_episode != latest.episode
-          || show.next_to_watch_info_date != latest.date
-        {
-          show.next_to_watch_info_title = latest.title
-          show.next_to_watch_info_season = latest.season
-          show.next_to_watch_info_episode = latest.episode
-          show.next_to_watch_info_date = latest.date
-          shouldSave = true
-        }
-      }
-    }
-
-    let animeWatchedBatch = await AnimeDetailView.getAnimeWatchlistBatch(
-      sdAnimes.map { $0.simkl }, accessToken
-    )
-    let animeWatchedByID = Dictionary(
-      animeWatchedBatch.items.map { ($0.simkl, $0) },
-      uniquingKeysWith: { _, last in last }
-    )
-
-    for anime in sdAnimes {
-      if Task.isCancelled { return }
-      let watchedEpisodes = animeWatchedByID[anime.simkl]
-
-      guard
-        let watched = watchedEpisodes,
-        (watched.episodes_aired ?? 0) > (watched.episodes_watched ?? 0),
-        let seasons = watched.seasons
-      else { continue }
-
-      let allEpisodes = await AnimeDetailView.getAnimeEpisodes(anime.simkl, countSeasons: false)
-
-      // Anime: /anime/episodes returns episodes with season:nil. The
-      // /sync/watched response groups them under season 0 (specials) and
-      // season 1 (main run). getAnimeEpisodes(countSeasons: false) maps
-      // type=="special" -> 0 and everything else -> 1, so we can match.
-      let watchedLookup: (Int, Int) -> Bool = { seasonNum, epNum in
-        seasons
-          .first(where: { $0.number == seasonNum })?
-          .episodes?
-          .first(where: { $0.number == epNum })?
-          .watched ?? false
-      }
-
-      // Exclude specials (season 0 per getAnimeEpisodes mapping). SDAnimes
-      // doesn't persist next_to_watch_info_season, and the UpNext swipe
-      // path hardcodes season=1 for anime — so surfacing a special as
-      // "next" would POST to season 1 + the special's episode number and
-      // mark the wrong episode (or no-op). Until anime season is plumbed
-      // through SDAnimes + UpNext, restrict to main-run.
-      let unwatched =
-        allEpisodes
-        .filter { $0.aired == true }
-        .filter { ($0.season ?? 1) != 0 }
-        .filter { episode in
-          guard let epNum = episode.episode else { return false }
-          let seasonNum = episode.season ?? 1
-          return !watchedLookup(seasonNum, epNum)
-        }
-
-      let actuallyWatchedEpisodes =
-        allEpisodes
-        .filter { ($0.season ?? 1) != 0 }
-        .filter { episode in
-          guard let epNum = episode.episode else { return false }
-          let seasonNum = episode.season ?? 1
-          return watchedLookup(seasonNum, epNum)
-        }
-
-      // Find the highest watched episode (latest)
-      let highestWatched =
-        actuallyWatchedEpisodes
-        .sorted(by: { ($0.season ?? 1, $0.episode ?? 0) > ($1.season ?? 1, $1.episode ?? 0) })
-        .first
-
-      // Find the first unwatched episode that comes *after* the highest watched
-      let nextUnwatched =
-        unwatched
-        .filter { episode in
-          guard let highest = highestWatched else { return true }  // no episodes watched yet
-          let current = (episode.season ?? 1, episode.episode ?? 0)
-          let highestSeen = (highest.season ?? 1, highest.episode ?? 0)
-          return current > highestSeen
-        }
-        .sorted(by: { ($0.season ?? 1, $0.episode ?? 0) < ($1.season ?? 1, $1.episode ?? 0) })  // get the next in order
-        .first
-
-      if let latest = nextUnwatched {
-        if anime.next_to_watch_info_title != latest.title
-          || anime.next_to_watch_info_episode != latest.episode
-          || anime.next_to_watch_info_date != latest.date
-        {
-          anime.next_to_watch_info_title = latest.title
-          anime.next_to_watch_info_episode = latest.episode
-          anime.next_to_watch_info_date = latest.date
-          shouldSave = true
-        }
-      }
-    }
-
-    // Only stamp the 6h cache as fresh if every batch chunk succeeded and
-    // every non-terminal item decoded. Simkl's per-item `not_found` result
-    // is terminal for that stale ID, so it is skipped without blocking the
-    // stamp; otherwise every app-triggered sync would immediately retry the
-    // same unrecoverable record. It remains part of the normal six-hour
-    // batch, while transport or schema failures still keep the cache stale.
-    if !showWatchedBatch.hadFailures && !animeWatchedBatch.hadFailures {
-      syncRecord!.changes_api = now.ISO8601Format()
-      shouldSave = true
-    }
-    if shouldSave {
-      try context.save()
-    }
-  } catch {
-    reportError(error)
-  }
-}
 // TODO: Widgets with next episode and show progress
 // TODO: Sync calendar data for "new" and notifications

@@ -137,7 +137,8 @@ extension ShowDetailView {
     _ title: String,
     _ simklId: Int,
     _ season: Int,
-    _ episode: Int
+    _ episode: Int,
+    session: URLSession = .shared
   ) async -> SimklMutationResult {
     guard simklId > 0,
       let selection = validatedSimklEpisode(season: season, episode: episode)
@@ -179,7 +180,8 @@ extension ShowDetailView {
         ]
       ]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      try await performSimklMutationRequest(request)
+      let (data, _) = try await performSimklRequest(request, session: session)
+      try validateSimklEpisodeHistoryResponse(data)
       return .succeeded
     } catch {
       if isSimklCancellationError(error) { return .cancelled }
