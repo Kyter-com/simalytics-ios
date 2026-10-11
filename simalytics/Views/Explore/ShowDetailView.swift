@@ -124,9 +124,7 @@ struct ShowDetailView: View {
           }
           Spacer()
           VStack {
-            Spacer()
-              .frame(height: 8)
-            Spacer()
+            Spacer(minLength: 8)
             ShowHeaderInfo(showDetails: $showDetails, showWatchlist: $showWatchlist)
             Spacer()
             if !auth.simklAccessToken.isEmpty {
@@ -197,8 +195,6 @@ struct ShowDetailView: View {
         }
         .padding([.leading, .trailing])
         .padding(.top, 8)
-
-        Spacer()
 
         if !filteredEpisodes.isEmpty {
           LazyVStack(alignment: .leading) {

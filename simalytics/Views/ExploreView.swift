@@ -217,7 +217,6 @@ struct ExploreView: View {
                     }
                   }
                 }
-                Spacer()
               }
             }
           }

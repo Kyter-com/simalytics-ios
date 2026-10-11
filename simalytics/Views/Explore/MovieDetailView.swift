@@ -99,9 +99,7 @@ struct MovieDetailView: View {
 
           Spacer()
           VStack(alignment: .leading) {
-            Spacer()
-              .frame(height: 8)
-            Spacer()
+            Spacer(minLength: 8)
             if let year = movieDetails?.year {
               LabeledContent {
                 Text(String(year))
@@ -220,8 +218,6 @@ struct MovieDetailView: View {
         }
         .padding([.leading, .trailing])
         .padding(.top, 8)
-
-        Spacer()
 
         CastRow(cast: cast)
 
