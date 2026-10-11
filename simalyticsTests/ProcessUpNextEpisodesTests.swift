@@ -157,7 +157,7 @@ struct ProcessUpNextCacheTests {
 
   @Test(
     "Empty full Watching responses clear stale queue metadata but retain library data",
-    arguments: ["empty-object", "empty-array"])
+    arguments: ["empty-object", "empty-array", "empty-null"])
   func handlesEmptyWatchingResponse(scenario: String) async throws {
     let container = try makeContainer()
     let context = ModelContext(container)
@@ -299,6 +299,8 @@ private final class UpNextFixtureProtocol: URLProtocol, @unchecked Sendable {
     let body: String
     if scenario.contains("invalid-json") {
       body = "invalid"
+    } else if scenario.contains("empty-null") {
+      body = "null"
     } else if scenario.contains("empty-object") {
       body = "{}"
     } else if scenario.contains("empty-array") {

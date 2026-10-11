@@ -1,11 +1,13 @@
 import Foundation
 
-/// A missing scope key is valid only for SIMKL's documented empty response `{}`.
-/// Do not mistake an error envelope, explicit null, or another bucket for emptiness.
+/// Accept documented `{}` and observed HTTP-200 top-level `null` for empty lists.
+/// Do not mistake an error envelope, null bucket array, or another bucket for emptiness.
 func decodeSimklWatchingResponse<T: Decodable>(
   _ type: T.Type, from data: Data, key: String
 ) throws -> [T] {
-  guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+  let object = try JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)
+  if object is NSNull { return [] }
+  guard let root = object as? [String: Any] else {
     throw SimklMutationError.invalidResponse
   }
   if root.isEmpty { return [] }
