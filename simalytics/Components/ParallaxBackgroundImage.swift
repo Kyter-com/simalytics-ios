@@ -46,7 +46,9 @@ struct ParallaxBackgroundImage: View {
       }
       .frame(height: 150)
     } else {
-      Spacer()
+      // No fanart: no banner and no reserved space. (A Spacer() here would
+      // collapse to zero height as a direct child of the ScrollView anyway.)
+      EmptyView()
     }
   }
 }

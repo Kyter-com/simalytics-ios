@@ -130,9 +130,7 @@ struct AnimeDetailView: View {
           }
           Spacer()
           VStack {
-            Spacer()
-              .frame(height: 8)
-            Spacer()
+            Spacer(minLength: 8)
             AnimeHeaderInfo(animeDetails: $animeDetails, animeWatchlist: $animeWatchlist)
             Spacer()
             if !auth.simklAccessToken.isEmpty {
@@ -202,8 +200,6 @@ struct AnimeDetailView: View {
         }
         .padding([.leading, .trailing])
         .padding(.top, 8)
-
-        Spacer()
 
         if animeDetails?.anime_type == "tv" {
           if !filteredEpisodes.isEmpty {

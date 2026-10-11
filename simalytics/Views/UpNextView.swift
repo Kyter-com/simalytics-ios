@@ -26,6 +26,24 @@ extension V1.SDAnimes: UpNextMedia {
   var next_to_watch_info_season: Int? { nil }
 }
 
+extension UpNextMedia {
+  /// Shared "S7 · E1" label for the next episode to watch.
+  ///
+  /// Used by both the grid badge and the long-press preview card so the two
+  /// always agree. The spaced separator keeps VoiceOver from reading the
+  /// season and episode as one run-together token.
+  var nextEpisodeBadge: String? {
+    var parts: [String] = []
+    if let season = next_to_watch_info_season {
+      parts.append("S\(season)")
+    }
+    if let episode = next_to_watch_info_episode {
+      parts.append("E\(episode)")
+    }
+    return parts.isEmpty ? nil : parts.joined(separator: " · ")
+  }
+}
+
 struct UpNextView: View {
   @Environment(Auth.self) private var auth
   @AppStorage("hideAnime") private var hideAnime = false
@@ -33,17 +51,6 @@ struct UpNextView: View {
   @State private var searchText: String = ""
   @Environment(\.modelContext) private var context
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
-
-  private func nextEpisodeBadge(for media: any UpNextMedia) -> String? {
-    var parts: [String] = []
-    if let season = media.next_to_watch_info_season {
-      parts.append("S\(season)")
-    }
-    if let episode = media.next_to_watch_info_episode {
-      parts.append("E\(episode)")
-    }
-    return parts.isEmpty ? nil : parts.joined(separator: "·")
-  }
 
   private func markWatched(_ mediaItem: any UpNextMedia) {
     Task {
@@ -143,7 +150,7 @@ struct UpNextView: View {
                     PosterGridCell(
                       title: mediaItem.title ?? "",
                       poster: mediaItem.poster,
-                      badge: nextEpisodeBadge(for: mediaItem)
+                      badge: mediaItem.nextEpisodeBadge
                     )
                   }
                   .buttonStyle(.plain)
@@ -296,14 +303,7 @@ struct UpNextPreviewCard: View {
   }
 
   private var nextEpisodeText: String? {
-    var parts: [String] = []
-    if let season = mediaItem.next_to_watch_info_season {
-      parts.append("S\(season)")
-    }
-    if let episode = mediaItem.next_to_watch_info_episode {
-      parts.append("E\(episode)")
-    }
-    return parts.isEmpty ? nil : parts.joined(separator: " ")
+    mediaItem.nextEpisodeBadge
   }
 
   var body: some View {
