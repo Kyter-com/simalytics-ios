@@ -12,6 +12,8 @@ protocol UpNextMedia {
   var simkl: Int { get }
   var title: String? { get }
   var poster: String? { get }
+  var next_to_watch: String? { get }
+  var next_to_watch_info_date: String? { get }
   var next_to_watch_info_title: String? { get }
   var next_to_watch_info_season: Int? { get }
   var next_to_watch_info_episode: Int? { get }
@@ -27,6 +29,26 @@ extension V1.SDAnimes: UpNextMedia {
 }
 
 extension UpNextMedia {
+  /// SIMKL's marker is authoritative; stale info or a future date is not watchable.
+  func isAvailableUpNext(now: Date = Date()) -> Bool {
+    guard let marker = next_to_watch,
+      !marker.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+      let selection = validatedSimklEpisode(
+        season: next_to_watch_info_season, episode: next_to_watch_info_episode,
+        fallbackSeason: type == "anime" ? 1 : nil
+      ), selection.season > 0
+    else { return false }
+    guard let date = next_to_watch_info_date else { return true }
+    let formatter = ISO8601DateFormatter()
+    var airDate = formatter.date(from: date)
+    if airDate == nil {
+      formatter.formatOptions.insert(.withFractionalSeconds)
+      airDate = formatter.date(from: date)
+    }
+    guard let airDate else { return false }
+    return airDate <= now
+  }
+
   /// Shared "S7 · E1" label for the next episode to watch.
   ///
   /// Used by both the grid badge and the long-press preview card so the two
@@ -49,11 +71,18 @@ struct UpNextView: View {
   @AppStorage("hideAnime") private var hideAnime = false
   @AppStorage("upNextLayout") private var layout: ListLayout = .list
   @State private var searchText: String = ""
+  @State private var updatingIDs: Set<Int> = []
+  @State private var mutationError: String?
   @Environment(\.modelContext) private var context
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
 
   private func markWatched(_ mediaItem: any UpNextMedia) {
+    // SIMKL serializes writes per user; allow only one Up Next action at a
+    // time, including the following reconciliation, even across different rows.
+    guard updatingIDs.isEmpty else { return }
+    updatingIDs.insert(mediaItem.simkl)
     Task {
+      defer { updatingIDs.remove(mediaItem.simkl) }
       let isAnime = mediaItem.type == "anime"
       guard
         let episodeSelection = validatedSimklEpisode(
@@ -65,8 +94,21 @@ struct UpNextView: View {
 
       invalidateUpNextCache(modelContainer: context.container)
 
+      #if DEBUG
+        // Exercise the same gesture offline without ever sending the sentinel token.
+        if ScreenshotMode.isActive {
+          optimisticallyClearNextToWatch(
+            simklId: mediaItem.simkl, season: episodeSelection.season,
+            episode: episodeSelection.episode, kind: isAnime ? .anime : .tv,
+            modelContainer: context.container
+          )
+          return
+        }
+      #endif
+
+      let result: SimklMutationResult
       if isAnime {
-        await AnimeDetailView.markEpisodeWatched(
+        result = await AnimeDetailView.markEpisodeWatched(
           auth.simklAccessToken,
           mediaItem.title ?? "",
           mediaItem.simkl,
@@ -74,13 +116,20 @@ struct UpNextView: View {
           episodeSelection.episode
         )
       } else {
-        await ShowDetailView.markEpisodeWatched(
+        result = await ShowDetailView.markEpisodeWatched(
           auth.simklAccessToken,
           mediaItem.title ?? "",
           mediaItem.simkl,
           episodeSelection.season,
           episodeSelection.episode
         )
+      }
+      switch result {
+      case .succeeded: break
+      case .cancelled: return
+      case .failed(let message):
+        mutationError = message
+        return
       }
       await syncLatestActivities(
         auth.simklAccessToken,
@@ -92,6 +141,12 @@ struct UpNextView: View {
 
   @ViewBuilder
   private func contextMenu(for mediaItem: any UpNextMedia) -> some View {
+    Button {
+      markWatched(mediaItem)
+    } label: {
+      Label("Mark Watched", systemImage: "checkmark.circle")
+    }
+    .disabled(!updatingIDs.isEmpty)
     ShareLink(
       item: URL(string: "https://simkl.com/\(mediaItem.type)/\(mediaItem.simkl)")!,
       subject: Text(mediaItem.title ?? ""),
@@ -103,17 +158,19 @@ struct UpNextView: View {
 
   @Query(
     filter: #Predicate<V1.SDShows> {
-      (($0.next_to_watch_info_title ?? "") != "") && (($0.status ?? "") == "watching")
+      (($0.next_to_watch ?? "") != "") && (($0.status ?? "") == "watching")
     }) private var shows: [V1.SDShows]
 
   @Query(
     filter: #Predicate<V1.SDAnimes> {
-      (($0.next_to_watch_info_title ?? "") != "") && (($0.status ?? "") == "watching") && (($0.anime_type ?? "") == "tv")
+      (($0.next_to_watch ?? "") != "") && (($0.status ?? "") == "watching")
+        && (($0.anime_type ?? "") == "tv")
     }
   ) private var animes: [V1.SDAnimes]
 
   var filteredMedia: [any UpNextMedia] {
-    let allMedia: [any UpNextMedia] = hideAnime ? Array(shows) : shows + animes
+    let candidates: [any UpNextMedia] = hideAnime ? Array(shows) : shows + animes
+    let allMedia = candidates.filter { $0.isAvailableUpNext() }
     if searchText.isEmpty {
       return allMedia
     } else {
@@ -136,9 +193,14 @@ struct UpNextView: View {
         Group {
           if filteredMedia.isEmpty {
             ContentUnavailableView {
-              Label(searchText.isEmpty ? "Nothing Up Next" : "No Results", systemImage: searchText.isEmpty ? "play.tv" : "magnifyingglass")
+              Label(
+                searchText.isEmpty ? "Nothing Up Next" : "No Results",
+                systemImage: searchText.isEmpty ? "play.tv" : "magnifyingglass")
             } description: {
-              Text(searchText.isEmpty ? "Episodes you are currently watching will appear here." : "Try searching for another show or episode.")
+              Text(
+                searchText.isEmpty
+                  ? "Episodes you are currently watching will appear here."
+                  : "Try searching for another show or episode.")
             }
           } else if layout == .grid {
             ScrollView {
@@ -154,7 +216,10 @@ struct UpNextView: View {
                     )
                   }
                   .buttonStyle(.plain)
-                  .upNextGridSwipe(item: mediaItem, markWatched: markWatched)
+                  .upNextGridSwipe(
+                    item: mediaItem, markWatched: markWatched, disabled: !updatingIDs.isEmpty
+                  )
+                  .accessibilityAction(named: Text("Mark Watched")) { markWatched(mediaItem) }
                   .contextMenu {
                     contextMenu(for: mediaItem)
                   } preview: {
@@ -165,6 +230,7 @@ struct UpNextView: View {
               .padding(.horizontal, 12)
               .padding(.vertical, 8)
             }
+            .upNextSwipeContainer()
           } else {
             List(filteredMedia, id: \.simkl) { mediaItem in
               MediaDetailLink(sourceID: "upnext-\(mediaItem.simkl)") {
@@ -204,20 +270,21 @@ struct UpNextView: View {
                     Spacer()
                   }
                 }
-                // No optimistic clear here: the user is looking at this row,
-                // so nulling next_to_watch_info_title would drop it from the
-                // @Query and the sync upsert would slide it back in — a
-                // disappear/reappear flicker. Leaving the row in place lets
-                // SwiftData update the episode text in-place (S7E1 → S7E2).
-                .swipeActions(edge: .trailing) {
-                  Button {
-                    markWatched(mediaItem)
-                  } label: {
-                    Label("Watched", systemImage: "checkmark.circle")
-                  }
-                  .tint(.green)
-                }
               }
+              // Attach to the row, not the nested NavigationLink label, so
+              // a full left swipe invokes the first action without another tap.
+              // Only the action disables during updates; the row stays enabled
+              // so detail navigation isn't blocked by the following resync.
+              .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button {
+                  markWatched(mediaItem)
+                } label: {
+                  Label("Watched", systemImage: "checkmark.circle")
+                }
+                .tint(.green)
+                .disabled(!updatingIDs.isEmpty)
+              }
+              .accessibilityAction(named: Text("Mark Watched")) { markWatched(mediaItem) }
               .contextMenu {
                 contextMenu(for: mediaItem)
               } preview: {
@@ -240,6 +307,17 @@ struct UpNextView: View {
           }
         }
       }
+    }
+    .alert(
+      "Couldn’t Mark Watched",
+      isPresented: Binding(
+        get: { mutationError != nil },
+        set: { if !$0 { mutationError = nil } }
+      )
+    ) {
+      Button("OK", role: .cancel) { mutationError = nil }
+    } message: {
+      Text(mutationError ?? "Please try again.")
     }
   }
 
@@ -264,17 +342,19 @@ struct UpNextView: View {
 private struct UpNextGridSwipe: ViewModifier {
   let item: any UpNextMedia
   let markWatched: (any UpNextMedia) -> Void
+  let disabled: Bool
 
   func body(content: Content) -> some View {
     Group {
       if #available(iOS 27, *) {
-        content.swipeActions(edge: .trailing) {
+        content.swipeActions(edge: .trailing, allowsFullSwipe: true) {
           Button {
             markWatched(item)
           } label: {
             Label("Watched", systemImage: "checkmark.circle")
           }
           .tint(.green)
+          .disabled(disabled)
         }
       } else {
         content
@@ -283,11 +363,20 @@ private struct UpNextGridSwipe: ViewModifier {
   }
 }
 
-private extension View {
-  func upNextGridSwipe(
-    item: any UpNextMedia, markWatched: @escaping (any UpNextMedia) -> Void
+extension View {
+  @ViewBuilder
+  fileprivate func upNextSwipeContainer() -> some View {
+    if #available(iOS 27, *) {
+      swipeActionsContainer()
+    } else {
+      self
+    }
+  }
+
+  fileprivate func upNextGridSwipe(
+    item: any UpNextMedia, markWatched: @escaping (any UpNextMedia) -> Void, disabled: Bool
   ) -> some View {
-    modifier(UpNextGridSwipe(item: item, markWatched: markWatched))
+    modifier(UpNextGridSwipe(item: item, markWatched: markWatched, disabled: disabled))
   }
 }
 

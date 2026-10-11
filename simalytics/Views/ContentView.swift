@@ -11,7 +11,7 @@ struct ContentView: View {
   @State private var selectedTab: AppTab = ContentView.initialTab
   @State private var exploreSearchFocusTrigger = 0
 
-  /// Which tab to open on launch. Release builds always start on Lists; DEBUG
+  /// Which tab to open on launch. Release builds always start on Up Next; DEBUG
   /// builds honor `SIMALYTICS_SCREENSHOT_TAB` so the App Store screenshot
   /// harness (marketing/app-store-screenshots) can launch straight into a tab.
   private static var initialTab: AppTab {
@@ -24,7 +24,7 @@ struct ContentView: View {
       default: break
       }
     #endif
-    return .lists
+    return .upNext
   }
 
   /// The Lists tab's content. Release builds always show the Lists hub; DEBUG

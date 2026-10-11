@@ -16,6 +16,8 @@ struct UpNextBadgeTests {
     var simkl: Int = 1
     var title: String? = "Test Show"
     var poster: String? = nil
+    var next_to_watch: String? = "S1E1"
+    var next_to_watch_info_date: String? = nil
     var next_to_watch_info_title: String? = "Pilot"
     var next_to_watch_info_season: Int?
     var next_to_watch_info_episode: Int?

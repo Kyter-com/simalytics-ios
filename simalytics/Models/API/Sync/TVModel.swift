@@ -59,8 +59,41 @@ struct TVModel_show_item_next_to_watch_info: Codable {
 // MARK: - SwiftData Conversion
 
 extension TVModel_show {
+  /// Watching pulls update user state without erasing separately enriched catalog data.
+  func updateWatchingSummary(_ row: V1.SDShows, syncedAt: String) {
+    row.added_to_watchlist_at = added_to_watchlist_at
+    row.last_watched_at = last_watched_at
+    row.user_rated_at = user_rated_at
+    row.user_rating = user_rating
+    row.status = status
+    row.last_watched = last_watched
+    row.next_to_watch = next_to_watch
+    row.watched_episodes_count = watched_episodes_count
+    row.total_episodes_count = total_episodes_count
+    row.not_aired_episodes_count = not_aired_episodes_count
+    row.title = show?.title
+    row.poster = show?.poster
+    row.year = show?.year
+    row.memo_text = memo?.text
+    row.memo_is_private = memo?.is_private
+    row.id_slug = show?.ids?.slug ?? row.id_slug
+    row.id_tvdbslug = show?.ids?.tvdbslug ?? row.id_tvdbslug
+    row.id_imdb = show?.ids?.imdb ?? row.id_imdb
+    row.id_tmdb = show?.ids?.tmdb ?? row.id_tmdb
+    row.id_traktslug = show?.ids?.trakttvslug ?? row.id_traktslug
+    row.id_tvdb = show?.ids?.tvdb ?? row.id_tvdb
+    let next = next_to_watch?.isEmpty == false ? next_to_watch_info : nil
+    row.next_to_watch_info_title = next?.title
+    row.next_to_watch_info_season = next?.season
+    row.next_to_watch_info_episode = next?.episode
+    row.next_to_watch_info_date = next?.date
+    row.last_sd_synced_at = syncedAt
+  }
+
   func toSwiftData(syncedAt: String? = nil) -> V1.SDShows {
-    V1.SDShows(
+    // A catalog row can outlive its next-to-watch marker (e.g. during a hiatus).
+    let next = next_to_watch?.isEmpty == false ? next_to_watch_info : nil
+    return V1.SDShows(
       simkl: (show?.ids?.simkl)!,
       added_to_watchlist_at: added_to_watchlist_at,
       last_watched_at: last_watched_at,
@@ -87,10 +120,10 @@ extension TVModel_show {
       id_traktslug: show?.ids?.trakttvslug,
       id_jwslug: nil,
       id_tvdb: show?.ids?.tvdb,
-      next_to_watch_info_title: next_to_watch_info?.title,
-      next_to_watch_info_season: next_to_watch_info?.season,
-      next_to_watch_info_episode: next_to_watch_info?.episode,
-      next_to_watch_info_date: next_to_watch_info?.date,
+      next_to_watch_info_title: next?.title,
+      next_to_watch_info_season: next?.season,
+      next_to_watch_info_episode: next?.episode,
+      next_to_watch_info_date: next?.date,
       last_sd_synced_at: syncedAt
     )
   }

@@ -36,6 +36,7 @@ struct MarkWatchedHelpersTests {
     let show = V1.SDShows(
       simkl: 4921,
       status: "watching",
+      next_to_watch: "S7E1",
       title: "Black Mirror",
       next_to_watch_info_title: "Common People",
       next_to_watch_info_season: 7,
@@ -50,6 +51,7 @@ struct MarkWatchedHelpersTests {
 
     let fd = FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.simkl == 4921 })
     let refreshed = try ModelContext(container).fetch(fd).first
+    #expect(refreshed?.next_to_watch == nil)
     #expect(refreshed?.next_to_watch_info_title == nil)
     #expect(refreshed?.next_to_watch_info_season == nil)
     #expect(refreshed?.next_to_watch_info_episode == nil)
@@ -63,6 +65,7 @@ struct MarkWatchedHelpersTests {
     let show = V1.SDShows(
       simkl: 4921,
       status: "watching",
+      next_to_watch: "S7E1",
       title: "Black Mirror",
       next_to_watch_info_title: "Common People",
       next_to_watch_info_season: 7,
@@ -77,6 +80,7 @@ struct MarkWatchedHelpersTests {
 
     let fd = FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.simkl == 4921 })
     let refreshed = try ModelContext(container).fetch(fd).first
+    #expect(refreshed?.next_to_watch == "S7E1")
     #expect(refreshed?.next_to_watch_info_title == "Common People")
     #expect(refreshed?.next_to_watch_info_episode == 1)
   }
@@ -129,6 +133,7 @@ struct MarkWatchedHelpersTests {
 
     let fd = FetchDescriptor<V1.SDAnimes>(predicate: #Predicate { $0.simkl == 38636 })
     let refreshed = try ModelContext(container).fetch(fd).first
+    #expect(refreshed?.next_to_watch == nil)
     #expect(refreshed?.next_to_watch_info_title == nil)
     #expect(refreshed?.next_to_watch_info_episode == nil)
     #expect(refreshed?.next_to_watch_info_date == nil)
