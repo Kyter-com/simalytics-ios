@@ -1,1 +1,2 @@
-• Show and anime detail now open on the first season with unwatched episodes instead of always starting on season 1.
+• Poster taps now zoom into detail screens, Up Next grid cells support swipe-to-mark-watched on iOS 27, and badges adopt the Liquid Glass look on iOS 26 and later.
+• Open on Up Next by default, hide stale or unaired next episodes using SIMKL's authoritative watchlist data, and mark episodes watched with a single full left swipe. Keep tap and accessibility actions available and show errors when a watched update fails.
