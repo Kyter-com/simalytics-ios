@@ -216,8 +216,9 @@ struct UpNextView: View {
                     )
                   }
                   .buttonStyle(.plain)
-                  .upNextGridSwipe(item: mediaItem, markWatched: markWatched)
-                  .disabled(!updatingIDs.isEmpty)
+                  .upNextGridSwipe(
+                    item: mediaItem, markWatched: markWatched, disabled: !updatingIDs.isEmpty
+                  )
                   .accessibilityAction(named: Text("Mark Watched")) { markWatched(mediaItem) }
                   .contextMenu {
                     contextMenu(for: mediaItem)
@@ -272,6 +273,8 @@ struct UpNextView: View {
               }
               // Attach to the row, not the nested NavigationLink label, so
               // a full left swipe invokes the first action without another tap.
+              // Only the action disables during updates; the row stays enabled
+              // so detail navigation isn't blocked by the following resync.
               .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 Button {
                   markWatched(mediaItem)
@@ -279,8 +282,8 @@ struct UpNextView: View {
                   Label("Watched", systemImage: "checkmark.circle")
                 }
                 .tint(.green)
+                .disabled(!updatingIDs.isEmpty)
               }
-              .disabled(!updatingIDs.isEmpty)
               .accessibilityAction(named: Text("Mark Watched")) { markWatched(mediaItem) }
               .contextMenu {
                 contextMenu(for: mediaItem)
@@ -339,6 +342,7 @@ struct UpNextView: View {
 private struct UpNextGridSwipe: ViewModifier {
   let item: any UpNextMedia
   let markWatched: (any UpNextMedia) -> Void
+  let disabled: Bool
 
   func body(content: Content) -> some View {
     Group {
@@ -350,6 +354,7 @@ private struct UpNextGridSwipe: ViewModifier {
             Label("Watched", systemImage: "checkmark.circle")
           }
           .tint(.green)
+          .disabled(disabled)
         }
       } else {
         content
@@ -369,9 +374,9 @@ extension View {
   }
 
   fileprivate func upNextGridSwipe(
-    item: any UpNextMedia, markWatched: @escaping (any UpNextMedia) -> Void
+    item: any UpNextMedia, markWatched: @escaping (any UpNextMedia) -> Void, disabled: Bool
   ) -> some View {
-    modifier(UpNextGridSwipe(item: item, markWatched: markWatched))
+    modifier(UpNextGridSwipe(item: item, markWatched: markWatched, disabled: disabled))
   }
 }
 

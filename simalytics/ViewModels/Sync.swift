@@ -720,7 +720,6 @@ func fetchAndStoreTVWatching(
       }
     }
 
-    print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
@@ -1124,7 +1123,6 @@ func fetchAndStoreAnimeWatching(
       }
     }
 
-    print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
