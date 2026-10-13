@@ -26,11 +26,11 @@ python3 marketing/app-store-screenshots/generate.py
 ## Full reproduce (real captures end-to-end)
 
 ```bash
-# iPhone 17 Pro Max @ iOS 26.x
+# iPhone 18 Pro Max @ iOS 27.x
 marketing/app-store-screenshots/capture.sh <iphone-sim-udid> \
   marketing/app-store-screenshots/raw/iphone-6.9
 
-# iPad Pro 13" @ iOS 26.x
+# iPad Pro 13" @ iPadOS 27.x
 marketing/app-store-screenshots/capture.sh <ipad-sim-udid> \
   marketing/app-store-screenshots/raw/ipad-13
 
@@ -41,6 +41,17 @@ python3 marketing/app-store-screenshots/generate.py
 `xcrun simctl list devices available` lists simulator UDIDs. `capture.sh` requires
 both the iOS 26+ SDK and an iOS 26+ simulator runtime so the captured system chrome
 renders with Liquid Glass; it exits before building when either requirement is not met.
+Captures use light appearance, the standard Large text size, and the app's five-star
+rating preference. The featured title is rated 3½ stars to show half-star support.
+
+Before compositing, inspect the iPhone Explore capture. Native search activates the
+keyboard on entry. For the browsing screenshot, launch Explore again with the same
+fixture environment, dismiss any first-use keyboard tutorial, and drag downward in
+the content to dismiss the keyboard interactively (do not tap Cancel, which returns
+to the previous tab). Keep the query empty and the shelves at the top, then replace
+`raw/iphone-6.9/03-explore.png` with a new `simctl io <device> screenshot` capture.
+The October 2026 set used the Orca emulator skill for this interaction; its captured
+screen includes the native bottom search field with the keyboard dismissed.
 
 ## How the data gets in (public domain, offline)
 
@@ -100,6 +111,12 @@ re-run `capture.sh`.
   already matches a real capture, so no stretch, no notch.
 - **Status bar** — baked in natively by `capture.sh` (`simctl status_bar override`,
   9:41 / full battery / Wi-Fi / signal).
+- **Headlines** — `headlines/<device>/*.png` preserve the approved headline artwork
+  and surrounding backdrop from the original set. This prevents host macOS font
+  updates from changing the marketing typography when only app screens change.
+  Each plate stores its headline in PNG metadata; edited copy in `SLIDES` falls
+  back to fresh text rendering. Remove or regenerate the plates when deliberately
+  redesigning the background or headline layout.
 
 Re-rasterize a frame after editing its SVG (needs `librsvg`):
 
@@ -118,6 +135,7 @@ marketing/app-store-screenshots/
 ├── make-fanart.py      # derives fallback fanart when no verified-PD landscape still exists
 ├── backgrounds/        # blackboard.jpg — the composite backdrop
 ├── frames/             # <device>.svg sources + pre-rasterized <device>.png (iphone-16, ipad-13)
+├── headlines/<device>/ # original headline/background plates, with headline metadata
 ├── pd-posters/         # verified public-domain poster JPEGs (<key>.jpg)
 ├── raw/<device>/       # per-device captures (01-lists, 02-upnext, 03-explore)
 ├── output/<device>/    # composited App Store PNGs

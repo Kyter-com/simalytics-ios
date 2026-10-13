@@ -34,7 +34,7 @@
       [
         movie(900101, "The General", 1926, "the-general-1926", "completed", rating: 9, added: 300, watched: 80),
         movie(900102, "The Cabinet of Dr. Caligari", 1920, "the-cabinet-of-dr-caligari-1920", "completed", rating: 9, added: 210, watched: 60),
-        movie(900103, "His Girl Friday", 1940, "his-girl-friday-1940", "completed", rating: 8, added: 120, watched: 30),
+        movie(900103, "His Girl Friday", 1940, "his-girl-friday-1940", "completed", rating: 7, added: 120, watched: 30),
         movie(900104, "Charade", 1963, "charade-1963", "completed", rating: 8, added: 90, watched: 14),
         movie(900105, "The Kid", 1921, "the-kid-1921", "completed", rating: 9, added: 260, watched: 70),
         movie(900106, "Meet John Doe", 1941, "meet-john-doe-1941", "completed", rating: 8, added: 150, watched: 40),
