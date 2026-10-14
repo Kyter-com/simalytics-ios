@@ -88,6 +88,8 @@ synthetic catalogs and watch history. They include long titles, multi-paragraph
 descriptions, missing thumbnails, later-season TV progress, and absolute anime
 episode ranges. Set `SIMALYTICS_SCREENSHOT_TAB=lists` alongside either route.
 These routes support UI validation; the five marketing slides remain unchanged.
+Use `show-navigation` or `anime-navigation` to validate the same detail views pushed
+inside a navigation stack, including the real back button and scroll edge.
 
 ### The public-domain assets
 

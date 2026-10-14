@@ -116,6 +116,7 @@ struct MovieDetailView: View {
                 .foregroundStyle(.secondary)
             }
           }
+        } status: {
           if !auth.simklAccessToken.isEmpty {
             MovieWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
           }
@@ -159,6 +160,7 @@ struct MovieDetailView: View {
 
         Recommendations(recommendations: movieDetails?.users_recommendations)
       }
+      .navigationBarTitleDisplayMode(.inline)
       .sheet(isPresented: $showingMemoSheet) {
         MemoView(
           memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id,

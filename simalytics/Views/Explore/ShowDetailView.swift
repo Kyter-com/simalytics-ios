@@ -98,6 +98,7 @@ struct ShowDetailView: View {
 
           MediaDetailHeader(poster: showDetails?.poster, title: showDetails?.title ?? "show") {
             ShowHeaderInfo(showDetails: $showDetails, showWatchlist: $showWatchlist)
+          } status: {
             if !auth.simklAccessToken.isEmpty {
               ShowWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
             }
@@ -155,6 +156,7 @@ struct ShowDetailView: View {
           Recommendations(recommendations: showDetails?.users_recommendations)
         }
       }
+      .navigationBarTitleDisplayMode(.inline)
       .sheet(isPresented: $showingMemoSheet) {
         MemoView(
           memoText: $memoText,
