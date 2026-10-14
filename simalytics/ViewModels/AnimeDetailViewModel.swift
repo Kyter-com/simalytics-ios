@@ -113,7 +113,7 @@ extension AnimeDetailView {
       if ScreenshotMode.isActive {
         guard simklID == ScreenshotEpisodeFixtures.animeID else { return nil }
         return AnimeWatchlistModel(
-          list: "watching", last_watched_at: nil, simkl: simklID,
+          list: ScreenshotMode.watchlistStatus ?? "watching", last_watched_at: nil, simkl: simklID,
           episodes_watched: 80, episodes_aired: nil,
           seasons: ScreenshotEpisodeFixtures.watchedSeason(1, numbers: Array(1100...1179)))
       }

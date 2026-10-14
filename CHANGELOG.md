@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- Tighten episode rows and let their header scroll away under the native back button. Restore compact year/runtime/watchlist spacing and keep ten-star ratings on one line while preserving the optional five-star scale. Larger accessibility text gives detail labels and values their own lines.
+- Tighten episode rows and let their header scroll away under the native back button. Restore the original poster and watchlist-status alignment using natural stack spacing and keep ten-star ratings on one line while preserving the optional five-star scale. Larger accessibility text gives detail labels and values their own lines.
 
 - Choose your default launch tab in Settings with a native selection screen and Liquid Glass styling. The tab bar now makes more room while scrolling on iOS 26 and later, and detail transitions respect Reduce Motion.
 

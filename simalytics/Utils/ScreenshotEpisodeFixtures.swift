@@ -19,7 +19,8 @@
     static var showDetails: ShowDetailsModel {
       ShowDetailsModel(
         title: "Adventure Serial", poster: "the-general-1926", fanart: nil, year: 1926,
-        first_aired: nil, ratings: nil, year_start_end: "1926", runtime: 24, total_episodes: 36,
+        first_aired: nil, ratings: Ratings(simkl: Rating(rating: 7.9, votes: 100), imdb: nil),
+        year_start_end: "1926", runtime: 24, total_episodes: 36,
         overview: "A public-domain artwork collection with an offline episode catalog.",
         genres: ["Adventure"], users_recommendations: [], ids: nil)
     }
@@ -29,7 +30,8 @@
         title: "Animation Collection", fanart: nil, poster: "namakura-gatana-1917",
         genres: ["Animation"], overview: "An offline collection for browsing long episode lists.",
         first_aired: nil, year_start_end: "1917", users_recommendations: [],
-        total_episodes: 202, ratings: nil, runtime: 12, anime_type: "tv", year: 1917,
+        total_episodes: 202, ratings: Ratings(simkl: Rating(rating: 7.9, votes: 100), imdb: nil),
+        runtime: 12, anime_type: "tv", year: 1917,
         certification: nil, country: nil, ids: nil)
     }
 

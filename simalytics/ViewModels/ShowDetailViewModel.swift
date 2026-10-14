@@ -55,7 +55,7 @@ extension ShowDetailView {
       if ScreenshotMode.isActive {
         guard simklID == ScreenshotEpisodeFixtures.showID else { return nil }
         return ShowWatchlistModel(
-          list: "watching", last_watched_at: nil, simkl: simklID,
+          list: ScreenshotMode.watchlistStatus ?? "watching", last_watched_at: nil, simkl: simklID,
           episodes_watched: 2, episodes_aired: nil,
           seasons: ScreenshotEpisodeFixtures.watchedSeason(
             28, numbers: [1, 2]))

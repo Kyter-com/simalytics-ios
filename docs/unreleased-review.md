@@ -224,3 +224,28 @@ The other eight screenshots are unchanged. The user-facing Changeset was folded
 into the existing 1.0.18 changelog and cumulative release notes because 1.0.18 is
 still unreleased; the marketing version remains 1.0.18 and ASC selected build 141
 for the replacement Xcode Cloud build. No App Store review submission is implied.
+
+
+## Original header alignment restored: 1.0.18 (142)
+
+Build 141 still forced the metadata/status column to be at least as tall as the
+poster, with fixed stack spacing and top alignment. This differed from the
+original detail headers and misplaced status buttons on fully populated titles.
+The shared header now uses the original centered horizontal stack and natural
+vertical spacing, with no forced metadata-column height. Movie posters also
+retain their original 225-point height; TV/anime posters remain 220.59 points.
+The separate accessibility layout is preserved.
+
+The offline TV/anime fixtures now include a SIMKL rating so validation covers all
+five metadata rows. A DEBUG-only initial-status override permits checking long
+labels such as Plan to Watch without sending a network mutation. This correction
+changes layout only; the episode browser, rating selection, and watchlist-save
+logic are unchanged.
+
+Validation: Debug and arm64/x86_64 Release simulator builds passed. Visually
+checked Watching, Plan to Watch, and Completed with fully populated TV, anime,
+and movie metadata, and retained the large-text layout. The iPhone and iPad
+marketing detail captures were regenerated with the original composition and
+verified at their required export dimensions. No watchlist API writes were made.
+The follow-up Changeset is included in the still-unreleased 1.0.18 entry; ASC
+selected replacement build 142.

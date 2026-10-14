@@ -62,7 +62,8 @@
     /// row supplies the actual star value via the view's local fetch.
     static func movieWatchlist(_ simkl: Int) -> MovieWatchlistModel? {
       guard simkl == featuredMovieID else { return nil }
-      return MovieWatchlistModel(list: "completed", last_watched_at: nil, simkl: simkl)
+      return MovieWatchlistModel(
+        list: ScreenshotMode.watchlistStatus ?? "completed", last_watched_at: nil, simkl: simkl)
     }
 
     /// A "Users Also Watched" shelf of vivid public-domain posters. Each id matches

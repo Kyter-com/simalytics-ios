@@ -65,7 +65,9 @@ struct MovieDetailView: View {
       ScrollView {
         ParallaxBackgroundImage(fanart: movieDetails?.fanart)
 
-        MediaDetailHeader(poster: movieDetails?.poster, title: movieDetails?.title ?? "movie") {
+        MediaDetailHeader(
+          poster: movieDetails?.poster, title: movieDetails?.title ?? "movie", posterHeight: 225
+        ) {
           if let year = movieDetails?.year {
             LabeledContent {
               Text(String(year))

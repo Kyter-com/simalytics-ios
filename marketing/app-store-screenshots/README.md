@@ -70,6 +70,7 @@ compiled out of Release) is switched on by launch env vars that `capture.sh` set
 | `SIMALYTICS_SCREENSHOT_HIDE_ANIME=1` | hide the Anime section/shelf for this capture; `capture.sh` sets it only for the Explore slide (early-B&W anime art clashes with the color shelves), so Lists still shows anime |
 | `SIMALYTICS_SCREENSHOT_POSTER_DIR=<dir>` | local dir of public-domain poster JPEGs; `PosterURLProtocol` serves these for `/posters/`, `/fanart/`, and `/episodes/` requests so nothing is fetched from Simkl |
 | `SIMALYTICS_EPISODE_TEST_FAILURE=1` | in screenshot mode only, fail synthetic episode writes to check visible errors and rollback; otherwise these writes update the in-memory browser |
+| `SIMALYTICS_SCREENSHOT_WATCHLIST_STATUS=plantowatch` | set the fixture's initial status to `watching`, `plantowatch`, `completed`, `hold`, or `dropped` to check label alignment without a network mutation |
 
 Detail views are network-driven (they render from a live `getMovieDetails` fetch, not
 the seeded store), so a rich offline detail capture needs an injected fixture:
