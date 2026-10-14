@@ -4,6 +4,8 @@
 
 ### Patch Changes
 
+- Tighten episode rows and let their header scroll away under the native back button. Restore compact year/runtime/watchlist spacing and keep ten-star ratings on one line while preserving the optional five-star scale. Larger accessibility text gives detail labels and values their own lines.
+
 - Choose your default launch tab in Settings with a native selection screen and Liquid Glass styling. The tab bar now makes more room while scrolling on iOS 26 and later, and detail transitions respect Reduce Motion.
 
   Search now shows loading and connection errors accurately, including the first query. Poster grids fit three columns on smaller iPhones, and detail screens share consistent headers, placeholders, and episode rows.
@@ -19,9 +21,9 @@
   Open the library and calculate list counts away from the UI thread, load Explore shelves lazily, and keep the loading state accurate during overlapping operations.
 
   Explore adopts the native search tab on iOS 26 and later, with a floating search control and a search field beside the compact tabs. Detail actions use native Liquid Glass buttons with larger touch targets and an adaptive layout; older iOS versions keep standard controls.
-- Browse TV and anime episodes with a native season or episode-range picker, a sticky progress header, and a shortcut to the next unwatched episode. Mark episodes directly from the list or with a full swipe on iOS 27, with shared save protection and visible errors.
+- Browse TV and anime episodes with a native season or episode-range picker, watched progress, and a shortcut to the next unwatched episode. Mark episodes directly from the list or with a full swipe on iOS 27, with shared save protection and visible errors.
 
-  Episode rows reserve consistent space for titles, description previews, and thumbnails to prevent long descriptions or loading images from shifting the list. Full descriptions open in a scrollable sheet, and larger text uses an adaptive layout.
+  Compact episode rows reserve consistent space for titles, description previews, and thumbnails to prevent long descriptions or loading images from shifting the list. Full descriptions open in a scrollable sheet, and larger text uses an adaptive layout.
 - TV and anime details now open at your latest watched season or episode group and advance when it is complete, instead of returning to earlier seasons you skipped.
 
 ## 1.0.17
