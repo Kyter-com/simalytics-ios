@@ -27,8 +27,9 @@ struct LayoutToggleButton: View {
   }
 }
 
-// Cells are 110pt wide so they fit 3-up on the narrowest supported iPhone.
+// 3 × 110pt + 2 × 12pt gaps + 2 × 8pt margins fit a 375pt iPhone.
 // Adaptive grid with a max keeps them from ballooning on iPad.
+let posterGridHorizontalPadding: CGFloat = 8
 let posterGridColumns: [GridItem] = [GridItem(.adaptive(minimum: 110, maximum: 130), spacing: 12)]
 
 struct PosterGridCell: View {

@@ -227,7 +227,7 @@ struct UpNextView: View {
                   }
                 }
               }
-              .padding(.horizontal, 12)
+              .padding(.horizontal, posterGridHorizontalPadding)
               .padding(.vertical, 8)
             }
             .upNextSwipeContainer()

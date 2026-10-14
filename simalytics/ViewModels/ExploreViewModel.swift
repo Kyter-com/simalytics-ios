@@ -12,30 +12,22 @@ import Sentry
 // Simkl docs. Each file ships title/poster/ids and is cached for ~1h.
 private let SIMKL_TRENDING_BASE = "https://data.simkl.in/discover/trending"
 
-private func fetchTrendingArray<T: Decodable>(_ type: String) async -> [T] {
-  guard let url = URL(string: "\(SIMKL_TRENDING_BASE)/\(type)/today_100.json") else { return [] }
-  do {
-    var request = URLRequest(url: url)
-    request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-    let (data, response) = try await URLSession.shared.simklData(for: request)
-    guard (response as? HTTPURLResponse)?.statusCode == 200 else { return [] }
-
-    return try JSONDecoder().decode([T].self, from: data)
-  } catch {
-    reportError(error)
-    return []
-  }
+private func fetchTrendingArray<T: Decodable>(_ type: String) async throws -> [T] {
+  let url = URL(string: "\(SIMKL_TRENDING_BASE)/\(type)/today_100.json")!
+  var request = URLRequest(url: url)
+  request.setValue("application/json", forHTTPHeaderField: "Accept")
+  let (data, _) = try await performSimklRequest(request)
+  return try JSONDecoder().decode([T].self, from: data)
 }
 
-func getTrendingMovies() async -> [TrendingMovieModel] {
-  await fetchTrendingArray("movies")
+func getTrendingMovies() async throws -> [TrendingMovieModel] {
+  try await fetchTrendingArray("movies")
 }
 
-func getTrendingAnimes() async -> [TrendingAnimeModel] {
-  await fetchTrendingArray("anime")
+func getTrendingAnimes() async throws -> [TrendingAnimeModel] {
+  try await fetchTrendingArray("anime")
 }
 
-func getTrendingShows() async -> [TrendingShowModel] {
-  await fetchTrendingArray("tv")
+func getTrendingShows() async throws -> [TrendingShowModel] {
+  try await fetchTrendingArray("tv")
 }

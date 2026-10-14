@@ -27,7 +27,7 @@ struct EpisodeHistoryContractTests {
 
   @Test(
     "Malformed history acknowledgement is not success",
-    arguments: ["empty", "missing-not-found", "excess-episodes"])
+    arguments: ["empty", "missing-not-found", "excess-episodes", "boolean-count"])
   func invalidAcknowledgement(scenario: String) async {
     #expect(
       await mutate(isAnime: false, scenario: scenario)
@@ -47,11 +47,46 @@ struct EpisodeHistoryContractTests {
     }
   }
 
-  private func mutate(isAnime: Bool, scenario: String) async -> SimklMutationResult {
+  @Test(
+    "Unwatch validates both documented and live responses", arguments: [false, true],
+    ["success", "already-watched", "documented"])
+  func unwatchSuccess(isAnime: Bool, scenario: String) async {
+    #expect(await mutate(isAnime: isAnime, scenario: scenario, remove: true) == .succeeded)
+  }
+
+  @Test(
+    "Unwatch does not report success on a resolver rejection", arguments: [false, true],
+    ["not-found-show", "not-found-episode"])
+  func unwatchRejection(isAnime: Bool, scenario: String) async {
+    #expect(
+      await mutate(isAnime: isAnime, scenario: scenario, remove: true)
+        == .failed(userMessage: simklMutationUserMessage(for: SimklMutationError.episodeNotFound)))
+  }
+
+  @Test(
+    "Unwatch rejects malformed success responses",
+    arguments: ["empty", "missing-not-found", "excess-episodes", "boolean-count"])
+  func unwatchMalformed(scenario: String) async {
+    #expect(
+      await mutate(isAnime: true, scenario: scenario, remove: true)
+        == .failed(userMessage: simklMutationUserMessage(for: SimklMutationError.invalidResponse)))
+  }
+
+  private func mutate(isAnime: Bool, scenario: String, remove: Bool = false) async
+    -> SimklMutationResult
+  {
     let config = URLSessionConfiguration.ephemeral
     config.protocolClasses = [EpisodeHistoryFixtureProtocol.self]
     let session = URLSession(configuration: config)
     defer { session.invalidateAndCancel() }
+    if remove {
+      if isAnime {
+        return await AnimeDetailView.markEpisodeUnwatched(
+          scenario, "One Piece", 38636, 1, 1180, session: session)
+      }
+      return await ShowDetailView.markEpisodeUnwatched(
+        scenario, "Test TV", 42, 2, 3, session: session)
+    }
     if isAnime {
       return await AnimeDetailView.markEpisodeWatched(
         scenario, "One Piece", 38636, 1, 1180, session: session)
@@ -88,8 +123,9 @@ private final class EpisodeHistoryFixtureProtocol: URLProtocol, @unchecked Senda
       bodyData = data
     }
     let body = bodyData.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-    let isAnime = body?["anime"] != nil
-    let entries = body?[isAnime ? "anime" : "shows"] as? [[String: Any]]
+    let remove = request.url?.path == "/sync/history/remove"
+    let entries = body?[body?["anime"] != nil ? "anime" : "shows"] as? [[String: Any]]
+    let isAnime = (entries?.first?["ids"] as? [String: Int])?["simkl"] == 38636
     let item = entries?.first
     let ids = item?["ids"] as? [String: Any]
     let seasons = item?["seasons"] as? [[String: Any]]
@@ -98,7 +134,8 @@ private final class EpisodeHistoryFixtureProtocol: URLProtocol, @unchecked Senda
     let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
     let names = Set(query.map(\.name))
     let valid =
-      request.httpMethod == "POST" && request.url?.path == "/sync/history"
+      request.httpMethod == "POST"
+      && request.url?.path == (remove ? "/sync/history/remove" : "/sync/history")
       && request.value(forHTTPHeaderField: "Content-Type") == "application/json"
       && request.value(forHTTPHeaderField: "User-Agent")?.hasPrefix("simalytics-ios/") == true
       && request.value(forHTTPHeaderField: "simkl-api-key") != nil
@@ -107,19 +144,28 @@ private final class EpisodeHistoryFixtureProtocol: URLProtocol, @unchecked Senda
       && ids?["simkl"] as? Int == (isAnime ? 38636 : 42)
       && seasons?.count == 1 && seasons?.first?["number"] as? Int == (isAnime ? 1 : 2)
       && episodes?.count == 1 && episode?["number"] as? Int == (isAnime ? 1180 : 3)
-      && (episode?["watched_at"] as? String).flatMap { ISO8601DateFormatter().date(from: $0) }
-        != nil
+      && (remove
+        ? (episode?["watched_at"] == nil && body?["anime"] == nil)
+        : (episode?["watched_at"] as? String).flatMap { ISO8601DateFormatter().date(from: $0) }
+          != nil)
     let status = scenario == "unauthorized" ? 401 : (valid ? 201 : 400)
     let responseBody: String
+    let counter = remove ? "deleted" : "added"
     switch scenario {
     case "empty": responseBody = "{}"
-    case "missing-not-found": responseBody = "{\"added\":{\"episodes\":1}}"
+    case "missing-not-found": responseBody = "{\"\(counter)\":{\"episodes\":1}}"
+    case "boolean-count":
+      responseBody =
+        "{\"\(counter)\":{\"episodes\":true},\"not_found\":{\"movies\":[],\"shows\":[]}}"
+    case "documented":
+      responseBody =
+        "{\"deleted\":{\"movies\":0,\"shows\":0,\"episodes\":1},\"not_found\":{\"movies\":[],\"shows\":[]}}"
     default:
       let count = scenario == "already-watched" ? 0 : (scenario == "excess-episodes" ? 2 : 1)
       let rejectedShow = scenario == "not-found-show" ? "[{\"ids\":{\"simkl\":38636}}]" : "[]"
       let rejectedEpisode = scenario == "not-found-episode" ? "[{\"number\":1180}]" : "[]"
       responseBody = """
-        {"added":{"movies":0,"shows":0,"episodes":\(count)},"not_found":{"movies":[],"shows":\(rejectedShow),"episodes":\(rejectedEpisode)}}
+        {"\(counter)":{"movies":0,"shows":0,"episodes":\(count)},"not_found":{"movies":[],"shows":\(rejectedShow),"episodes":\(rejectedEpisode)}}
         """
     }
     let response = HTTPURLResponse(

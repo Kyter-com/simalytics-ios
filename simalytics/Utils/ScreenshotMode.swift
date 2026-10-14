@@ -113,7 +113,7 @@
       guard ScreenshotMode.posterDirectory != nil,
         let url = request.url?.absoluteString
       else { return false }
-      return url.contains("/posters/") || url.contains("/fanart/")
+      return url.contains("/posters/") || url.contains("/fanart/") || url.contains("/episodes/")
     }
 
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -144,7 +144,7 @@
     /// `https://wsrv.nl/?url=https://simkl.in/fanart/the-general-1926-fanart_mobile.jpg`
     /// -> `the-general-1926-fanart`.
     static func posterKey(from absoluteURL: String) -> String? {
-      let markers = ["/posters/", "/fanart/"]
+      let markers = ["/posters/", "/fanart/", "/episodes/"]
       guard let marker = markers.first(where: { absoluteURL.contains($0) }),
         let range = absoluteURL.range(of: marker)
       else { return nil }

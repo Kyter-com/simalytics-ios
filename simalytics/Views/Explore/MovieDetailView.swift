@@ -11,16 +11,13 @@ import SwiftUI
 
 struct MovieDetailView: View {
   @Environment(Auth.self) private var auth
-  @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
-  @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @State private var movieDetails: MovieDetailsModel?
   @State private var movieWatchlist: MovieWatchlistModel?
   @State private var cast: [TMDBCastMember] = []
   @State private var isLoading = true
   @State private var watchlistStatus: String?
   @State private var localRating: Double = 0
-  @State private var originalRating: Double = 0
   @State private var showingMemoSheet = false
   @State private var memoText: String = ""
   @State private var privacySelection: String = "Public"
@@ -28,7 +25,6 @@ struct MovieDetailView: View {
 
   // MARK: - Sheets
   @State private var showingJustWatchSheet = false
-  @State private var showingFullscreenPoster = false
 
   var body: some View {
     if isLoading {
@@ -51,8 +47,7 @@ struct MovieDetailView: View {
             )
             if let movie = movies.first {
               let simklRating = Double(movie.user_rating ?? 0)
-              self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
-              self.originalRating = self.localRating
+              self.localRating = simklRating
               self.memoText = movie.memo_text ?? ""
               self.privacySelection = movie.memo_is_private ?? true ? "Private" : "Public"
             }
@@ -70,97 +65,61 @@ struct MovieDetailView: View {
       ScrollView {
         ParallaxBackgroundImage(fanart: movieDetails?.fanart)
 
-        HStack {
-          if let poster = movieDetails?.poster {
-            Button {
-              showingFullscreenPoster = true
+        MediaDetailHeader(poster: movieDetails?.poster, title: movieDetails?.title ?? "movie") {
+          if let year = movieDetails?.year {
+            LabeledContent {
+              Text(String(year))
+                .fontDesign(.monospaced)
+                .foregroundStyle(.secondary)
             } label: {
-              CustomKFImage(
-                imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
-                memoryCacheOnly: true,
-                height: 225,
-                width: 150
-              )
-              .overlay {
-                RoundedRectangle(cornerRadius: 8).stroke(
-                  colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
-              }
+              Label("Released", systemImage: "calendar")
+                .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("View \(movieDetails?.title ?? "movie") poster")
-          } else {
-            CustomKFImage(
-              imageUrlString: nil,
-              memoryCacheOnly: true,
-              height: 225,
-              width: 150
-            )
           }
-
-          Spacer()
-          VStack(alignment: .leading) {
-            Spacer(minLength: 8)
-            if let year = movieDetails?.year {
-              LabeledContent {
-                Text(String(year))
-                  .fontDesign(.monospaced)
-                  .foregroundStyle(.secondary)
-              } label: {
-                Label("Released", systemImage: "calendar")
-                  .foregroundStyle(.secondary)
-              }
+          if let runtime = movieDetails?.runtime {
+            LabeledContent {
+              Text("\(String(runtime)) Min")
+                .fontDesign(.monospaced)
+                .foregroundStyle(.secondary)
+            } label: {
+              Label("Runtime", systemImage: "clock")
+                .foregroundStyle(.secondary)
             }
-            if let runtime = movieDetails?.runtime {
-              LabeledContent {
-                Text("\(String(runtime)) Min")
-                  .fontDesign(.monospaced)
-                  .foregroundStyle(.secondary)
-              } label: {
-                Label("Runtime", systemImage: "clock")
-                  .foregroundStyle(.secondary)
-              }
+          }
+          if let certification = movieDetails?.certification {
+            LabeledContent {
+              Text(certification)
+                .fontDesign(.monospaced)
+                .foregroundStyle(.secondary)
+            } label: {
+              Label("MPAA", systemImage: "figure.and.child.holdinghands")
+                .foregroundStyle(.secondary)
             }
-            if let certification = movieDetails?.certification {
-              LabeledContent {
-                Text(certification)
-                  .fontDesign(.monospaced)
-                  .foregroundStyle(.secondary)
-              } label: {
-                Label("MPAA", systemImage: "figure.and.child.holdinghands")
-                  .foregroundStyle(.secondary)
-              }
+          }
+          if let language = movieDetails?.language {
+            LabeledContent {
+              Text(language)
+                .fontDesign(.monospaced)
+                .foregroundStyle(.secondary)
+            } label: {
+              Label("Language", systemImage: "globe")
+                .foregroundStyle(.secondary)
             }
-            if let language = movieDetails?.language {
-              LabeledContent {
-                Text(language)
-                  .fontDesign(.monospaced)
-                  .foregroundStyle(.secondary)
-              } label: {
-                Label("Language", systemImage: "globe")
-                  .foregroundStyle(.secondary)
-              }
+          }
+          if let simklRating = movieDetails?.ratings?.simkl?.rating {
+            LabeledContent {
+              Text(String(simklRating))
+                .fontDesign(.monospaced)
+                .foregroundStyle(.secondary)
+            } label: {
+              Label("SIMKL Rating", systemImage: "trophy")
+                .foregroundStyle(.secondary)
             }
-            if let simklRating = movieDetails?.ratings?.simkl?.rating {
-              LabeledContent {
-                Text(String(simklRating))
-                  .fontDesign(.monospaced)
-                  .foregroundStyle(.secondary)
-              } label: {
-                Label("SIMKL Rating", systemImage: "trophy")
-                  .foregroundStyle(.secondary)
-              }
-            }
-            Spacer()
-            if !auth.simklAccessToken.isEmpty {
-              MovieWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
-            }
-            Spacer()
-              .frame(height: 2)
+          }
+          if !auth.simklAccessToken.isEmpty {
+            MovieWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
           }
         }
-        .padding([.leading, .trailing])
-        .offset(y: -10)
-        .background(colorScheme == .dark ? Color.black : Color.white)
 
         if let title = movieDetails?.title {
           Text(title)
@@ -188,52 +147,22 @@ struct MovieDetailView: View {
         }
 
         if watchlistStatus != nil {
-          RatingView(
-            maxRating: useFiveStarRating ? 5 : 10,
-            rating: $localRating,
-            starColor: .blue,
-            starRounding: useFiveStarRating ? .roundToHalfStar : .roundToFullStar,
-            size: useFiveStarRating ? 28 : 20
-          )
-          .padding([.leading, .trailing])
-          .padding(.top, 8)
+          MediaRatingView(simklID: simkl_id, type: .movie, rating: $localRating)
         }
 
-        HStack(spacing: 12) {
-          if watchlistStatus != nil {
-            Button {
-              showingMemoSheet.toggle()
-            }
-            label: {
-              Label("Add Memo", systemImage: "square.and.pencil")
-            }
-            .buttonStyle(.bordered)
-          }
-          Button {
-            showingJustWatchSheet.toggle()
-          } label: {
-            Label("Where to Watch", systemImage: "sparkles.tv")
-          }
-          .buttonStyle(.bordered)
-        }
-        .padding([.leading, .trailing])
-        .padding(.top, 8)
+        MediaActionButtons(
+          canAddMemo: watchlistStatus != nil,
+          addMemo: { showingMemoSheet = true },
+          whereToWatch: { showingJustWatchSheet = true })
 
         CastRow(cast: cast)
 
         Recommendations(recommendations: movieDetails?.users_recommendations)
       }
-      .onChange(of: localRating) {
-        if localRating == originalRating { return }
-        Task {
-          let ratingForSimkl = useFiveStarRating ? localRating * 2 : localRating
-          await MovieDetailView.addMovieRating(simkl_id, auth.simklAccessToken, ratingForSimkl)
-          await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
-        }
-      }
       .sheet(isPresented: $showingMemoSheet) {
         MemoView(
-          memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id, item_status: watchlistStatus ?? "", simkl_type: "movie"
+          memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id,
+          item_status: watchlistStatus ?? "", simkl_type: "movie"
         )
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -245,11 +174,6 @@ struct MovieDetailView: View {
         )
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-      }
-      .fullScreenCover(isPresented: $showingFullscreenPoster) {
-        if let poster = movieDetails?.poster {
-          FullscreenPosterView(posterPath: poster)
-        }
       }
     }
   }

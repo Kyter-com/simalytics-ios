@@ -1,6 +1,32 @@
 # @kyter/simalytics-ios
 
+## 1.0.18
+
+### Patch Changes
+
+- Choose your default launch tab in Settings with a native selection screen and Liquid Glass styling. The tab bar now makes more room while scrolling on iOS 26 and later, and detail transitions respect Reduce Motion.
+
+  Search now shows loading and connection errors accurately, including the first query. Poster grids fit three columns on smaller iPhones, and detail screens share consistent headers, placeholders, and episode rows.
+
+  Set half-star ratings in five-star mode, remove ratings, and recover from failed saves. Episode and list removals now detect rejected updates from Simkl.
+
+  Pan and zoom fullscreen posters with sensible limits, retry failed loads, and receive save confirmation only after Photos finishes saving. Settings clearly labels and confirms the local reset that signs you out.
+
+  Keep automated tests and screenshot fixtures out of crash reporting, and separate simulator and development diagnostics from production events.
+
+  Recover from library storage failures with clear retry guidance, preserve saved titles when sync responses fail, and stop repeated work when the database cannot be written. Episode lists now show connection failures with a retry action.
+
+  Open the library and calculate list counts away from the UI thread, load Explore shelves lazily, and keep the loading state accurate during overlapping operations.
+
+  Explore adopts the native search tab on iOS 26 and later, with a floating search control and a search field beside the compact tabs. Detail actions use native Liquid Glass buttons with larger touch targets and an adaptive layout; older iOS versions keep standard controls.
+- Browse TV and anime episodes with a native season or episode-range picker, a sticky progress header, and a shortcut to the next unwatched episode. Mark episodes directly from the list or with a full swipe on iOS 27, with shared save protection and visible errors.
+
+  Episode rows reserve consistent space for titles, description previews, and thumbnails to prevent long descriptions or loading images from shifting the list. Full descriptions open in a scrollable sheet, and larger text uses an adaptive layout.
+- TV and anime details now open at your latest watched season or episode group and advance when it is complete, instead of returning to earlier seasons you skipped.
+
 ## 1.0.17
+
+TestFlight-only; included in the 1.0.18 App Store release preparation.
 
 ### Patch Changes
 
@@ -8,6 +34,8 @@
 - 5159411: Open on Up Next by default, hide stale or unaired next episodes using SIMKL's authoritative watchlist data, and mark episodes watched with a single full left swipe. Keep tap and accessibility actions available and show errors when a watched update fails.
 
 ## 1.0.16
+
+TestFlight-only; included in the 1.0.18 App Store release preparation.
 
 ### Patch Changes
 

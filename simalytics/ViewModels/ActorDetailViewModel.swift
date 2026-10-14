@@ -127,7 +127,8 @@ extension ActorDetailView {
 
   private static func resolveDestinationByTitle(for credit: TMDBPersonCredit) async -> MediaDestination? {
     let searchType = credit.media_type == "movie" ? "movie" : "tv"
-    let results = await SearchResultsView.fetchResults(searchText: credit.displayTitle, type: searchType)
+    let results =
+      (try? await fetchMediaSearchResults(searchText: credit.displayTitle, type: searchType)) ?? []
     let match = results.first { result in
       guard let creditYear = credit.year, let resultYear = result.year else { return false }
       return String(resultYear) == creditYear

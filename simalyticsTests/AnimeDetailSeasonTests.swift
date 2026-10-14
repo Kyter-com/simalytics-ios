@@ -3,8 +3,8 @@
 //  simalyticsTests
 //
 //  Tests for the default season selection in AnimeDetailView: the episode
-//  list opens on the first season with an unwatched episode so returning
-//  viewers land where they left off. Anime seasons are synthetic display
+//  list follows the highest watched group without revisiting older gaps.
+//  Anime seasons are synthetic display
 //  groups (episode / 100 + 1) while the watchlist tracks episodes flat.
 //
 
@@ -112,6 +112,58 @@ struct AnimeDetailSeasonTests {
     ]
     #expect(
       AnimeDetailView.defaultSeason(episodes: episodes, watchlist: watchlist(seasons: nil)) == 1)
+  }
+
+  @Test("Advances past a watched anime group even when earlier groups were skipped")
+  func skipsOlderUnwatchedGroups() {
+    let episodes = [
+      episode(season: 13, number: 1200), episode(season: 1, number: 1),
+      episode(season: 12, number: 1100), episode(season: 12, number: 1101),
+    ]
+    let list = watchlist(seasons: [watchedFlat([1100, 1101])])
+    #expect(AnimeDetailView.defaultSeason(episodes: episodes, watchlist: list) == 13)
+  }
+
+  @Test("Keeps an unfinished latest anime group despite unwatched earlier groups")
+  func staysOnPartiallyWatchedLatestGroup() {
+    let episodes = [
+      episode(season: 1, number: 1), episode(season: 12, number: 1100),
+      episode(season: 12, number: 1101), episode(season: 13, number: 1200),
+    ]
+    let list = watchlist(seasons: [watchedFlat([1100])])
+    #expect(AnimeDetailView.defaultSeason(episodes: episodes, watchlist: list) == 12)
+  }
+
+  @Test("Caught-up anime stays on its latest group instead of revisiting skipped groups")
+  func caughtUpDoesNotRevisitSkippedGroups() {
+    let episodes = [
+      episode(season: 1, number: 1), episode(season: 12, number: 1100),
+      episode(season: 12, number: 1101),
+    ]
+    let list = watchlist(seasons: [watchedFlat([1100, 1101])])
+    #expect(AnimeDetailView.defaultSeason(episodes: episodes, watchlist: list) == 12)
+  }
+
+  @Test("Anime resume advances across gaps in displayed groups")
+  func advancesAcrossMissingGroups() {
+    let episodes = [
+      episode(season: 14, number: 1300), episode(season: 1, number: 1),
+      episode(season: 12, number: 1100),
+    ]
+    let list = watchlist(seasons: [watchedFlat([1100])])
+    #expect(AnimeDetailView.defaultSeason(episodes: episodes, watchlist: list) == 14)
+  }
+
+  @Test("Watched specials and unknown anime episodes do not advance regular groups")
+  func ignoresUnrelatedWatchedEntries() {
+    let episodes = [
+      episode(season: 1, number: 1), episode(season: 12, number: 1100),
+      episode(season: 14, number: 1300, type: "special"),
+    ]
+    let list = watchlist(seasons: [
+      watchedFlat([1199]), watchedFlat([1300], seasonNumber: 0),
+    ])
+    #expect(AnimeDetailView.defaultSeason(episodes: episodes, watchlist: list) == 1)
   }
 
   // MARK: - watchlistSeason / isEpisodeWatched

@@ -11,42 +11,47 @@ import SwiftUI
 
 struct ShowDetailView: View {
   @Environment(Auth.self) private var auth
-  @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
-  @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @State private var showDetails: ShowDetailsModel?
   @State private var showWatchlist: ShowWatchlistModel?
-  @State private var showEpisodes: [ShowEpisodeModel] = []
   @State private var cast: [TMDBCastMember] = []
   @State private var isLoading = true
+  @State private var isLoadingEpisodes = false
+  @State private var episodeLoadError: String?
+  @State private var episodeBrowser: EpisodeBrowserModel?
   @State private var watchlistStatus: String?
-  @State private var filteredEpisodes: [ShowEpisodeModel] = []
-  @State private var selectedSeason: String?
   @State private var localRating: Double = 0
-  @State private var originalRating: Double = 0
   @State private var memoText: String = ""
   @State private var privacySelection: String = "Public"
-  @AppStorage("blurEpisodeImages") private var blurImages: Bool = false
-  @State private var selectedEpisode: ShowEpisodeModel?
   var simkl_id: Int
 
   // MARK: - Sheets
   @State private var showingJustWatchSheet = false
-  @State private var showingShowEpisodeSheet = false
   @State private var showingMemoSheet = false
-  @State private var showingFullscreenPoster = false
 
-  var seasons: [Int] {
-    showEpisodes.compactMap { $0.season }.unique().sorted()
-  }
+  private func loadEpisodes() async {
+    guard !isLoadingEpisodes else { return }
+    isLoadingEpisodes = true
+    episodeLoadError = nil
+    defer { isLoadingEpisodes = false }
+    do {
+      let episodes = try await ShowDetailView.getShowEpisodes(simkl_id)
+      try Task.checkCancellation()
+      let browser = EpisodeBrowserModel(
+        episodes: episodes.map { EpisodeListItem(show: $0) },
+        seasons: showWatchlist?.seasons, isAnime: false)
+      if let selected = episodeBrowser?.selectedGroup,
+        browser.groups.contains(where: { $0.id == selected })
+      {
+        browser.selectedGroup = selected
+      }
+      episodeBrowser = browser
 
-  var hasSpecials: Bool {
-    showEpisodes.contains { $0.type == "special" }
-  }
-
-  func hasWatchedEpisode(season targetSeason: Int, episode targetEpisode: Int) -> Bool {
-    ShowDetailView.isEpisodeWatched(
-      showWatchlist, season: targetSeason, episode: targetEpisode)
+    } catch {
+      guard !isSimklCancellationError(error) else { return }
+      reportError(error)
+      episodeLoadError = "Couldn't load episodes. Check your connection and try again."
+    }
   }
 
   var body: some View {
@@ -57,7 +62,7 @@ struct ShowDetailView: View {
           showWatchlist = await ShowDetailView.getShowWatchlist(
             simkl_id, auth.simklAccessToken)
           watchlistStatus = showWatchlist?.list
-          showEpisodes = await ShowDetailView.getShowEpisodes(simkl_id)
+          await loadEpisodes()
 
           cast = await getCast(auth.simklAccessToken, showDetails?.ids?.tmdb, mediaType: "tv")
 
@@ -66,26 +71,13 @@ struct ShowDetailView: View {
             KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
           }
 
-          if let resumeSeason = ShowDetailView.defaultSeason(
-            episodes: showEpisodes, watchlist: showWatchlist
-          ) {
-            filteredEpisodes = showEpisodes.filter({ $0.season == resumeSeason })
-            selectedSeason = "Season \(resumeSeason)"
-          } else if !showEpisodes.filter({ $0.type == "special" }).isEmpty {
-            filteredEpisodes = showEpisodes.filter({ $0.type == "special" })
-            selectedSeason = "Specials"
-          } else {
-            filteredEpisodes = []
-          }
-
           do {
             let shows = try modelContext.fetch(
               FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.simkl == simkl_id })
             )
             if let show = shows.first {
               let simklRating = Double(show.user_rating ?? 0)
-              self.localRating = useFiveStarRating ? simklRating / 2 : simklRating
-              self.originalRating = self.localRating
+              self.localRating = simklRating
               self.memoText = show.memo_text ?? ""
               self.privacySelection = show.memo_is_private ?? true ? "Private" : "Public"
             }
@@ -100,206 +92,67 @@ struct ShowDetailView: View {
         Text("Simkl didn't return details for this show.")
       }
     } else {
-      ScrollView {
-        ParallaxBackgroundImage(fanart: showDetails?.fanart)
+      ScrollViewReader { scrollProxy in
+        ScrollView {
+          ParallaxBackgroundImage(fanart: showDetails?.fanart)
 
-        HStack {
-          if let poster = showDetails?.poster {
-            Button {
-              showingFullscreenPoster = true
-            } label: {
-              CustomKFImage(
-                imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
-                memoryCacheOnly: true,
-                height: 220.59,
-                width: 150
-              )
-              .overlay {
-                RoundedRectangle(cornerRadius: 8).stroke(
-                  colorScheme == .dark ? Color.black : Color.white, lineWidth: 4)
-              }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("View \(showDetails?.title ?? "show") poster")
-          }
-          Spacer()
-          VStack {
-            Spacer(minLength: 8)
+          MediaDetailHeader(poster: showDetails?.poster, title: showDetails?.title ?? "show") {
             ShowHeaderInfo(showDetails: $showDetails, showWatchlist: $showWatchlist)
-            Spacer()
             if !auth.simklAccessToken.isEmpty {
               ShowWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
             }
-            Spacer()
-              .frame(height: 2)
-          }
-        }
-        .padding([.leading, .trailing])
-        .offset(y: -10)
-        .background(colorScheme == .dark ? Color.black : Color.white)
-
-        if let title = showDetails?.title {
-          Text(title)
-            .font(.title)
-            .bold()
-            .fontDesign(.rounded)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding([.leading, .trailing])
-            .offset(y: -10)
-        }
-
-        if let genres = showDetails?.genres {
-          Text(genres.joined(separator: " • "))
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .padding([.leading, .trailing])
-            .fontDesign(.monospaced)
-        }
-
-        if let overview = showDetails?.overview {
-          Text(overview)
-            .font(.footnote)
-            .padding([.leading, .trailing])
-            .padding(.top, 8)
-        }
-
-        if watchlistStatus != nil {
-          RatingView(
-            maxRating: useFiveStarRating ? 5 : 10,
-            rating: $localRating,
-            starColor: .blue,
-            starRounding: useFiveStarRating ? .roundToHalfStar : .roundToFullStar,
-            size: useFiveStarRating ? 28 : 20
-          )
-          .padding([.leading, .trailing])
-          .padding(.top, 8)
-        }
-
-        HStack(spacing: 12) {
-          if watchlistStatus != nil {
-            Button {
-              showingMemoSheet.toggle()
-            }
-            label: {
-              Label("Add Memo", systemImage: "square.and.pencil")
-            }
-            .buttonStyle(.bordered)
           }
 
-          Button {
-            showingJustWatchSheet.toggle()
-          } label: {
-            Label("Where to Watch", systemImage: "sparkles.tv")
-          }
-          .buttonStyle(.bordered)
-        }
-        .padding([.leading, .trailing])
-        .padding(.top, 8)
-
-        if !filteredEpisodes.isEmpty {
-          LazyVStack(alignment: .leading) {
-            HStack {
-              Menu {
-                ForEach(seasons, id: \.self) { season in
-                  Button(action: {
-                    filteredEpisodes = showEpisodes.filter { $0.season == season }
-                    selectedSeason = "Season \(season)"
-                  }) {
-                    Text("Season \(season)")
-                  }
-                }
-                if hasSpecials {
-                  Button(action: {
-                    filteredEpisodes = showEpisodes.filter { $0.type == "special" }
-                    selectedSeason = "Specials"
-                  }) {
-                    Text("Specials")
-                  }
-                }
-              } label: {
-                Label(selectedSeason ?? "Season", systemImage: "chevron.up.chevron.down")
-                .foregroundStyle(Color.accentColor)
-                .bold()
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .glassBackground()
-              }
+          if let title = showDetails?.title {
+            Text(title)
+              .font(.title)
+              .bold()
+              .fontDesign(.rounded)
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding([.leading, .trailing])
-              .padding([.top], 6)
-            }
-
-            ForEach(filteredEpisodes, id: \.ids.simkl_id) { episode in
-              Button {
-                selectedEpisode = episode
-                showingShowEpisodeSheet.toggle()
-              } label: {
-                HStack(alignment: .top, spacing: 12) {
-                  ZStack(alignment: .bottomTrailing) {
-                    ZStack {
-                      CustomKFImage(
-                        imageUrlString: episode.img != nil
-                          ? "\(SIMKL_CDN_URL)/episodes/\(episode.img!)_w.jpg" : nil,
-                        memoryCacheOnly: true,
-                        height: 70.42,
-                        width: 125
-                      )
-                      if blurImages && !hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1) {
-                        Rectangle()
-                          .fill(Color.clear)
-                          .frame(width: 125, height: 70.42)
-                          .background(BlurView(style: .regular))
-                          .clipShape(.rect(cornerRadius: 8))
-                      }
-                    }
-                    if hasWatchedEpisode(season: episode.season ?? -1, episode: episode.episode ?? -1) {
-                      Image(systemName: "checkmark.circle")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundStyle(colorScheme == .dark ? Color.green.darker() : Color.green)
-                        .frame(width: 14, height: 14)
-                        .padding(4)
-                        .background(colorScheme == .dark ? Color.black : Color.white)
-                        .clipShape(.rect(cornerRadius: 8))
-                        .offset(x: -2, y: -2)
-                    }
-                  }
-
-                  VStack(alignment: .leading, spacing: 4) {
-                    Text(episode.title)
-                      .font(.headline)
-                      .lineLimit(2)
-                      .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if let description = episode.description {
-                      Text(description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                  }
-                }
-              }
-              .buttonStyle(.plain)
-              .accessibilityLabel("Open episode \(episode.title)")
-              .padding([.top], 6)
-            }
-            .padding([.leading, .trailing])
+              .offset(y: -10)
           }
-          .padding(.top)
-        }
 
-        CastRow(cast: cast)
+          if let genres = showDetails?.genres {
+            Text(genres.joined(separator: " • "))
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+              .padding([.leading, .trailing])
+              .fontDesign(.monospaced)
+          }
 
-        Recommendations(recommendations: showDetails?.users_recommendations)
-      }
-      .onChange(of: localRating) {
-        if localRating == originalRating { return }
-        Task {
-          let ratingForSimkl = useFiveStarRating ? localRating * 2 : localRating
-          await ShowDetailView.addShowRating(simkl_id, auth.simklAccessToken, ratingForSimkl)
-          await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
+          if let overview = showDetails?.overview {
+            Text(overview)
+              .font(.footnote)
+              .padding([.leading, .trailing])
+              .padding(.top, 8)
+          }
+
+          if watchlistStatus != nil {
+            MediaRatingView(simklID: simkl_id, type: .show, rating: $localRating)
+          }
+
+          MediaActionButtons(
+            canAddMemo: watchlistStatus != nil,
+            addMemo: { showingMemoSheet = true },
+            whereToWatch: { showingJustWatchSheet = true })
+
+          EpisodeLoadStatus(
+            isLoading: isLoadingEpisodes, errorMessage: episodeLoadError,
+            retry: { await loadEpisodes() })
+
+          if let episodeBrowser, !episodeBrowser.groups.isEmpty {
+            MediaEpisodeSection(
+              model: episodeBrowser, scrollProxy: scrollProxy,
+              canEdit: !auth.simklAccessToken.isEmpty,
+              mutation: mutateEpisode, commit: commitEpisode, reconcile: reconcileEpisodes
+            )
+            .padding(.top)
+          }
+
+          CastRow(cast: cast)
+
+          Recommendations(recommendations: showDetails?.users_recommendations)
         }
       }
       .sheet(isPresented: $showingMemoSheet) {
@@ -321,19 +174,48 @@ struct ShowDetailView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
       }
-      .sheet(isPresented: $showingShowEpisodeSheet) {
-        ShowEpisodeView(
-          episode: $selectedEpisode, showEpisodes: $showEpisodes, showWatchlist: $showWatchlist,
-          showDetails: $showDetails, simklId: simkl_id
-        )
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
-      }
-      .fullScreenCover(isPresented: $showingFullscreenPoster) {
-        if let poster = showDetails?.poster {
-          FullscreenPosterView(posterPath: poster)
-        }
-      }
+
     }
   }
+  private func mutateEpisode(_ episode: EpisodeListItem, watched: Bool) async -> SimklMutationResult
+  {
+    guard !auth.simklAccessToken.isEmpty, let season = episode.watchSeason,
+      let number = episode.number
+    else { return .failed(userMessage: "Sign in to update this episode.") }
+    #if DEBUG
+      if ScreenshotMode.isActive { return ScreenshotEpisodeFixtures.mutationResult }
+    #endif
+    if watched {
+      return await ShowDetailView.markEpisodeWatched(
+        auth.simklAccessToken, showDetails?.title ?? "", simkl_id, season, number)
+    }
+    return await ShowDetailView.markEpisodeUnwatched(
+      auth.simklAccessToken, showDetails?.title ?? "", simkl_id, season, number)
+  }
+
+  private func commitEpisode(_ episode: EpisodeListItem, watched: Bool) {
+    invalidateUpNextCache(modelContainer: modelContext.container)
+    if watched, let season = episode.watchSeason, let number = episode.number {
+      optimisticallyClearNextToWatch(
+        simklId: simkl_id, season: season, episode: number, kind: .tv,
+        modelContainer: modelContext.container)
+    }
+  }
+
+  private func reconcileEpisodes() async -> [WatchlistSeason]? {
+    #if DEBUG
+      if ScreenshotMode.isActive { return nil }
+    #endif
+    guard !auth.simklAccessToken.isEmpty else { return nil }
+    await syncLatestActivities(
+      auth.simklAccessToken, modelContainer: modelContext.container, forceRefresh: true)
+    guard !Task.isCancelled,
+      let refreshed = await ShowDetailView.getShowWatchlist(simkl_id, auth.simklAccessToken),
+      !Task.isCancelled
+    else { return nil }
+    showWatchlist = refreshed
+    watchlistStatus = refreshed.list
+    return refreshed.seasons
+  }
+
 }

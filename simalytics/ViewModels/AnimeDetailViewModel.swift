@@ -9,9 +9,14 @@ import Foundation
 import Sentry
 
 extension AnimeDetailView {
-  static func getAnimeDetails(_ simkl_id: Int) async -> AnimeDetailsModel? {
+  static func getAnimeDetails(_ simklID: Int) async -> AnimeDetailsModel? {
+    #if DEBUG
+      if ScreenshotMode.isActive, simklID == ScreenshotEpisodeFixtures.animeID {
+        return ScreenshotEpisodeFixtures.animeDetails
+      }
+    #endif
     do {
-      var urlComponents = URLComponents(string: "https://api.simkl.com/anime/\(simkl_id)")!
+      var urlComponents = URLComponents(string: "https://api.simkl.com/anime/\(simklID)")!
       urlComponents.queryItems = [
         URLQueryItem(name: "extended", value: "full"),
         URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
@@ -42,7 +47,8 @@ extension AnimeDetailView {
     _ title: String,
     _ simklId: Int,
     _ season: Int,
-    _ episode: Int
+    _ episode: Int,
+    session: URLSession = .shared
   ) async -> SimklMutationResult {
     guard simklId > 0,
       let selection = validatedSimklEpisode(season: season, episode: episode)
@@ -61,7 +67,7 @@ extension AnimeDetailView {
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
       let body: [String: Any] = [
-        "anime": [
+        "shows": [
           [
             "title": title,
             "ids": [
@@ -81,7 +87,8 @@ extension AnimeDetailView {
         ]
       ]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      try await performSimklMutationRequest(request)
+      let (data, _) = try await performSimklRequest(request, session: session)
+      try validateSimklRemovalResponse(data, countKey: "episodes", singleEpisode: true)
       return .succeeded
     } catch {
       if isSimklCancellationError(error) { return .cancelled }
@@ -99,9 +106,18 @@ extension AnimeDetailView {
     await simklWatchedBatch(simklIDs: simklIDs, type: "anime", accessToken: accessToken)
   }
 
-  static func getAnimeWatchlist(_ simkl_id: Int, _ accessToken: String) async
+  static func getAnimeWatchlist(_ simklID: Int, _ accessToken: String) async
     -> AnimeWatchlistModel?
   {
+    #if DEBUG
+      if ScreenshotMode.isActive {
+        guard simklID == ScreenshotEpisodeFixtures.animeID else { return nil }
+        return AnimeWatchlistModel(
+          list: "watching", last_watched_at: nil, simkl: simklID,
+          episodes_watched: 80, episodes_aired: nil,
+          seasons: ScreenshotEpisodeFixtures.watchedSeason(1, numbers: Array(1100...1179)))
+      }
+    #endif
     do {
       let urlComponents = URLComponents(
         string: "https://api.simkl.com/sync/watched?extended=episodes,specials")!
@@ -111,7 +127,7 @@ extension AnimeDetailView {
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
       request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-      let body: [[String: Any]] = [["ids": ["simkl": simkl_id], "type": "anime"]]
+      let body: [[String: Any]] = [["ids": ["simkl": simklID], "type": "anime"]]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
       let (data, response) = try await URLSession.shared.simklData(for: request)
@@ -130,31 +146,6 @@ extension AnimeDetailView {
     } catch {
       reportError(error)
       return nil
-    }
-  }
-
-  static func addAnimeRating(_ simkl_id: Int, _ accessToken: String, _ rating: Double) async {
-    do {
-      let urlComponents = URLComponents(string: "https://api.simkl.com/sync/ratings")!
-      var request = URLRequest(url: urlComponents.url!)
-      request.httpMethod = "POST"
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-      let body: [String: Any] = [
-        "anime": [
-          [
-            "rating": rating,
-            "ids": [
-              "simkl": simkl_id
-            ],
-          ]
-        ]
-      ]
-      request.httpBody = try JSONSerialization.data(withJSONObject: body)
-      _ = try await URLSession.shared.simklData(for: request)
-    } catch {
-      reportError(error)
     }
   }
 
@@ -217,52 +208,48 @@ extension AnimeDetailView {
     }
   }
 
-  static func getAnimeEpisodes(_ simkl_id: Int, countSeasons: Bool = false) async
-    -> [AnimeEpisodeModel]
-  {
-    do {
-      var urlComponents = URLComponents(string: "https://api.simkl.com/anime/episodes/\(simkl_id)")!
-      urlComponents.queryItems = [
-        URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
-        URLQueryItem(name: "extended", value: "full"),
-      ]
-
-      var request = URLRequest(url: urlComponents.url!)
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-      let (data, _) = try await performSimklRequest(request)
-      let episodes = try JSONDecoder().decode([AnimeEpisodeModel].self, from: data)
-
-      if countSeasons {
-        // Map through the episodes and assign custom seasons
-        let processedEpisodes = episodes.map { episode -> AnimeEpisodeModel in
-          var modifiedEpisode = episode
-          if episode.type != "special", let episodeNumber = episode.episode {
-            modifiedEpisode.season = episodeNumber / 100 + 1
-          } else {
-            modifiedEpisode.season = 0
-          }
-          return modifiedEpisode
-        }
-        return processedEpisodes
-      } else {
-        // Count special as season 0 and everything else as season 1
-        let processedEpisodes = episodes.map { episode -> AnimeEpisodeModel in
-          var modifiedEpisode = episode
-          if episode.type == "special" {
-            modifiedEpisode.season = 0
-          } else if episode.episode != nil {
-            modifiedEpisode.season = 1
-          } else {
-            modifiedEpisode.season = nil
-          }
-          return modifiedEpisode
-        }
-        return processedEpisodes
+  @concurrent
+  nonisolated static func getAnimeEpisodes(
+    _ simklID: Int, countSeasons: Bool = false, session: URLSession = .shared
+  ) async throws -> [AnimeEpisodeModel] {
+    #if DEBUG
+      if ScreenshotMode.isActive, simklID == ScreenshotEpisodeFixtures.animeID {
+        return ScreenshotEpisodeFixtures.animeEpisodes
       }
-    } catch {
-      reportError(error)
-      return []
+    #endif
+    let request = URLRequest(
+      url: simklAPIURL(
+        path: "anime/episodes/\(simklID)",
+        queryItems: [URLQueryItem(name: "extended", value: "full")]))
+    let (data, _) = try await performSimklRequest(request, session: session)
+    try Task.checkCancellation()
+    let episodes = try JSONDecoder().decode([AnimeEpisodeModel].self, from: data)
+    if countSeasons {
+      // Map through the episodes and assign custom seasons
+      let processedEpisodes = episodes.map { episode -> AnimeEpisodeModel in
+        var modifiedEpisode = episode
+        if episode.type != "special", let episodeNumber = episode.episode {
+          modifiedEpisode.season = episodeNumber / 100 + 1
+        } else {
+          modifiedEpisode.season = 0
+        }
+        return modifiedEpisode
+      }
+      return processedEpisodes
+    } else {
+      // Count special as season 0 and everything else as season 1
+      let processedEpisodes = episodes.map { episode -> AnimeEpisodeModel in
+        var modifiedEpisode = episode
+        if episode.type == "special" {
+          modifiedEpisode.season = 0
+        } else if episode.episode != nil {
+          modifiedEpisode.season = 1
+        } else {
+          modifiedEpisode.season = nil
+        }
+        return modifiedEpisode
+      }
+      return processedEpisodes
     }
   }
 
@@ -293,34 +280,27 @@ extension AnimeDetailView {
     episode.type == "special" ? 0 : 1
   }
 
-  /// Season the episode list should open on: the first numbered season
-  /// (ascending) with at least one unwatched episode, so returning viewers
-  /// land where they left off instead of on season 1. Falls back to the
-  /// last season when everything is watched, and to nil when there are no
-  /// numbered seasons (caller shows specials instead).
+  /// Resume from the highest watched display group, ignoring older gaps.
+  /// Progress still uses SIMKL's absolute episode numbers in watchlist season 1,
+  /// rather than treating the synthetic display group as a watchlist season.
   nonisolated static func defaultSeason(
     episodes: [AnimeEpisodeModel],
     watchlist: AnimeWatchlistModel?
   ) -> Int? {
-    let numberedSeasons =
-      episodes
-      .compactMap { $0.season }
-      .filter { $0 > 0 }
-      .unique()
-      .sorted()
-    return
-      numberedSeasons.first { season in
-        episodes.contains {
-          $0.season == season
-            && !isEpisodeWatched(
-              watchlist, season: watchlistSeason(for: $0), episode: $0.episode ?? -1)
-        }
-      } ?? numberedSeasons.last
+    preferredEpisodeSeason(
+      in: episodes,
+      season: { $0.type == "special" ? nil : $0.season },
+      isWatched: {
+        isEpisodeWatched(
+          watchlist, season: watchlistSeason(for: $0), episode: $0.episode ?? -1)
+      })
   }
 }
 
 extension AnimeWatchlistButton {
-  static func updateAnimeList(_ simkl_id: Int, _ accessToken: String, _ list: String) async
+  static func updateAnimeList(
+    _ simklID: Int, _ accessToken: String, _ list: String, session: URLSession = .shared
+  ) async
     -> String?
   {
     do {
@@ -333,17 +313,18 @@ extension AnimeWatchlistButton {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
-          "anime": [
+          "shows": [
             [
               "ids": [
-                "simkl": simkl_id
+                "simkl": simklID
               ]
             ]
           ]
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        try await performSimklMutationRequest(request)
+        let (data, _) = try await performSimklRequest(request, session: session)
+        try validateSimklRemovalResponse(data, countKey: "shows")
       } else {
         let urlComponents = URLComponents(string: "https://api.simkl.com/sync/add-to-list")!
 
@@ -357,7 +338,7 @@ extension AnimeWatchlistButton {
             [
               "to": list,
               "ids": [
-                "simkl": simkl_id
+                "simkl": simklID
               ],
             ]
           ]

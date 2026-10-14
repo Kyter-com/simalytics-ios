@@ -66,9 +66,10 @@ compiled out of Release) is switched on by launch env vars that `capture.sh` set
 | --- | --- |
 | `SIMALYTICS_SCREENSHOTS=1` | in-memory store pre-seeded with public-domain fixtures (`ScreenshotSeedData`); sync disabled; a sentinel token opens the Explore/Up Next gates (never networked, never stored); grid layout forced |
 | `SIMALYTICS_SCREENSHOT_TAB=<tab>` | launch straight into `lists` \| `upnext` \| `explore` \| `settings` (tap-free capture) |
-| `SIMALYTICS_SCREENSHOT_SCREEN=<screen>` | route the Lists tab to a sub-screen: `movies-grid` \| `tv-grid` (poster-wall grids) \| `movie-detail` (rich detail view). Empty = the Lists hub. |
+| `SIMALYTICS_SCREENSHOT_SCREEN=<screen>` | route the Lists tab to a sub-screen: `movies-grid` \| `tv-grid` (poster-wall grids) \| `movie-detail` (rich detail view) \| `show-detail` \| `anime-detail` (synthetic episode browsers). Empty = the Lists hub. |
 | `SIMALYTICS_SCREENSHOT_HIDE_ANIME=1` | hide the Anime section/shelf for this capture; `capture.sh` sets it only for the Explore slide (early-B&W anime art clashes with the color shelves), so Lists still shows anime |
-| `SIMALYTICS_SCREENSHOT_POSTER_DIR=<dir>` | local dir of public-domain poster JPEGs; `PosterURLProtocol` serves these for every `/posters/` **and** detail-view `/fanart/` request so nothing is fetched from Simkl |
+| `SIMALYTICS_SCREENSHOT_POSTER_DIR=<dir>` | local dir of public-domain poster JPEGs; `PosterURLProtocol` serves these for `/posters/`, `/fanart/`, and `/episodes/` requests so nothing is fetched from Simkl |
+| `SIMALYTICS_EPISODE_TEST_FAILURE=1` | in screenshot mode only, fail synthetic episode writes to check visible errors and rollback; otherwise these writes update the in-memory browser |
 
 Detail views are network-driven (they render from a live `getMovieDetails` fetch, not
 the seeded store), so a rich offline detail capture needs an injected fixture:
@@ -81,6 +82,12 @@ featured title and the view-model short-circuits to it in screenshot mode. Its p
 
 Result: deterministic, offline, and guaranteed-PD captures with a small,
 Release-inert code footprint.
+
+The `show-detail` and `anime-detail` routes use `ScreenshotEpisodeFixtures` for
+synthetic catalogs and watch history. They include long titles, multi-paragraph
+descriptions, missing thumbnails, later-season TV progress, and absolute anime
+episode ranges. Set `SIMALYTICS_SCREENSHOT_TAB=lists` alongside either route.
+These routes support UI validation; the five marketing slides remain unchanged.
 
 ### The public-domain assets
 

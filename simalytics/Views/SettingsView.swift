@@ -17,6 +17,8 @@ struct SettingsView: View {
   @AppStorage("blurEpisodeImages") private var blurImages = false
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @AppStorage("hideAnime") private var hideAnime = false
+  @AppStorage(AppTab.preferenceKey) private var defaultTab: AppTab = .upNext
+  @State private var showResetConfirmation = false
   @State private var showErrorAlert = false
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var modelContext
@@ -152,6 +154,28 @@ struct SettingsView: View {
             }
           } header: {
             Text("Account")
+          }
+
+          Section {
+            NavigationLink {
+              DefaultTabSettingsView()
+            } label: {
+              HStack {
+                Label {
+                  Text("Default Tab")
+                } icon: {
+                  Image(systemName: "house.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.blue)
+                    .frame(width: 28, height: 28)
+                }
+                Spacer()
+                Text(defaultTab.title)
+                  .foregroundStyle(.secondary)
+              }
+            }
+          } header: {
+            Text("On Launch")
           }
 
           Section {
@@ -386,29 +410,36 @@ struct SettingsView: View {
           }
 
           if !auth.simklAccessToken.isEmpty {
-            Section(header: Text("Data Management")) {
-              Button(action: {
-                Task {
+            Section {
+              Button(role: .destructive) {
+                showResetConfirmation = true
+              } label: {
+                Label {
+                  Text("Reset & Sign Out")
+                } icon: {
+                  Image(systemName: "trash.circle.fill")
+                    .font(.title2)
+                    .frame(width: 28, height: 28)
+                }
+              }
+              .disabled(globalLoadingIndicator.isSyncing)
+              .confirmationDialog(
+                "Reset local data and sign out?", isPresented: $showResetConfirmation,
+                titleVisibility: .visible
+              ) {
+                Button("Reset & Sign Out", role: .destructive) {
                   do {
-                    let simpleKeychain = SimpleKeychain()
-                    try simpleKeychain.deleteItem(forKey: "simkl-access-token")
+                    try SimpleKeychain().deleteItem(forKey: "simkl-access-token")
                     auth.simklAccessToken = ""
                     clearLocalSwiftData()
                   } catch {
                     reportError(error)
                   }
                 }
-              }) {
-                HStack {
-                  Image(systemName: "trash.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.red)
-                    .frame(width: 28, height: 28)
-
-                  Text("Clear Locally Stored Data")
-                    .foregroundStyle(.red)
-                  Spacer()
-                }
+              } message: {
+                Text(
+                  "This removes downloaded library data from this device and signs you out. Your Simkl lists, ratings, and watch history stay on Simkl."
+                )
               }
 
               Button(action: {
@@ -432,6 +463,12 @@ struct SettingsView: View {
                     .foregroundStyle(Color(UIColor.tertiaryLabel))
                 }
               }
+            } header: {
+              Text("Data Management")
+            } footer: {
+              Text(
+                "Resetting removes local library data and signs you out. Your Simkl account is kept."
+              )
             }
           }
 

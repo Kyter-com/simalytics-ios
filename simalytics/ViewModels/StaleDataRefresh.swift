@@ -217,6 +217,7 @@ func refreshStaleData(_ accessToken: String, _ context: ModelContext) async {
 
     // Refresh each item based on type
     for item in itemsToRefresh {
+      try await SyncFailureScope.check()
       var success = false
       switch item.type {
       case "movie":
@@ -233,21 +234,24 @@ func refreshStaleData(_ accessToken: String, _ context: ModelContext) async {
       }
     }
 
+    try await SyncFailureScope.check()
+
     // Only update the refresh timestamp if at least one item was successfully refreshed
     if successCount > 0 {
       syncRecord!.stale_data_refresh = formatter.string(from: now)
-      try context.save()
+      try await saveSyncContext(context)
       print("Stale data refresh completed: \(successCount) items refreshed")
     } else if itemsToRefresh.isEmpty {
       // No items to refresh (empty library) - update timestamp to avoid repeated empty runs
       syncRecord!.stale_data_refresh = formatter.string(from: now)
-      try context.save()
+      try await saveSyncContext(context)
       print("Stale data refresh completed: no items to refresh")
     } else {
       print("Stale data refresh failed: all API calls failed, will retry next sync")
     }
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -273,7 +277,8 @@ private func refreshMovie(_ simkl: Int, _ context: ModelContext, _ formatter: IS
     }
     return false
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
     return false
   }
 }
@@ -301,7 +306,8 @@ private func refreshShow(_ simkl: Int, _ context: ModelContext, _ formatter: ISO
     }
     return false
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
     return false
   }
 }
@@ -330,7 +336,8 @@ private func refreshAnime(_ simkl: Int, _ context: ModelContext, _ formatter: IS
     }
     return false
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
     return false
   }
 }

@@ -9,7 +9,7 @@ import Foundation
 import Sentry
 import SwiftData
 
-private actor SyncLatestActivitiesGate {
+actor SyncLatestActivitiesGate {
   private var isRunning = false
   private var pendingSync = false
   private var pendingForceRefresh = false
@@ -25,7 +25,11 @@ private actor SyncLatestActivitiesGate {
     return true
   }
 
-  func finishCurrentRun() -> Bool? {
+  func finishCurrentRun(discardPending: Bool = false) -> Bool? {
+    if discardPending {
+      pendingSync = false
+      pendingForceRefresh = false
+    }
     guard pendingSync else {
       isRunning = false
       pendingForceRefresh = false
@@ -41,15 +45,14 @@ private actor SyncLatestActivitiesGate {
 
 private let syncLatestActivitiesGate = SyncLatestActivitiesGate()
 
-private func ensureLastSyncRecord(_ container: ModelContainer) {
-  let context = ModelContext(container)
-  let existing =
-    (try? context.fetch(
-      FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
-    ))?.first
+private func ensureLastSyncRecord(_ container: ModelContainer) async throws {
+  let context = makeSyncContext(container)
+  let existing = try context.fetch(
+    FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
+  ).first
   guard existing == nil else { return }
   context.insert(V1.SDLastSync(id: 1))
-  try? context.save()
+  try await saveSyncContext(context)
 }
 
 func syncLatestActivities(
@@ -69,18 +72,25 @@ func syncLatestActivities(
   while true {
     let syncStartedAt = Date()
     addSyncLifecycleBreadcrumb(message: "Sync started", forceRefresh: runForceRefresh)
-    await runSyncLatestActivities(
-      accessToken,
-      modelContainer: modelContainer,
-      forceRefresh: runForceRefresh
-    )
+    let outcome = await SyncFailureScope.perform {
+      await runSyncLatestActivities(
+        accessToken, modelContainer: modelContainer, forceRefresh: runForceRefresh)
+    }
     addSyncLifecycleBreadcrumb(
-      message: Task.isCancelled ? "Sync cancelled" : "Sync completed",
+      message: outcome == .succeeded ? "Sync completed" : "Sync interrupted",
       forceRefresh: runForceRefresh,
       duration: Date().timeIntervalSince(syncStartedAt)
     )
 
-    guard let nextForceRefresh = await syncLatestActivitiesGate.finishCurrentRun() else { break }
+    let nextForceRefresh = await syncLatestActivitiesGate.finishCurrentRun(
+      discardPending: outcome.shouldDiscardPendingSync
+    )
+    if case .storageFailure(let failure) = outcome {
+      await MainActor.run {
+        NotificationCenter.default.post(name: .syncStorageFailed, object: failure)
+      }
+    }
+    guard let nextForceRefresh else { break }
     runForceRefresh = nextForceRefresh
   }
 
@@ -109,9 +119,10 @@ private func runSyncLatestActivities(
   modelContainer: ModelContainer,
   forceRefresh: Bool = false
 ) async {
-  ensureLastSyncRecord(modelContainer)
   let syncStartedTimestamp = Date().ISO8601Format()
   do {
+    try await SyncFailureScope.check()
+    try await ensureLastSyncRecord(modelContainer)
     let urlComponents = URLComponents(string: "https://api.simkl.com/sync/activities")!
     var request = URLRequest(url: urlComponents.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -121,7 +132,7 @@ private func runSyncLatestActivities(
     let (data, _) = try await performSimklRequest(request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
 
-    let cacheContext = ModelContext(modelContainer)
+    let cacheContext = makeSyncContext(modelContainer)
     let lastSync = try cacheContext.fetch(
       FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
     ).first
@@ -141,32 +152,42 @@ private func runSyncLatestActivities(
     // boilerplate so future edits only have to touch the per-bucket list
     // below. Watching summaries also refresh on the six-hour catalog gate,
     // since catalog corrections need not appear in a user-activity delta.
-    func step(_ activity: String?, _ handler: (String, String?, ModelContext) async -> Void) async {
-      await handler(accessToken, activity, ModelContext(modelContainer))
+    func step(_ activity: String?, _ handler: (String, String?, ModelContext) async -> Void) async throws {
+      try await SyncFailureScope.step {
+        await handler(accessToken, activity, makeSyncContext(modelContainer))
+      }
     }
 
-    await step(result.movies?.plantowatch, fetchAndStoreMoviesPlanToWatch)
-    await step(result.movies?.dropped, fetchAndStoreMoviesDropped)
-    await step(result.movies?.completed, fetchAndStoreMoviesCompleted)
-    await step(result.movies?.removed_from_list, fetchAndStoreMoviesRemovedFromList)
-    await step(result.movies?.rated_at, fetchAndStoreMoviesRatedAt)
-    await step(result.tv_shows?.plantowatch, fetchAndStoreTVPlanToWatch)
-    await step(result.tv_shows?.completed, fetchAndStoreTVCompleted)
-    await step(result.tv_shows?.hold, fetchAndStoreTVHold)
-    await step(result.tv_shows?.dropped, fetchAndStoreTVDropped)
-    await step(result.tv_shows?.watching) { token, activity, ctx in
+    try await step(result.movies?.plantowatch) { token, activity, context in
+      await fetchAndStoreMoviesPlanToWatch(token, activity, context)
+    }
+    try await step(result.movies?.dropped, fetchAndStoreMoviesDropped)
+    try await step(result.movies?.completed, fetchAndStoreMoviesCompleted)
+    try await step(result.movies?.removed_from_list) { token, activity, context in
+      await fetchAndStoreMoviesRemovedFromList(token, activity, context)
+    }
+    try await step(result.movies?.rated_at, fetchAndStoreMoviesRatedAt)
+    try await step(result.tv_shows?.plantowatch, fetchAndStoreTVPlanToWatch)
+    try await step(result.tv_shows?.completed, fetchAndStoreTVCompleted)
+    try await step(result.tv_shows?.hold, fetchAndStoreTVHold)
+    try await step(result.tv_shows?.dropped, fetchAndStoreTVDropped)
+    try await step(result.tv_shows?.watching) { token, activity, ctx in
       showsRefreshed = await fetchAndStoreTVWatching(
         token, activity, ctx, forceRefresh: refreshUpNext)
     }
-    await step(result.tv_shows?.removed_from_list, fetchAndStoreTVRemovedFromList)
-    await step(result.tv_shows?.rated_at, fetchAndStoreTVRatedAt)
-    await step(result.anime?.plantowatch, fetchAndStoreAnimePlanToWatch)
-    await step(result.anime?.dropped, fetchAndStoreAnimeDropped)
-    await step(result.anime?.completed, fetchAndStoreAnimeCompleted)
-    await step(result.anime?.hold, fetchAndStoreAnimeHold)
-    await step(result.anime?.rated_at, fetchAndStoreAnimeRatedAt)
-    await step(result.anime?.removed_from_list, fetchAndStoreAnimeRemovedFromList)
-    await step(result.anime?.watching) { token, activity, ctx in
+    try await step(result.tv_shows?.removed_from_list) { token, activity, context in
+      await fetchAndStoreTVRemovedFromList(token, activity, context)
+    }
+    try await step(result.tv_shows?.rated_at, fetchAndStoreTVRatedAt)
+    try await step(result.anime?.plantowatch, fetchAndStoreAnimePlanToWatch)
+    try await step(result.anime?.dropped, fetchAndStoreAnimeDropped)
+    try await step(result.anime?.completed, fetchAndStoreAnimeCompleted)
+    try await step(result.anime?.hold, fetchAndStoreAnimeHold)
+    try await step(result.anime?.rated_at, fetchAndStoreAnimeRatedAt)
+    try await step(result.anime?.removed_from_list) { token, activity, context in
+      await fetchAndStoreAnimeRemovedFromList(token, activity, context)
+    }
+    try await step(result.anime?.watching) { token, activity, ctx in
       animeRefreshed = await fetchAndStoreAnimeWatching(
         token, activity, ctx, forceRefresh: refreshUpNext)
     }
@@ -175,31 +196,36 @@ private func runSyncLatestActivities(
     // write to SDLastSync, so they're sequenced here for the same
     // last-write-wins reason. Their internal network work parallelizes
     // independently — only the final SDLastSync writes need ordering.
-    await syncLatestTrending(accessToken, ModelContext(modelContainer))
-    await refreshStaleData(accessToken, ModelContext(modelContainer))
+    try await SyncFailureScope.step {
+      await syncLatestTrending(accessToken, makeSyncContext(modelContainer))
+    }
+    try await SyncFailureScope.step {
+      await refreshStaleData(accessToken, makeSyncContext(modelContainer))
+    }
 
     // Trust SIMKL's next_to_watch marker instead of rebuilding it from counts
     // and catalog episodes. A nil marker clears old info through the upsert.
     // Failed requests must not make stale data look fresh for six hours.
     if refreshUpNext, showsRefreshed, animeRefreshed, !Task.isCancelled {
-      let context = ModelContext(modelContainer)
+      let context = makeSyncContext(modelContainer)
       if let record = try context.fetch(
         FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })
       ).first {
         record.changes_api = syncStartedTimestamp
-        try context.save()
+        try await saveSyncContext(context)
       }
     }
 
-    let releaseDateContext = ModelContext(modelContainer)
+    let releaseDateContext = makeSyncContext(modelContainer)
     await backfillMissingPlanToWatchReleaseDates(releaseDateContext)
   } catch {
-    reportError(error)
+    await SyncFailureScope.report(error)
   }
 }
 
 func fetchAndStoreMoviesPlanToWatch(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext,
+  session: URLSession = .shared
 ) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
@@ -236,23 +262,21 @@ func fetchAndStoreMoviesPlanToWatch(
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
-      syncRecord!.movies_plantowatch = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request, session: session)
+    let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
+    guard movies.allSatisfy({ ($0.movie?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let movies = result.movies ?? []
     for movieItem in movies {
       context.insert(movieItem.toSwiftData())
     }
     await enrichMovieReleaseDatesForPlanToWatch(movies, context, formatter)
 
     syncRecord!.movies_plantowatch = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -291,22 +315,20 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
-      syncRecord!.movies_dropped = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
+    guard movies.allSatisfy({ ($0.movie?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let movies = result.movies ?? []
     for movieItem in movies {
       context.insert(movieItem.toSwiftData())
     }
 
     syncRecord!.movies_dropped = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -345,26 +367,24 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
-      syncRecord!.movies_completed = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
+    guard movies.allSatisfy({ ($0.movie?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let movies = result.movies ?? []
     for movieItem in movies {
       context.insert(movieItem.toSwiftData())
     }
 
     syncRecord!.movies_completed = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
-func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext, session: URLSession = .shared) async {
   guard let lastActivity = lastActivity else { return }
 
   do {
@@ -387,14 +407,11 @@ func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: S
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
-      syncRecord!.movies_removed_from_list = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request, session: session)
+    let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
+    guard movies.allSatisfy({ ($0.movie?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let movies = result.movies ?? []
     let currentSimklIds = Set(movies.compactMap { $0.movie?.ids?.simkl })
 
     let existingMoviesDescriptor = FetchDescriptor<V1.SDMovies>()
@@ -409,9 +426,10 @@ func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: S
     }
 
     syncRecord!.movies_removed_from_list = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -449,22 +467,20 @@ func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, 
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(MoviesModel.self, from: data) else {
-      syncRecord!.movies_rated_at = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
+    guard movies.allSatisfy({ ($0.movie?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let movies = result.movies ?? []
     for movieItem in movies {
       context.insert(movieItem.toSwiftData())
     }
 
     syncRecord!.movies_rated_at = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -502,23 +518,21 @@ func fetchAndStoreTVPlanToWatch(_ accessToken: String, _ lastActivity: String?, 
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
-      syncRecord!.tv_plantowatch = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
+    guard shows.allSatisfy({ ($0.show?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let shows = result.shows ?? []
     for showItem in shows {
       context.insert(showItem.toSwiftData())
     }
     await enrichShowReleaseDatesForPlanToWatch(shows, context, formatter)
 
     syncRecord!.tv_plantowatch = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -556,22 +570,20 @@ func fetchAndStoreTVCompleted(_ accessToken: String, _ lastActivity: String?, _ 
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
-      syncRecord!.tv_completed = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
+    guard shows.allSatisfy({ ($0.show?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let shows = result.shows ?? []
     for showItem in shows {
       context.insert(showItem.toSwiftData())
     }
 
     syncRecord!.tv_completed = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -609,22 +621,20 @@ func fetchAndStoreTVHold(_ accessToken: String, _ lastActivity: String?, _ conte
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
-      syncRecord!.tv_hold = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
+    guard shows.allSatisfy({ ($0.show?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let shows = result.shows ?? []
     for showItem in shows {
       context.insert(showItem.toSwiftData())
     }
 
     syncRecord!.tv_hold = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -662,22 +672,20 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
-      syncRecord!.tv_dropped = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
+    guard shows.allSatisfy({ ($0.show?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let shows = result.shows ?? []
     for showItem in shows {
       context.insert(showItem.toSwiftData())
     }
 
     syncRecord!.tv_dropped = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -726,7 +734,7 @@ func fetchAndStoreTVWatching(
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
     let (data, _) = try await performSimklRequest(request, session: session)
-    let shows = try decodeSimklWatchingResponse(TVModel_show.self, from: data, key: "shows")
+    let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
     guard shows.allSatisfy({ ($0.show?.ids?.simkl ?? 0) > 0 && $0.status == "watching" }) else {
       throw SimklMutationError.invalidResponse
     }
@@ -758,16 +766,18 @@ func fetchAndStoreTVWatching(
     }
 
     syncRecord!.tv_watching = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
     return true
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
     return false
   }
 }
 
 func fetchAndStoreTVRemovedFromList(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext,
+  session: URLSession = .shared
 ) async {
   guard let lastActivity = lastActivity else { return }
 
@@ -791,14 +801,11 @@ func fetchAndStoreTVRemovedFromList(
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
-      syncRecord!.tv_removed_from_list = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request, session: session)
+    let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
+    guard shows.allSatisfy({ ($0.show?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let shows = result.shows ?? []
     let currentSimklIds = Set(shows.compactMap { $0.show?.ids?.simkl })
 
     let existingShowsDescriptor = FetchDescriptor<V1.SDShows>()
@@ -813,9 +820,10 @@ func fetchAndStoreTVRemovedFromList(
     }
 
     syncRecord!.tv_removed_from_list = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -852,22 +860,20 @@ func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ co
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(TVModel.self, from: data) else {
-      syncRecord!.tv_rated_at = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
+    guard shows.allSatisfy({ ($0.show?.ids?.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let shows = result.shows ?? []
     for showItem in shows {
       context.insert(showItem.toSwiftData())
     }
 
     syncRecord!.tv_rated_at = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -905,23 +911,21 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
-      syncRecord!.anime_plantowatch = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
+    guard animes.allSatisfy({ ($0.show?.ids.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let animes = result.anime ?? []
     for animeItem in animes {
       context.insert(animeItem.toSwiftData())
     }
     await enrichAnimeReleaseDatesForPlanToWatch(animes, context, formatter)
 
     syncRecord!.anime_plantowatch = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -959,22 +963,20 @@ func fetchAndStoreAnimeDropped(_ accessToken: String, _ lastActivity: String?, _
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
-      syncRecord!.anime_dropped = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
+    guard animes.allSatisfy({ ($0.show?.ids.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let animes = result.anime ?? []
     for animeItem in animes {
       context.insert(animeItem.toSwiftData())
     }
 
     syncRecord!.anime_dropped = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -1012,22 +1014,20 @@ func fetchAndStoreAnimeCompleted(_ accessToken: String, _ lastActivity: String?,
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
-      syncRecord!.anime_completed = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
+    guard animes.allSatisfy({ ($0.show?.ids.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let animes = result.anime ?? []
     for animeItem in animes {
       context.insert(animeItem.toSwiftData())
     }
 
     syncRecord!.anime_completed = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -1065,22 +1065,20 @@ func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ co
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
-      syncRecord!.anime_hold = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
+    guard animes.allSatisfy({ ($0.show?.ids.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let animes = result.anime ?? []
     for animeItem in animes {
       context.insert(animeItem.toSwiftData())
     }
 
     syncRecord!.anime_hold = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -1129,7 +1127,7 @@ func fetchAndStoreAnimeWatching(
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
     let (data, _) = try await performSimklRequest(request, session: session)
-    let animes = try decodeSimklWatchingResponse(AnimeModel_record.self, from: data, key: "anime")
+    let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
     guard animes.allSatisfy({ ($0.show?.ids.simkl ?? 0) > 0 && $0.status == "watching" }) else {
       throw SimklMutationError.invalidResponse
     }
@@ -1158,16 +1156,18 @@ func fetchAndStoreAnimeWatching(
     }
 
     syncRecord!.anime_watching = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
     return true
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
     return false
   }
 }
 
 func fetchAndStoreAnimeRemovedFromList(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext
+  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext,
+  session: URLSession = .shared
 ) async {
   guard let lastActivity = lastActivity else { return }
 
@@ -1191,14 +1191,11 @@ func fetchAndStoreAnimeRemovedFromList(
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
-      syncRecord!.anime_removed_from_list = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request, session: session)
+    let items = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
+    guard items.allSatisfy({ ($0.show?.ids.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let items = result.anime ?? []
     let currentSimklIds = Set(items.compactMap { $0.show?.ids.simkl })
 
     let existingShowsDescriptor = FetchDescriptor<V1.SDAnimes>()
@@ -1213,9 +1210,10 @@ func fetchAndStoreAnimeRemovedFromList(
     }
 
     syncRecord!.anime_removed_from_list = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -1252,22 +1250,20 @@ func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _
     request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    let (data, _) = try await URLSession.shared.simklData(for: request)
-    guard let result = try? JSONDecoder().decode(AnimeModel.self, from: data) else {
-      syncRecord!.anime_rated_at = lastActivity
-      try context.save()
-      return
+    let (data, _) = try await performSimklRequest(request)
+    let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
+    guard animes.allSatisfy({ ($0.show?.ids.simkl ?? 0) > 0 }) else {
+      throw SimklMutationError.invalidResponse
     }
-
-    let animes = result.anime ?? []
     for animeItem in animes {
       context.insert(animeItem.toSwiftData())
     }
 
     syncRecord!.anime_rated_at = lastActivity
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -1332,11 +1328,14 @@ private func backfillMissingPlanToWatchReleaseDates(_ context: ModelContext) asy
     )
 
     await enrichMovieReleaseDatesForSimklIDs(movieIDs, context, formatter)
+    try await SyncFailureScope.check()
     await enrichShowReleaseDatesForSimklIDs(showIDs, context, formatter)
+    try await SyncFailureScope.check()
     await enrichAnimeReleaseDatesForSimklIDs(animeIDs, context, formatter)
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -1401,7 +1400,8 @@ private func enrichMovieReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
     return
   }
 
@@ -1423,7 +1423,8 @@ private func enrichMovieReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -1446,7 +1447,8 @@ private func enrichShowReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
     return
   }
 
@@ -1468,7 +1470,8 @@ private func enrichShowReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -1491,7 +1494,8 @@ private func enrichAnimeReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
     return
   }
 
@@ -1513,7 +1517,8 @@ private func enrichAnimeReleaseDatesForSimklIDs(
       }
     }
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 
@@ -1654,12 +1659,12 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
     }
     if !needsSync { return }
 
-    let movies = await getTrendingMovies()
-    let shows = await getTrendingShows()
-    let animes = await getTrendingAnimes()
+    let movies = try await getTrendingMovies()
+    let shows = try await getTrendingShows()
+    let animes = try await getTrendingAnimes()
 
-    let oldMovies = try? context.fetch(FetchDescriptor<V1.TrendingMovies>())
-    oldMovies?.forEach { context.delete($0) }
+    let oldMovies = try context.fetch(FetchDescriptor<V1.TrendingMovies>())
+    oldMovies.forEach { context.delete($0) }
     for (index, movieItem) in movies.enumerated() {
       context.insert(
         V1.TrendingMovies(
@@ -1672,8 +1677,8 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
       )
     }
 
-    let oldShows = try? context.fetch(FetchDescriptor<V1.TrendingShows>())
-    oldShows?.forEach { context.delete($0) }
+    let oldShows = try context.fetch(FetchDescriptor<V1.TrendingShows>())
+    oldShows.forEach { context.delete($0) }
     for (index, showItem) in shows.enumerated() {
       context.insert(
         V1.TrendingShows(
@@ -1686,8 +1691,8 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
       )
     }
 
-    let oldAnimes = try? context.fetch(FetchDescriptor<V1.TrendingAnimes>())
-    oldAnimes?.forEach { context.delete($0) }
+    let oldAnimes = try context.fetch(FetchDescriptor<V1.TrendingAnimes>())
+    oldAnimes.forEach { context.delete($0) }
     for (index, animeItem) in animes.enumerated() {
       context.insert(
         V1.TrendingAnimes(
@@ -1701,9 +1706,10 @@ func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
     }
 
     syncRecord!.trending_data = now.ISO8601Format()
-    try context.save()
+    try await saveSyncContext(context)
   } catch {
-    reportError(error)
+    context.rollback()
+    await SyncFailureScope.report(error)
   }
 }
 

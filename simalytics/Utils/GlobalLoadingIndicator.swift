@@ -7,15 +7,17 @@
 
 import SwiftUI
 
-@Observable
-class GlobalLoadingIndicator {
-  var isSyncing: Bool = false
+@MainActor @Observable
+final class GlobalLoadingIndicator {
+  private var activeOperations = 0
+
+  var isSyncing: Bool { activeOperations > 0 }
 
   func startSync() {
-    isSyncing = true
+    activeOperations += 1
   }
 
   func stopSync() {
-    isSyncing = false
+    activeOperations = max(0, activeOperations - 1)
   }
 }

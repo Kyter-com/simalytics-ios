@@ -9,23 +9,11 @@ import SwiftData
 import SwiftUI
 
 struct ListView: View {
+  @State private var counts = LibraryCounts()
   @Environment(Auth.self) private var auth
   @Environment(\.colorScheme) var colorScheme
   @Environment(\.modelContext) private var modelContext
   @AppStorage("hideAnime") private var hideAnime = false
-  @State private var moviesDroppedCount: Int = 0
-  @State private var moviesPlanToWatchCount: Int = 0
-  @State private var moviesCompletedCount: Int = 0
-  @State private var showsPlanToWatchCount: Int = 0
-  @State private var showsCompletedCount: Int = 0
-  @State private var showsHoldCount: Int = 0
-  @State private var showsDroppedCount: Int = 0
-  @State private var showsWatchingCount: Int = 0
-  @State private var animePlanToWatchCount: Int = 0
-  @State private var animeDroppedCount: Int = 0
-  @State private var animeCompletedCount: Int = 0
-  @State private var animeHoldCount: Int = 0
-  @State private var animeWatchingCount: Int = 0
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
 
   var body: some View {
@@ -49,7 +37,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(moviesPlanToWatchCount)")
+              Text("\(counts.moviesPlanToWatchCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -71,7 +59,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(moviesCompletedCount)")
+              Text("\(counts.moviesCompletedCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -93,7 +81,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(moviesDroppedCount)")
+              Text("\(counts.moviesDroppedCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -117,7 +105,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(showsPlanToWatchCount)")
+              Text("\(counts.showsPlanToWatchCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -139,7 +127,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(showsCompletedCount)")
+              Text("\(counts.showsCompletedCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -161,7 +149,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(showsHoldCount)")
+              Text("\(counts.showsHoldCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -183,7 +171,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(showsDroppedCount)")
+              Text("\(counts.showsDroppedCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -205,7 +193,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(showsWatchingCount)")
+              Text("\(counts.showsWatchingCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -232,7 +220,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(animePlanToWatchCount)")
+              Text("\(counts.animePlanToWatchCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -254,7 +242,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(animeCompletedCount)")
+              Text("\(counts.animeCompletedCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -276,7 +264,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(animeHoldCount)")
+              Text("\(counts.animeHoldCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -298,7 +286,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(animeDroppedCount)")
+              Text("\(counts.animeDroppedCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -320,7 +308,7 @@ struct ListView: View {
 
               Spacer()
 
-              Text("\(animeWatchingCount)")
+              Text("\(counts.animeWatchingCount)")
                 .foregroundStyle(.gray)
                 .font(.subheadline)
             }
@@ -331,18 +319,15 @@ struct ListView: View {
       }
       .listStyle(.insetGrouped)
       .navigationTitle("Lists")
-      .onAppear {
-        getCounts()
-      }
-      .onChange(of: globalLoadingIndicator.isSyncing) {
-        getCounts()
+      .task(id: globalLoadingIndicator.isSyncing) {
+        guard !globalLoadingIndicator.isSyncing else { return }
+        await getCounts()
       }
       .refreshable {
         if !auth.simklAccessToken.isEmpty {
           globalLoadingIndicator.startSync()
           await syncLatestActivities(
             auth.simklAccessToken, modelContainer: modelContext.container)
-          getCounts()
           globalLoadingIndicator.stopSync()
         }
       }
@@ -356,109 +341,13 @@ struct ListView: View {
     }
   }
 
-  func getCounts() {
-    moviesPlanToWatchCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDMovies>(
-          predicate: #Predicate { movie in
-            movie.status == "plantowatch"
-          }
-        ))) ?? 0
-
-    moviesDroppedCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDMovies>(
-          predicate: #Predicate { movie in
-            movie.status == "dropped"
-          }
-        ))) ?? 0
-
-    moviesCompletedCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDMovies>(
-          predicate: #Predicate { movie in
-            movie.status == "completed"
-          }
-        ))) ?? 0
-
-    showsPlanToWatchCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDShows>(
-          predicate: #Predicate { show in
-            show.status == "plantowatch"
-          }
-        ))) ?? 0
-
-    showsCompletedCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDShows>(
-          predicate: #Predicate { show in
-            show.status == "completed"
-          }
-        ))) ?? 0
-
-    showsHoldCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDShows>(
-          predicate: #Predicate { show in
-            show.status == "hold"
-          }
-        ))) ?? 0
-
-    showsDroppedCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDShows>(
-          predicate: #Predicate { show in
-            show.status == "dropped"
-          }
-        ))) ?? 0
-
-    showsWatchingCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDShows>(
-          predicate: #Predicate { show in
-            show.status == "watching"
-          }
-        ))) ?? 0
-
-    animePlanToWatchCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDAnimes>(
-          predicate: #Predicate { anime in
-            anime.status == "plantowatch"
-          }
-        ))) ?? 0
-
-    animeDroppedCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDAnimes>(
-          predicate: #Predicate { anime in
-            anime.status == "dropped"
-          }
-        ))) ?? 0
-
-    animeCompletedCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDAnimes>(
-          predicate: #Predicate { anime in
-            anime.status == "completed"
-          }
-        ))) ?? 0
-
-    animeHoldCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDAnimes>(
-          predicate: #Predicate { anime in
-            anime.status == "hold"
-          }
-        ))) ?? 0
-
-    animeWatchingCount =
-      (try? modelContext.fetchCount(
-        FetchDescriptor<V1.SDAnimes>(
-          predicate: #Predicate { anime in
-            anime.status == "watching"
-          }
-        ))) ?? 0
+  private func getCounts() async {
+    do {
+      let refreshed = try await LibraryCounts.fetch(from: modelContext.container)
+      try Task.checkCancellation()
+      counts = refreshed
+    } catch {
+      if !isSimklCancellationError(error) { reportError(error) }
+    }
   }
 }
