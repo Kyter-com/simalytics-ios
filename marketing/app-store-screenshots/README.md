@@ -26,11 +26,11 @@ python3 marketing/app-store-screenshots/generate.py
 ## Full reproduce (real captures end-to-end)
 
 ```bash
-# iPhone 17 Pro Max @ iOS 26.x
+# iPhone 18 Pro Max @ iOS 27.x
 marketing/app-store-screenshots/capture.sh <iphone-sim-udid> \
   marketing/app-store-screenshots/raw/iphone-6.9
 
-# iPad Pro 13" @ iOS 26.x
+# iPad Pro 13" @ iPadOS 27.x
 marketing/app-store-screenshots/capture.sh <ipad-sim-udid> \
   marketing/app-store-screenshots/raw/ipad-13
 
@@ -41,6 +41,17 @@ python3 marketing/app-store-screenshots/generate.py
 `xcrun simctl list devices available` lists simulator UDIDs. `capture.sh` requires
 both the iOS 26+ SDK and an iOS 26+ simulator runtime so the captured system chrome
 renders with Liquid Glass; it exits before building when either requirement is not met.
+Captures use light appearance, the standard Large text size, and the app's five-star
+rating preference. The featured title is rated 3½ stars to show half-star support.
+
+Before compositing, inspect the iPhone Explore capture. Native search activates the
+keyboard on entry. For the browsing screenshot, launch Explore again with the same
+fixture environment, dismiss any first-use keyboard tutorial, and drag downward in
+the content to dismiss the keyboard interactively (do not tap Cancel, which returns
+to the previous tab). Keep the query empty and the shelves at the top, then replace
+`raw/iphone-6.9/03-explore.png` with a new `simctl io <device> screenshot` capture.
+The October 2026 set used the Orca emulator skill for this interaction; its captured
+screen includes the native bottom search field with the keyboard dismissed.
 
 ## How the data gets in (public domain, offline)
 
@@ -55,9 +66,10 @@ compiled out of Release) is switched on by launch env vars that `capture.sh` set
 | --- | --- |
 | `SIMALYTICS_SCREENSHOTS=1` | in-memory store pre-seeded with public-domain fixtures (`ScreenshotSeedData`); sync disabled; a sentinel token opens the Explore/Up Next gates (never networked, never stored); grid layout forced |
 | `SIMALYTICS_SCREENSHOT_TAB=<tab>` | launch straight into `lists` \| `upnext` \| `explore` \| `settings` (tap-free capture) |
-| `SIMALYTICS_SCREENSHOT_SCREEN=<screen>` | route the Lists tab to a sub-screen: `movies-grid` \| `tv-grid` (poster-wall grids) \| `movie-detail` (rich detail view). Empty = the Lists hub. |
+| `SIMALYTICS_SCREENSHOT_SCREEN=<screen>` | route the Lists tab to a sub-screen: `movies-grid` \| `tv-grid` (poster-wall grids) \| `movie-detail` (rich detail view) \| `show-detail` \| `anime-detail` (synthetic episode browsers). Empty = the Lists hub. |
 | `SIMALYTICS_SCREENSHOT_HIDE_ANIME=1` | hide the Anime section/shelf for this capture; `capture.sh` sets it only for the Explore slide (early-B&W anime art clashes with the color shelves), so Lists still shows anime |
-| `SIMALYTICS_SCREENSHOT_POSTER_DIR=<dir>` | local dir of public-domain poster JPEGs; `PosterURLProtocol` serves these for every `/posters/` **and** detail-view `/fanart/` request so nothing is fetched from Simkl |
+| `SIMALYTICS_SCREENSHOT_POSTER_DIR=<dir>` | local dir of public-domain poster JPEGs; `PosterURLProtocol` serves these for `/posters/`, `/fanart/`, and `/episodes/` requests so nothing is fetched from Simkl |
+| `SIMALYTICS_EPISODE_TEST_FAILURE=1` | in screenshot mode only, fail synthetic episode writes to check visible errors and rollback; otherwise these writes update the in-memory browser |
 
 Detail views are network-driven (they render from a live `getMovieDetails` fetch, not
 the seeded store), so a rich offline detail capture needs an injected fixture:
@@ -70,6 +82,12 @@ featured title and the view-model short-circuits to it in screenshot mode. Its p
 
 Result: deterministic, offline, and guaranteed-PD captures with a small,
 Release-inert code footprint.
+
+The `show-detail` and `anime-detail` routes use `ScreenshotEpisodeFixtures` for
+synthetic catalogs and watch history. They include long titles, multi-paragraph
+descriptions, missing thumbnails, later-season TV progress, and absolute anime
+episode ranges. Set `SIMALYTICS_SCREENSHOT_TAB=lists` alongside either route.
+These routes support UI validation; the five marketing slides remain unchanged.
 
 ### The public-domain assets
 
@@ -100,6 +118,12 @@ re-run `capture.sh`.
   already matches a real capture, so no stretch, no notch.
 - **Status bar** — baked in natively by `capture.sh` (`simctl status_bar override`,
   9:41 / full battery / Wi-Fi / signal).
+- **Headlines** — `headlines/<device>/*.png` preserve the approved headline artwork
+  and surrounding backdrop from the original set. This prevents host macOS font
+  updates from changing the marketing typography when only app screens change.
+  Each plate stores its headline in PNG metadata; edited copy in `SLIDES` falls
+  back to fresh text rendering. Remove or regenerate the plates when deliberately
+  redesigning the background or headline layout.
 
 Re-rasterize a frame after editing its SVG (needs `librsvg`):
 
@@ -118,6 +142,7 @@ marketing/app-store-screenshots/
 ├── make-fanart.py      # derives fallback fanart when no verified-PD landscape still exists
 ├── backgrounds/        # blackboard.jpg — the composite backdrop
 ├── frames/             # <device>.svg sources + pre-rasterized <device>.png (iphone-16, ipad-13)
+├── headlines/<device>/ # original headline/background plates, with headline metadata
 ├── pd-posters/         # verified public-domain poster JPEGs (<key>.jpg)
 ├── raw/<device>/       # per-device captures (01-lists, 02-upnext, 03-explore)
 ├── output/<device>/    # composited App Store PNGs

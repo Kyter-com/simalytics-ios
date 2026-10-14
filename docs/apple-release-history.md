@@ -1,6 +1,6 @@
 # Apple Release History
 
-Generated from App Store Connect and git on 2026-07-16T01:46:07.886Z.
+Generated from App Store Connect and git on 2026-10-14T01:46:50.539Z.
 
 ASC is the source of truth for Apple versions and builds. Release tags and Xcode Cloud source commits are authoritative for git correlation; Xcode project snapshots are used only as a historical fallback.
 
@@ -24,7 +24,7 @@ The Created column is the App Store version-record creation date. Apple does not
 | 1.0.11 | READY_FOR_SALE | 2026-05-22 | 117 | 7973fba (2026-06-03; project) | • Adds per-screen list/grid toggles for Movies, TV, Anime, Up Next, and Search Results. • Expands Explore “See All” into full trending grids with year labels, plus cleaner poster-grid alignment. • Hardens Simkl sync and mark-as-watched flows so Up Next updates more consistently, anime episodes mark correctly, and API failures are easier to recover from. • Fixes an image-cache crash seen while switching layouts and improves auth error reporting. |
 | 1.0.12 | READY_FOR_SALE | 2026-07-03 | 122 | e033dbb (2026-07-03; tag) | • Restored the parallax banner and refined spacing on title detail pages • Re-centered the detail action controls and tidied poster and info layout • Made the Where to Watch section more reliable • Hardened Simkl requests and media views for smoother, more consistent loading |
 | 1.0.14 | READY_FOR_SALE | 2026-07-09 | 129 | b701890 (2026-07-13; tag) | • Updated app dependencies and kept OAuth callback URL details out of diagnostics. |
-| 1.0.15 | PREPARE_FOR_SUBMISSION | 2026-07-14 | 131 | f37542b (2026-07-15; tag) | • Updated the App Store presentation with clearer feature details and refreshed screenshots. |
+| 1.0.15 | READY_FOR_SALE | 2026-07-14 | 134 | 5d1dc79 (2026-07-18; tag) | • Improved watch-history sync resilience, including titles that are not yet in your Simkl watchlist. • Prevented duplicate episode updates and made cancelled background refreshes stop promptly. • Reduced stalls while browsing image-heavy and preview-rich screens. |
 
 ## TestFlight-Only Versions
 
@@ -34,6 +34,8 @@ These versions have processed builds but no App Store version record.
 | --- | ---: | --- | --- |
 | 0.0.1 | 13 | 2025-05-06 | 2025-05-20 |
 | 1.0.13 | 3 | 2026-07-07 | 2026-07-09 |
+| 1.0.16 | 2 | 2026-10-08 | 2026-10-11 |
+| 1.0.17 | 1 | 2026-10-11 | 2026-10-11 |
 
 ## Builds
 
@@ -111,37 +113,43 @@ These versions have processed builds but no App Store version record.
 | 1.0.8 | 95 | 2026-03-13 | VALID | true |  |
 | 1.0.8 | 96 | 2026-03-14 | VALID | true |  |
 | 1.0.8 | 97 | 2026-04-06 | VALID | true |  |
-| 1.0.8 | 98 | 2026-04-20 | VALID |  |  |
-| 1.0.8 | 99 | 2026-04-20 | VALID |  |  |
-| 1.0.8 | 100 | 2026-04-20 | VALID |  |  |
-| 1.0.8 | 102 | 2026-04-20 | VALID |  |  |
-| 1.0.9 | 103 | 2026-04-21 | VALID |  |  |
-| 1.0.9 | 104 | 2026-05-12 | VALID |  |  |
-| 1.0.10 | 105 | 2026-05-14 | VALID |  |  |
-| 1.0.10 | 106 | 2026-05-14 | VALID |  |  |
-| 1.0.10 | 107 | 2026-05-17 | VALID |  | 0ea7356 (2026-05-17; project) |
-| 1.0.10 | 109 | 2026-05-17 | VALID |  |  |
-| 1.0.10 | 110 | 2026-05-17 | VALID |  | 03abb7d (2026-05-17; project) |
-| 1.0.10 | 111 | 2026-05-17 | VALID |  |  |
-| 1.0.11 | 112 | 2026-05-22 | VALID |  | aeb6957 (2026-05-22; project) |
-| 1.0.11 | 113 | 2026-05-22 | VALID |  |  |
-| 1.0.11 | 114 | 2026-05-22 | VALID |  |  |
-| 1.0.11 | 115 | 2026-05-25 | VALID |  |  |
-| 1.0.11 | 116 | 2026-05-25 | VALID |  |  |
-| 1.0.11 | 117 | 2026-06-03 | VALID |  | 7973fba (2026-06-03; project) |
-| 1.0.12 | 119 | 2026-06-08 | VALID |  | 727eb09 (2026-06-08; project) |
-| 1.0.12 | 120 | 2026-07-02 | VALID |  | bb4714f (2026-07-02; cloud) |
-| 1.0.12 | 121 | 2026-07-02 | VALID |  | 99ef8d1 (2026-07-02; cloud) |
-| 1.0.12 | 122 | 2026-07-02 | VALID |  | e033dbb (2026-07-03; tag) |
-| 1.0.13 | 123 | 2026-07-07 | VALID |  | 0e93a45 (2026-07-07; tag) |
-| 1.0.13 | 124 | 2026-07-09 | VALID |  | 76fab1d (2026-07-09; cloud) |
-| 1.0.13 | 125 | 2026-07-09 | VALID |  | fc735c2 (2026-07-09; cloud) |
-| 1.0.14 | 126 | 2026-07-09 | VALID |  | 17dd825 (2026-07-09; cloud) |
-| 1.0.14 | 127 | 2026-07-09 | VALID |  | 79f98e9 (2026-07-09; tag) |
-| 1.0.14 | 128 | 2026-07-12 | VALID |  | abc228a (2026-07-12; cloud) |
-| 1.0.14 | 129 | 2026-07-13 | VALID |  | b701890 (2026-07-13; tag) |
-| 1.0.14 | 130 | 2026-07-14 | VALID |  | dffd478 (2026-07-14; cloud) |
-| 1.0.15 | 131 | 2026-07-15 | VALID |  | f37542b (2026-07-15; tag) |
+| 1.0.8 | 98 | 2026-04-20 | VALID | true |  |
+| 1.0.8 | 99 | 2026-04-20 | VALID | true |  |
+| 1.0.8 | 100 | 2026-04-20 | VALID | true |  |
+| 1.0.8 | 102 | 2026-04-20 | VALID | true |  |
+| 1.0.9 | 103 | 2026-04-21 | VALID | true |  |
+| 1.0.9 | 104 | 2026-05-12 | VALID | true |  |
+| 1.0.10 | 105 | 2026-05-14 | VALID | true |  |
+| 1.0.10 | 106 | 2026-05-14 | VALID | true |  |
+| 1.0.10 | 107 | 2026-05-17 | VALID | true | 0ea7356 (2026-05-17; project) |
+| 1.0.10 | 109 | 2026-05-17 | VALID | true |  |
+| 1.0.10 | 110 | 2026-05-17 | VALID | true | 03abb7d (2026-05-17; project) |
+| 1.0.10 | 111 | 2026-05-17 | VALID | true |  |
+| 1.0.11 | 112 | 2026-05-22 | VALID | true | aeb6957 (2026-05-22; project) |
+| 1.0.11 | 113 | 2026-05-22 | VALID | true |  |
+| 1.0.11 | 114 | 2026-05-22 | VALID | true |  |
+| 1.0.11 | 115 | 2026-05-25 | VALID | true |  |
+| 1.0.11 | 116 | 2026-05-25 | VALID | true |  |
+| 1.0.11 | 117 | 2026-06-03 | VALID | true | 7973fba (2026-06-03; project) |
+| 1.0.12 | 119 | 2026-06-08 | VALID | true | 727eb09 (2026-06-08; project) |
+| 1.0.12 | 120 | 2026-07-02 | VALID | true | bb4714f (2026-07-02; project) |
+| 1.0.12 | 121 | 2026-07-02 | VALID | true | 99ef8d1 (2026-07-02; project) |
+| 1.0.12 | 122 | 2026-07-02 | VALID | true | e033dbb (2026-07-03; tag) |
+| 1.0.13 | 123 | 2026-07-07 | VALID | true | 0e93a45 (2026-07-07; tag) |
+| 1.0.13 | 124 | 2026-07-09 | VALID | true |  |
+| 1.0.13 | 125 | 2026-07-09 | VALID | true |  |
+| 1.0.14 | 126 | 2026-07-09 | VALID | true |  |
+| 1.0.14 | 127 | 2026-07-09 | VALID | true | 79f98e9 (2026-07-09; tag) |
+| 1.0.14 | 128 | 2026-07-12 | VALID | true |  |
+| 1.0.14 | 129 | 2026-07-13 | VALID | true | b701890 (2026-07-13; tag) |
+| 1.0.14 | 130 | 2026-07-14 | VALID | true |  |
+| 1.0.15 | 131 | 2026-07-15 | VALID | true | f37542b (2026-07-15; tag) |
+| 1.0.15 | 132 | 2026-07-15 | VALID | false |  |
+| 1.0.15 | 133 | 2026-07-18 | VALID | false |  |
+| 1.0.15 | 134 | 2026-07-18 | VALID | false | 5d1dc79 (2026-07-18; tag) |
+| 1.0.16 | 136 | 2026-10-08 | VALID | false | 7dd9af3 (2026-10-08; tag) |
+| 1.0.16 | 137 | 2026-10-11 | VALID | false | 6a1d25b (2026-10-11; cloud) |
+| 1.0.17 | 139 | 2026-10-11 | VALID | false | fcc6e97 (2026-10-11; cloud) |
 
 ## Release Commits
 
@@ -178,10 +186,13 @@ Matched b701890 from 2026-07-13: chore(marketing): add public-domain App Store s
 - icon
 - chore(marketing): add public-domain App Store screenshot pipeline (#30)
 
-### 1.0.15 (131)
+### 1.0.15 (134)
 
-Matched f37542b from 2026-07-15: chore: stage App Store 1.0.15 release (#32) [release tag simalytics-ios@1.0.15+131]
+Matched 5d1dc79 from 2026-07-18: fix: finalize Simalytics 1.0.15 release [release tag simalytics-ios@1.0.15+134]
 
 - chore(marketing): add movie-detail screenshot slide and color PD posters (#31)
 - chore: stage App Store 1.0.15 release (#32)
+- docs: backfill 1.0.15 build correlation (#33)
+- fix: harden sync and interaction stability (#34)
+- fix: finalize Simalytics 1.0.15 release
 

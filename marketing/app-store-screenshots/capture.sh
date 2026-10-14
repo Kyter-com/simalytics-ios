@@ -73,6 +73,10 @@ if [[ ! "$RUNTIME_MAJOR" =~ ^[0-9]+$ ]] || (( RUNTIME_MAJOR < 26 )); then
 fi
 echo "    $DEVICE_NAME on iOS $RUNTIME_VERSION (SDK $SDK_VERSION)"
 
+# Match the approved presentation regardless of a simulator's saved preferences.
+xcrun simctl ui "$DEVICE" appearance light
+xcrun simctl ui "$DEVICE" content_size large
+
 echo "==> Overriding the status bar (clean Apple 9:41, full battery/signal)"
 xcrun simctl status_bar "$DEVICE" override \
   --time "9:41" \
@@ -108,7 +112,7 @@ for entry in "${SCREENS[@]}"; do
   SIMCTL_CHILD_SIMALYTICS_SCREENSHOT_SCREEN="${screen:-}" \
   SIMCTL_CHILD_SIMALYTICS_SCREENSHOT_HIDE_ANIME="$hide_anime" \
   SIMCTL_CHILD_SIMALYTICS_SCREENSHOT_POSTER_DIR="$POSTER_DIR" \
-    xcrun simctl launch "$DEVICE" "$BUNDLE" >/dev/null
+    xcrun simctl launch "$DEVICE" "$BUNDLE" -useFiveStarRating YES >/dev/null
   sleep 6  # let the seeded UI + local posters render
   xcrun simctl io "$DEVICE" screenshot "$RAW_DIR/$name.png" >/dev/null
   echo "    saved $RAW_DIR/$name.png"

@@ -5,26 +5,30 @@
 //  Created by Nick Reisenauer on 2/24/25.
 //
 
+import SwiftData
 import SwiftUI
 
 struct ContentView: View {
+  @Environment(Auth.self) private var auth
+  @Environment(GlobalLoadingIndicator.self) private var loading
+  @Environment(\.modelContext) private var context
+  @State private var storageFailure: StorageFailure?
+  @State private var showStorageFailure = false
   @State private var selectedTab: AppTab = ContentView.initialTab
   @State private var exploreSearchFocusTrigger = 0
+  @State private var exploreSearchText = ""
+  @State private var exploreSearchCategory: SearchCategory = .all
+  @AppStorage("hideAnime") private var hideAnime = false
 
-  /// Which tab to open on launch. Release builds always start on Up Next; DEBUG
-  /// builds honor `SIMALYTICS_SCREENSHOT_TAB` so the App Store screenshot
-  /// harness (marketing/app-store-screenshots) can launch straight into a tab.
+  /// Read the saved launch preference once so changing it in Settings does not
+  /// interrupt navigation. Screenshot overrides never alter the saved preference.
   private static var initialTab: AppTab {
     #if DEBUG
-      switch ProcessInfo.processInfo.environment["SIMALYTICS_SCREENSHOT_TAB"] {
-      case "explore": return .explore
-      case "upnext": return .upNext
-      case "settings": return .settings
-      case "lists": return .lists
-      default: break
-      }
+      return AppTab.launchTab(
+        override: ProcessInfo.processInfo.environment["SIMALYTICS_SCREENSHOT_TAB"])
+    #else
+      return AppTab.launchTab()
     #endif
-    return .upNext
   }
 
   /// The Lists tab's content. Release builds always show the Lists hub; DEBUG
@@ -35,6 +39,10 @@ struct ContentView: View {
       switch ScreenshotMode.screen {
       case "movies-grid": NavigationStack { MovieListView(status: "completed") }
       case "tv-grid": NavigationStack { TVListView(status: "watching") }
+      case "show-detail":
+        NavigationStack { ShowDetailView(simkl_id: ScreenshotEpisodeFixtures.showID) }
+      case "anime-detail":
+        NavigationStack { AnimeDetailView(simkl_id: ScreenshotEpisodeFixtures.animeID) }
       case "movie-detail":
         NavigationStack { MovieDetailView(simkl_id: ScreenshotDetailFixtures.featuredMovieID) }
       default: ListView()
@@ -56,17 +64,72 @@ struct ContentView: View {
   }
 
   var body: some View {
+    Group {
+      if #available(iOS 26, *) {
+        modernTabs.tabBarMinimizeBehavior(.onScrollDown)
+      } else {
+        tabContent
+      }
+    }
+    .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
+    .onChange(of: hideAnime) {
+      if hideAnime && exploreSearchCategory == .anime { exploreSearchCategory = .all }
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .syncStorageFailed)) { notification in
+      guard let failure = notification.object as? StorageFailure else { return }
+      storageFailure = failure
+      showStorageFailure = true
+    }
+    .alert("Couldn't Save Library", isPresented: $showStorageFailure, presenting: storageFailure) {
+      _ in
+      Button("Try Again") {
+        Task {
+          guard !auth.simklAccessToken.isEmpty else { return }
+          loading.startSync()
+          await syncLatestActivities(auth.simklAccessToken, modelContainer: context.container)
+          loading.stopSync()
+        }
+      }
+      Button("Not Now", role: .cancel) {}
+    } message: { failure in
+      Text(failure.message)
+    }
+  }
+
+  @available(iOS 26, *)
+  private var modernTabs: some View {
+    TabView(selection: $selectedTab) {
+      Tab("Lists", systemImage: "list.bullet.indent", value: AppTab.lists) {
+        listsTab
+      }
+      Tab("Up Next", systemImage: "play.tv", value: AppTab.upNext) {
+        UpNextView()
+      }
+      Tab("Settings", systemImage: "gearshape", value: AppTab.settings) {
+        SettingsView()
+      }
+      Tab("Explore", systemImage: "magnifyingglass", value: AppTab.explore, role: .search) {
+        ExploreView(searchText: $exploreSearchText, searchCategory: $exploreSearchCategory)
+      }
+    }
+    .tabViewSearchActivation(.searchTabSelection)
+  }
+
+  private var tabContent: some View {
     TabView(selection: tabSelection) {
       listsTab
         .tabItem {
           Label("Lists", systemImage: "list.bullet.indent")
         }
         .tag(AppTab.lists)
-      ExploreView(searchFocusTrigger: exploreSearchFocusTrigger)
-        .tabItem {
-          Label("Explore", systemImage: "magnifyingglass")
-        }
-        .tag(AppTab.explore)
+      ExploreView(
+        searchFocusTrigger: exploreSearchFocusTrigger,
+        searchText: $exploreSearchText, searchCategory: $exploreSearchCategory
+      )
+      .tabItem {
+        Label("Explore", systemImage: "magnifyingglass")
+      }
+      .tag(AppTab.explore)
       UpNextView()
         .tabItem {
           Label("Up Next", systemImage: "play.tv")
@@ -78,13 +141,5 @@ struct ContentView: View {
         }
         .tag(AppTab.settings)
     }
-    .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
-  }
-
-  private enum AppTab: Hashable {
-    case lists
-    case explore
-    case upNext
-    case settings
   }
 }

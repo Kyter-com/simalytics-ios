@@ -15,6 +15,7 @@ import SwiftUI
 /// unaffected. Each link owns its transition namespace, so `sourceID` only
 /// needs to be stable within the link itself.
 struct MediaDetailLink<Destination: View, Label: View>: View {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Namespace private var zoom
   let sourceID: String
   let destination: () -> Destination
@@ -32,7 +33,7 @@ struct MediaDetailLink<Destination: View, Label: View>: View {
 
   var body: some View {
     Group {
-      if #available(iOS 18, *) {
+      if #available(iOS 18, *), !reduceMotion {
         NavigationLink {
           destination()
             .navigationTransition(.zoom(sourceID: sourceID, in: zoom))

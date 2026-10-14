@@ -2,7 +2,7 @@ import Foundation
 
 /// Accept documented `{}` and observed HTTP-200 top-level `null` for empty lists.
 /// Do not mistake an error envelope, null bucket array, or another bucket for emptiness.
-func decodeSimklWatchingResponse<T: Decodable>(
+func decodeSimklLibraryResponse<T: Decodable>(
   _ type: T.Type, from data: Data, key: String
 ) throws -> [T] {
   let object = try JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)

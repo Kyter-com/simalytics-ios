@@ -17,6 +17,8 @@ enum SimklMutationError: Error, Equatable, Sendable, CustomNSError {
   case invalidResponse
   case invalidEpisode
   case episodeNotFound
+  case mediaNotFound
+  case invalidRating
   case httpStatusCode(Int, reason: SimklServerErrorReason?)
 
   static var errorDomain: String { "Simalytics.SimklMutationError" }
@@ -26,6 +28,8 @@ enum SimklMutationError: Error, Equatable, Sendable, CustomNSError {
     case .invalidResponse: 1
     case .invalidEpisode: 2
     case .episodeNotFound: 3
+    case .mediaNotFound: 4
+    case .invalidRating: 5
     case .httpStatusCode(let statusCode, _): statusCode
     }
   }
@@ -42,6 +46,10 @@ enum SimklMutationError: Error, Equatable, Sendable, CustomNSError {
       return "Episode mutation rejected before request: invalid season or episode."
     case .episodeNotFound:
       return "Simkl could not resolve the requested episode."
+    case .mediaNotFound:
+      return "Simkl could not resolve the requested title."
+    case .invalidRating:
+      return "The rating must be a whole number from 0 to 10."
     case .httpStatusCode(let statusCode, let reason):
       var details = ["HTTP \(statusCode)"]
       if let code = reason?.code {
@@ -58,7 +66,7 @@ enum SimklMutationError: Error, Equatable, Sendable, CustomNSError {
     switch self {
     case .invalidResponse:
       return true
-    case .invalidEpisode, .episodeNotFound:
+    case .invalidEpisode, .episodeNotFound, .mediaNotFound, .invalidRating:
       return false
     case .httpStatusCode(let statusCode, _):
       return statusCode == 429 || (500...599).contains(statusCode)
@@ -137,7 +145,9 @@ func performSimklRequest(
 
       return (data, httpResponse)
     } catch {
-      if attempt >= retryCount || !shouldRetrySimklMutation(error) {
+      let retryableRead = (request.httpMethod ?? "GET").uppercased() == "GET"
+        && (error as? URLError)?.code == .resourceUnavailable
+      if attempt >= retryCount || !(retryableRead || shouldRetrySimklMutation(error)) {
         throw error
       }
 
@@ -152,22 +162,6 @@ func performSimklMutationRequest(_ request: URLRequest, retryCount: Int = 2) asy
   _ = try await performSimklRequest(request, retryCount: retryCount)
 }
 
-/// Validate a single-episode history response, including resolver failures on 201.
-/// Zero additions is valid for an idempotent already-watched retry, not a failure.
-func validateSimklEpisodeHistoryResponse(_ data: Data) throws {
-  guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-    let added = root["added"] as? [String: Any],
-    let episodes = added["episodes"] as? Int, (0...1).contains(episodes),
-    let notFound = root["not_found"] as? [String: Any]
-  else { throw SimklMutationError.invalidResponse }
-  for key in ["movies", "shows", "episodes"] {
-    guard let rejected = notFound[key] as? [Any] else {
-      throw SimklMutationError.invalidResponse
-    }
-    if !rejected.isEmpty { throw SimklMutationError.episodeNotFound }
-  }
-}
-
 func simklMutationUserMessage(for error: Error) -> String {
   if let simklError = error as? SimklMutationError {
     switch simklError {
@@ -177,6 +171,10 @@ func simklMutationUserMessage(for error: Error) -> String {
       return "This episode has invalid season or episode information."
     case .episodeNotFound:
       return "Simkl couldn’t find this episode. Refresh your list and try again."
+    case .mediaNotFound:
+      return "Simkl couldn’t find this title. Refresh your list and try again."
+    case .invalidRating:
+      return "Choose a rating from 1 to 10, or remove your rating."
     case .httpStatusCode(let statusCode, _):
       if statusCode == 401 {
         return "Your Simkl session has expired. Please sign in again."

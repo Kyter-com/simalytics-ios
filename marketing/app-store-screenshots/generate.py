@@ -272,6 +272,21 @@ def draw_headline(base: Image.Image, title: str, x: int, y: int, max_width: int,
         d.text((x, ly), line, fill=WHITE, font=title_font)
 
 
+def restore_headline(base: Image.Image, device: str, slide, index: int):
+    """Keep approved headline rendering stable across macOS font updates.
+
+    The plates contain the original headline and its chalkboard background,
+    ending above the device frame. Changed copy falls back to live text above.
+    """
+    path = HERE / "headlines" / device / f"{index:02d}-{slide['screen']}.png"
+    if path.exists():
+        with Image.open(path) as plate:
+            if plate.info.get("Headline") == slide["title"]:
+                if plate.width != base.width:
+                    raise ValueError(f"Headline plate width does not match canvas: {path}")
+                base.paste(plate, (0, 0))
+
+
 def compose(device: str, slide, index: int):
     w, h = DEVICES[device]
     img = backdrop(w, h)
@@ -297,6 +312,7 @@ def compose(device: str, slide, index: int):
         img.alpha_composite(shadow, (fx - spad, fy - spad))
         img.alpha_composite(frame, (fx, fy))
 
+    restore_headline(img, device, slide, index)
     out_dir = OUT / device
     out_dir.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_dir / f"{index:02d}-{slide['screen']}.png", optimize=True)

@@ -57,30 +57,7 @@ struct SimalyticsApp: App {
     return "simalytics-ios@\(version)+\(build)"
   }
 
-  let modelContainer: ModelContainer = {
-    #if DEBUG
-      // Screenshot harness: an in-memory store pre-seeded with public-domain
-      // fixtures, so captures are deterministic and fully offline.
-      if ScreenshotMode.isActive {
-        return ScreenshotMode.makeSeededContainer()
-      }
-    #endif
-    do {
-      let schema = Schema([
-        V1.SDLastSync.self, V1.SDMovies.self, V1.SDShows.self, V1.SDAnimes.self,
-        V1.TrendingMovies.self, V1.TrendingShows.self,
-        V1.TrendingAnimes.self,
-      ])
-      let configuration = ModelConfiguration(schema: schema)
-      return try ModelContainer(
-        for: schema,
-        migrationPlan: SimalyticsMigrationPlan.self,
-        configurations: configuration
-      )
-    } catch {
-      fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
-    }
-  }()
+  @State private var store = AppStoreController()
 
   init() {
     #if DEBUG
@@ -93,6 +70,9 @@ struct SimalyticsApp: App {
     )
     ImageCache.default.diskStorage.config.sizeLimit = Self.imageDiskCacheSizeLimit
 
+    let telemetry = TelemetryConfiguration.current
+    guard telemetry.isEnabled else { return }
+
     SentrySDK.start { options in
       if let configuredDSN = (Bundle.main.infoDictionary?["SENTRY_DSN"] as? String)?
         .trimmingCharacters(in: .whitespacesAndNewlines),
@@ -104,19 +84,15 @@ struct SimalyticsApp: App {
         print("warning: Missing SENTRY_DSN in Info.plist. Using fallback DSN.")
       }
 
-      if let environment = (Bundle.main.infoDictionary?["SENTRY_ENVIRONMENT"] as? String)?
-        .trimmingCharacters(in: .whitespacesAndNewlines),
-        !environment.isEmpty
-      {
-        options.environment = environment
-      }
-
+      options.environment = telemetry.environment
       options.releaseName = Self.sentryReleaseName
       options.tracesSampleRate = 0.1
       options.tracePropagationTargets = ["api.simalytics.kyter.com"]
       options.failedRequestTargets = ["api.simalytics.kyter.com"]
       options.enableMetricKit = true
-      options.beforeSend = { event in
+      // Sentry can process events off the main actor. This callback only
+      // mutates its event; it must not inherit the app initializer's isolation.
+      options.beforeSend = { @Sendable event in
         guard let request = event.request else {
           return event
         }
@@ -141,17 +117,26 @@ struct SimalyticsApp: App {
 
   var body: some Scene {
     WindowGroup {
-      ContentView()
-        .environment(auth)
-        .environment(globalLoadingIndicator)
-        .modelContainer(modelContainer)
-        .task {
-          if !auth.simklAccessToken.isEmpty {
-            globalLoadingIndicator.startSync()
-            await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContainer)
-            globalLoadingIndicator.stopSync()
-          }
+      Group {
+        if let modelContainer = store.container {
+          ContentView()
+            .environment(auth)
+            .environment(globalLoadingIndicator)
+            .modelContainer(modelContainer)
+            .task {
+              if !auth.simklAccessToken.isEmpty {
+                globalLoadingIndicator.startSync()
+                await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContainer)
+                globalLoadingIndicator.stopSync()
+              }
+            }
+        } else if let failure = store.failure {
+          StorageRecoveryView(failure: failure) { await store.load() }
+        } else {
+          ProgressView("Opening your library…")
         }
+      }
+      .task { await store.load() }
     }
   }
 }

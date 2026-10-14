@@ -15,12 +15,18 @@ struct SearchResultsView: View {
   @AppStorage("hideAnime") private var hideAnime = false
   @AppStorage("searchResultsLayout") private var layout: ListLayout = .grid
   @Environment(\.modelContext) private var context
-  @State private var searchResults: [SearchResultModel] = []
-  @State private var searchTask: Task<Void, Never>?
+  @State private var viewModel = SearchResultsViewModel()
+  @State private var retryCount = 0
   @State private var localSnapshots = LocalMediaSnapshots()
 
+  private var searchRequest: MediaSearchRequest {
+    MediaSearchRequest(
+      query: searchText.trimmingCharacters(in: .whitespacesAndNewlines),
+      category: searchCategory, hideAnime: hideAnime, retry: retryCount)
+  }
+
   private var visibleResults: [SearchResultModel] {
-    searchResults.filter { !hideAnime || $0.endpoint_type != "anime" }
+    viewModel.results.filter { !hideAnime || $0.endpoint_type != "anime" }
   }
 
   private var localSnapshotRequest: LocalMediaSnapshots.Request {
@@ -73,8 +79,19 @@ struct SearchResultsView: View {
 
   var body: some View {
     Group {
-      if visibleResults.isEmpty {
-        ContentUnavailableView("No Results", systemImage: "magnifyingglass")
+      if viewModel.completedRequest != searchRequest {
+        ProgressView("Searching…")
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+      } else if let errorMessage = viewModel.errorMessage {
+        ContentUnavailableView {
+          Label("Search Unavailable", systemImage: "wifi.exclamationmark")
+        } description: {
+          Text(errorMessage)
+        } actions: {
+          Button("Try Again") { retryCount += 1 }
+        }
+      } else if visibleResults.isEmpty {
+        ContentUnavailableView.search(text: searchRequest.query)
       } else if layout == .list {
         List(visibleResults, id: \.ids.simkl_id) { result in
           MediaDetailLink(sourceID: "search-\(result.ids.simkl_id)") {
@@ -127,7 +144,7 @@ struct SearchResultsView: View {
               }
             }
           }
-          .padding(.horizontal, 12)
+          .padding(.horizontal, posterGridHorizontalPadding)
           .padding(.vertical, 8)
         }
       }
@@ -138,23 +155,8 @@ struct SearchResultsView: View {
     .onReceive(NotificationCenter.default.publisher(for: .localMediaSnapshotsDidChange)) { _ in
       refreshLocalSnapshots()
     }
-    .onChange(of: searchText) { _, newValue in
-      SearchResultsView.debounceSearch(
-        query: newValue,
-        searchCategory: searchCategory,
-        previousTask: &searchTask
-      ) { results in
-        searchResults = results
-      }
-    }
-    .onChange(of: searchCategory) { _, newValue in
-      SearchResultsView.debounceSearch(
-        query: searchText,
-        searchCategory: newValue,
-        previousTask: &searchTask
-      ) { results in
-        searchResults = results
-      }
+    .task(id: searchRequest) {
+      await viewModel.search(searchRequest)
     }
   }
 }

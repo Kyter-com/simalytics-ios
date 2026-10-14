@@ -29,7 +29,7 @@ OUT = REPO / "simalytics" / "Utils" / "ScreenshotSeedData.swift"
 MOVIES = {
     "the-general-1926": ("completed", 9, 300, 80),
     "the-cabinet-of-dr-caligari-1920": ("completed", 9, 210, 60),
-    "his-girl-friday-1940": ("completed", 8, 120, 30),
+    "his-girl-friday-1940": ("completed", 7, 120, 30),
     "charade-1963": ("completed", 8, 90, 14),
     "the-kid-1921": ("completed", 9, 260, 70),
     "meet-john-doe-1941": ("completed", 8, 150, 40),
@@ -304,7 +304,8 @@ TEMPLATE = '''//
         simkl: simkl, added_to_watchlist_at: iso(added), release_date: "\\(year)-01-01",
         last_watched_at: watchedEps != nil ? iso(next?.daysAgo ?? 30) : nil,
         user_rated_at: rating != nil ? iso(added) : nil, user_rating: rating,
-        status: status, watched_episodes_count: watchedEps, total_episodes_count: totalEps,
+        status: status, next_to_watch: next.map {{ "S\\($0.season)E\\($0.episode)" }},
+        watched_episodes_count: watchedEps, total_episodes_count: totalEps,
         title: title, poster: poster, year: year,
         next_to_watch_info_title: next?.title,
         next_to_watch_info_season: next?.season,

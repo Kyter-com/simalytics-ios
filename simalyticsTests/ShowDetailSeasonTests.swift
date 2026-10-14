@@ -3,8 +3,7 @@
 //  simalyticsTests
 //
 //  Tests for the default season selection in ShowDetailView: the episode
-//  list opens on the first season with an unwatched episode so returning
-//  viewers land where they left off.
+//  list follows the highest watched season without revisiting older gaps.
 //
 
 import Testing
@@ -123,6 +122,49 @@ struct ShowDetailSeasonTests {
     let episodes = seasonEpisodes(3, count: 1) + seasonEpisodes(1, count: 1)
     let list = watchlist(seasons: [watchedSeason(1, watchedEpisodes: [1])])
     #expect(ShowDetailView.defaultSeason(episodes: episodes, watchlist: list) == 3)
+  }
+
+  @Test("South Park resumes after season 28 despite unwatched earlier seasons")
+  func skipsOlderUnwatchedSeasons() {
+    let episodes =
+      seasonEpisodes(29, count: 2) + seasonEpisodes(1, count: 2)
+      + seasonEpisodes(28, count: 2)
+    let list = watchlist(seasons: [watchedSeason(28, watchedEpisodes: [1, 2])])
+    #expect(ShowDetailView.defaultSeason(episodes: episodes, watchlist: list) == 29)
+  }
+
+  @Test("Keeps an unfinished latest watched season instead of returning to older gaps")
+  func staysOnPartiallyWatchedLatestSeason() {
+    let episodes =
+      seasonEpisodes(1, count: 2) + seasonEpisodes(28, count: 2) + seasonEpisodes(29, count: 2)
+    let list = watchlist(seasons: [watchedSeason(28, watchedEpisodes: [1])])
+    #expect(ShowDetailView.defaultSeason(episodes: episodes, watchlist: list) == 28)
+  }
+
+  @Test("Stays on the latest season when caught up even if earlier seasons were skipped")
+  func caughtUpDoesNotRevisitSkippedSeasons() {
+    let episodes = seasonEpisodes(1, count: 2) + seasonEpisodes(28, count: 2)
+    let list = watchlist(seasons: [watchedSeason(28, watchedEpisodes: [1, 2])])
+    #expect(ShowDetailView.defaultSeason(episodes: episodes, watchlist: list) == 28)
+  }
+
+  @Test("Advances to the next existing season across numbering gaps")
+  func advancesAcrossMissingSeasons() {
+    let episodes =
+      seasonEpisodes(30, count: 1) + seasonEpisodes(1, count: 1) + seasonEpisodes(28, count: 1)
+    let list = watchlist(seasons: [watchedSeason(28, watchedEpisodes: [1])])
+    #expect(ShowDetailView.defaultSeason(episodes: episodes, watchlist: list) == 30)
+  }
+
+  @Test("Watched specials and unknown catalog episodes do not move the starting season")
+  func ignoresUnrelatedWatchedEntries() {
+    let episodes =
+      seasonEpisodes(1, count: 2) + seasonEpisodes(28, count: 2)
+      + [episode(season: 30, number: 1, type: "special")]
+    let list = watchlist(seasons: [
+      watchedSeason(28, watchedEpisodes: [99]), watchedSeason(30, watchedEpisodes: [1]),
+    ])
+    #expect(ShowDetailView.defaultSeason(episodes: episodes, watchlist: list) == 1)
   }
 
   // MARK: - isEpisodeWatched
