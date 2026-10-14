@@ -249,3 +249,25 @@ marketing detail captures were regenerated with the original composition and
 verified at their required export dimensions. No watchlist API writes were made.
 The follow-up Changeset is included in the still-unreleased 1.0.18 entry; ASC
 selected replacement build 142.
+
+
+## Lists default restored: 1.0.18 (143)
+
+Prepared October 14, 2026, to replace build 142 while 1.0.18 waited for App
+Review. 1.0.15, the current App Store version, always opened on Lists. Build 142
+fell back to Up Next when no launch preference was saved, so every existing user
+would have opened on a different tab after updating. `AppTab.defaultLaunchTab`
+is now Lists, and the launch fallback and both Settings screens share it. Saved
+preferences are unchanged, so testers who chose Up Next keep it. This supersedes
+"Up Next remains the fallback" in the default-tab row above.
+
+Lists also loaded its 13 status counts only while no sync was running. Launch
+starts a sync immediately, so signed-in users saw zeros until the whole sync
+finished, including trending, stale-data, and release-date work. 1.0.15 showed
+saved counts on appear. Counts still load off the UI actor, but they now load
+on appear and again whenever syncing starts or stops.
+
+Validation: all 133 test definitions (298 executions) passed on iOS 27 with no
+failures. A fresh simulator install with no tab override opened on Lists with
+fixture counts, and Settings showed Lists as the default tab. The App Store
+notes and screenshots need no changes.

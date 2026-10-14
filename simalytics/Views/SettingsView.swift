@@ -17,7 +17,7 @@ struct SettingsView: View {
   @AppStorage("blurEpisodeImages") private var blurImages = false
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @AppStorage("hideAnime") private var hideAnime = false
-  @AppStorage(AppTab.preferenceKey) private var defaultTab: AppTab = .upNext
+  @AppStorage(AppTab.preferenceKey) private var defaultTab = AppTab.defaultLaunchTab
   @State private var showResetConfirmation = false
   @State private var showErrorAlert = false
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator

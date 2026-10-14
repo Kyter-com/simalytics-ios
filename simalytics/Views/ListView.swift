@@ -319,8 +319,9 @@ struct ListView: View {
       }
       .listStyle(.insetGrouped)
       .navigationTitle("Lists")
+      // Show the saved library immediately, then refresh when a sync finishes.
+      // Launch starts a sync right away, so waiting for it would show zeros.
       .task(id: globalLoadingIndicator.isSyncing) {
-        guard !globalLoadingIndicator.isSyncing else { return }
         await getCounts()
       }
       .refreshable {

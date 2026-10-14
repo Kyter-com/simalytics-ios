@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DefaultTabSettingsView: View {
-  @AppStorage(AppTab.preferenceKey) private var defaultTab: AppTab = .upNext
+  @AppStorage(AppTab.preferenceKey) private var defaultTab = AppTab.defaultLaunchTab
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
   var body: some View {

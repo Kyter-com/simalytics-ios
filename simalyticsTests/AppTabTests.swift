@@ -15,13 +15,14 @@ struct AppTabTests {
     #expect(AppTab.launchTab(defaults: defaults) == tab)
   }
 
-  @Test("New installs and invalid preferences default to Up Next")
+  @Test("New installs and invalid preferences default to Lists")
   func fallback() throws {
     let name = "AppTabTests.\(UUID())"
     let defaults = try #require(UserDefaults(suiteName: name))
     defer { defaults.removePersistentDomain(forName: name) }
-    #expect(AppTab.launchTab(defaults: defaults) == .upNext)
+    #expect(AppTab.defaultLaunchTab == .lists)
+    #expect(AppTab.launchTab(defaults: defaults) == .lists)
     defaults.set("removed-tab", forKey: AppTab.preferenceKey)
-    #expect(AppTab.launchTab(defaults: defaults, override: "invalid") == .upNext)
+    #expect(AppTab.launchTab(defaults: defaults, override: "invalid") == .lists)
   }
 }

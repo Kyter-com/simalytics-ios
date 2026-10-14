@@ -7,6 +7,8 @@ enum AppTab: String, CaseIterable, Identifiable {
   case settings
 
   static let preferenceKey = "defaultTab"
+  /// Matches the App Store releases before the launch-tab preference existed.
+  static let defaultLaunchTab: AppTab = .lists
   var id: String { rawValue }
 
   var title: String {
@@ -38,6 +40,6 @@ enum AppTab: String, CaseIterable, Identifiable {
 
   static func launchTab(defaults: UserDefaults = .standard, override: String? = nil) -> AppTab {
     if let override, let tab = AppTab(rawValue: override) { return tab }
-    return defaults.string(forKey: preferenceKey).flatMap(AppTab.init(rawValue:)) ?? .upNext
+    return defaults.string(forKey: preferenceKey).flatMap(AppTab.init(rawValue:)) ?? defaultLaunchTab
   }
 }
