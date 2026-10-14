@@ -25,6 +25,11 @@
 
   Compact episode rows reserve consistent space for titles, description previews, and thumbnails to prevent long descriptions or loading images from shifting the list. Full descriptions open in a scrollable sheet, and larger text uses an adaptive layout.
 - TV and anime details now open at your latest watched season or episode group and advance when it is complete, instead of returning to earlier seasons you skipped.
+- Search keeps your earlier results on screen while new ones load. Up Next shows progress while it marks an episode watched, and episode lists are ready for the next change as soon as Simkl confirms the last one.
+
+  Sign Out now asks for confirmation and waits for an active sync, and a running sync no longer restores a library you signed out of. If your saved library can't be opened, you can reset it and download it again from Simkl.
+
+  Swipe down to close a fullscreen poster. Title pages appear as soon as their details load, with episodes and cast filling in below. Up Next refreshes from Simkl once after updating, and rows without artwork show a placeholder.
 
 ## 1.0.17
 

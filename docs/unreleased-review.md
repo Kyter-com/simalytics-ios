@@ -271,3 +271,41 @@ Validation: all 133 test definitions (298 executions) passed on iOS 27 with no
 failures. A fresh simulator install with no tab override opened on Lists with
 fixture counts, and Settings showed Lists as the default tab. The App Store
 notes and screenshots need no changes.
+
+
+## Review follow-ups: 1.0.18 (144)
+
+Prepared October 14, 2026, after a second review of the changes since 1.0.15.
+It replaces build 143 in App Review, folding the fixes into the still-unreleased
+1.0.18 entry instead of a separate 1.0.19.
+
+- Search keeps earlier results visible, with a toolbar spinner, until the next
+  query finishes. It no longer blanks the screen on every keystroke. Errors and
+  empty results still apply only to the current query.
+- Up Next shows a spinner on the row being marked and drives the shared sync
+  indicator through the write and its forced resync.
+- After an episode change, the episode list waits only for the title's watched
+  episodes. The forced library sync runs in the background, so marking several
+  episodes no longer waits for each full sync.
+- Sign Out asks for confirmation and is disabled while syncing, like Reset & Sign
+  Out, and both use one implementation. Syncs now carry the account that started
+  them. Sign-out clears it, so a running sync stops at its next check before
+  saving, and a stale-token sync never starts.
+- Up Next rows and episode lists share ISO 8601 formatters instead of creating
+  them per row and render. Plain episode descriptions skip the HTML regex passes.
+- Also: Lists first in the Default Tab picker, episode-sheet save progress, a
+  one-time authoritative Up Next refresh after updating, swipe-down to close an
+  unzoomed poster, title pages that show before episodes and cast finish,
+  left-aligned genres and overviews, Up Next placeholders for missing art, and
+  Reset Library on the unreadable-store recovery screen.
+
+Validation: all 138 test definitions passed on iOS 27 with five new tests
+(retained search results, sign-out stopping a sync, the one-time Up Next refresh,
+store reset, and store-file deletion). Simulator checks covered fixture show and
+movie details loading with episodes, left-aligned genres, a long downward swipe
+closing the poster, and a short drag leaving it open. App Store notes were
+updated. The iPhone and iPad detail slides were recaptured on the dedicated iOS 27
+screenshot simulators so the genre line matches the app; only the detail
+captures were replaced, keeping the hand-captured Explore slide. Regenerated iPad
+slides 01–04 were pixel-identical and stay unchanged. Both sets pass
+`asc screenshots validate`.
