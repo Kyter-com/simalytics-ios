@@ -1,6 +1,6 @@
 # Apple Release History
 
-Generated from App Store Connect and git on 2026-10-14T02:21:23.728Z.
+Generated from App Store Connect and git on 2026-10-14T02:44:26.770Z.
 
 ASC is the source of truth for Apple versions and builds. Release tags and Xcode Cloud source commits are authoritative for git correlation; Xcode project snapshots are used only as a historical fallback.
 
@@ -25,7 +25,7 @@ The Created column is the App Store version-record creation date. Apple does not
 | 1.0.12 | READY_FOR_SALE | 2026-07-03 | 122 | e033dbb (2026-07-03; tag) | • Restored the parallax banner and refined spacing on title detail pages • Re-centered the detail action controls and tidied poster and info layout • Made the Where to Watch section more reliable • Hardened Simkl requests and media views for smoother, more consistent loading |
 | 1.0.14 | READY_FOR_SALE | 2026-07-09 | 129 | b701890 (2026-07-13; tag) | • Updated app dependencies and kept OAuth callback URL details out of diagnostics. |
 | 1.0.15 | READY_FOR_SALE | 2026-07-14 | 134 | 5d1dc79 (2026-07-18; tag) | • Improved watch-history sync resilience, including titles that are not yet in your Simkl watchlist. • Prevented duplicate episode updates and made cancelled background refreshes stop promptly. • Reduced stalls while browsing image-heavy and preview-rich screens. |
-| 1.0.18 | PREPARE_FOR_SUBMISSION | 2026-10-13 | 140 | b2def3d (2026-10-13; tag) | • Choose your default launch tab in Settings: Up Next, Lists, Explore, or Settings. • Up Next now follows Simkl's watchlist data, keeping stale or unaired next episodes out of your queue. Mark watched with a full left swipe in supported layouts. • Browse TV seasons and anime episode ranges with watched progress and a shortcut to the next unwatched episode. Resume from your latest watched season instead of returning to earlier seasons you skipped. • Enjoy steadier episode lists with consistent spacing for long titles, descriptions, and loading images. Open full descriptions in a scrollable sheet, with improved support for larger text. • Use native search, compact tabs while scrolling, and Liquid Glass detail controls on recent iOS versions. Episode lists support native full-swipe watch actions on iOS 27. • Select half-star ratings, remove ratings, and get clearer feedback when ratings or watched updates fail. Anime episode and title removals sync more reliably. • Pan and zoom fullscreen posters, retry failed image loads, and receive confirmation when a poster finishes saving to Photos. • Get clearer search loading and error states, better poster grids on smaller iPhones, and a clearer Reset & Sign Out action. • Improved library loading, browsing performance, and recovery from connection or local storage errors. Refreshed the App Store screenshots to match the current interface. |
+| 1.0.18 | PREPARE_FOR_SUBMISSION | 2026-10-13 | 141 | 89f3d25 (2026-10-13; tag) | • Choose your default launch tab in Settings: Up Next, Lists, Explore, or Settings. • Up Next now follows Simkl's watchlist data, keeping stale or unaired next episodes out of your queue. Mark watched with a full left swipe in supported layouts. • Browse TV seasons and anime episode ranges with watched progress and a shortcut to the next unwatched episode. Resume from your latest watched season instead of returning to earlier seasons you skipped. • Enjoy compact, steady episode rows, a cleaner scrolling header, and restored spacing for title details and watch status. Open full descriptions in a scrollable sheet, with improved support for larger text. • Use native search, compact tabs while scrolling, and Liquid Glass detail controls on recent iOS versions. Episode lists support native full-swipe watch actions on iOS 27. • Keep ten-star ratings on one line, select half-star ratings in five-star mode, remove ratings, and get clearer feedback when ratings or watched updates fail. Anime episode and title removals sync more reliably. • Pan and zoom fullscreen posters, retry failed image loads, and receive confirmation when a poster finishes saving to Photos. • Get clearer search loading and error states, better poster grids on smaller iPhones, and a clearer Reset & Sign Out action. • Improved library loading, browsing performance, and recovery from connection or local storage errors. Refreshed the App Store screenshots to match the current interface. |
 
 ## TestFlight-Only Versions
 
@@ -152,6 +152,7 @@ These versions have processed builds but no App Store version record.
 | 1.0.16 | 137 | 2026-10-11 | VALID | false | 6a1d25b (2026-10-11; cloud) |
 | 1.0.17 | 139 | 2026-10-11 | VALID | false | fcc6e97 (2026-10-11; cloud) |
 | 1.0.18 | 140 | 2026-10-13 | VALID | false | b2def3d (2026-10-13; tag) |
+| 1.0.18 | 141 | 2026-10-13 | VALID | false | 89f3d25 (2026-10-13; tag) |
 
 ## Release Commits
 
@@ -198,9 +199,9 @@ Matched 5d1dc79 from 2026-07-18: fix: finalize Simalytics 1.0.15 release [releas
 - fix: harden sync and interaction stability (#34)
 - fix: finalize Simalytics 1.0.15 release
 
-### 1.0.18 (140)
+### 1.0.18 (141)
 
-Matched b2def3d from 2026-10-13: chore: release Simalytics 1.0.18 [release tag simalytics-ios@1.0.18+140]
+Matched 89f3d25 from 2026-10-13: chore: release Simalytics 1.0.18 (141) [release tag simalytics-ios@1.0.18+141]
 
 - feat: iOS 27 UI updates — poster zoom, grid swipe, Liquid Glass
 - chore: update dependencies (#44)
@@ -214,4 +215,5 @@ Matched b2def3d from 2026-10-13: chore: release Simalytics 1.0.18 [release tag s
 - Merge pull request #46 from Kyter-com/NickReisenauer/up-next-feedback
 - chore: release Simalytics 1.0.17
 - chore: release Simalytics 1.0.18
+- chore: release Simalytics 1.0.18 (141)
 
