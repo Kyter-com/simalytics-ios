@@ -13,23 +13,19 @@ struct MediaEpisodeRow: View {
       : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
     layout {
       EpisodeThumbnail(episode: episode, isWatched: isWatched, blurImages: blurImages, width: 104)
-      VStack(alignment: .leading, spacing: 4) {
-        Text(episode.numberLabel)
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-          .lineLimit(1, reservesSpace: true)
+      VStack(alignment: .leading, spacing: 3) {
         Text(episode.title)
           .font(.headline)
-          .lineLimit(2, reservesSpace: true)
+          .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1, reservesSpace: true)
         Text(episode.preview.isEmpty ? " " : episode.preview)
           .font(.subheadline)
           .foregroundStyle(.secondary)
-          .lineLimit(2, reservesSpace: true)
-        Group {
+          .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1, reservesSpace: true)
+        HStack(spacing: 4) {
+          Text(episode.numberLabel)
           if let date = episode.airDate {
+            Text("·")
             Text(date, format: .dateTime.month(.abbreviated).day().year())
-          } else {
-            Text("Air date unavailable")
           }
         }
         .font(.caption)

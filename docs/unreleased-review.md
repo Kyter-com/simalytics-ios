@@ -116,9 +116,9 @@ season-1 watch coordinates. The progress-based initial selection described above
 is preserved. This navigation shortcut does not change the authoritative Up Next
 queue or predict unannounced episodes.
 
-The lazy episode section pins its header at standard text sizes. At accessibility
-sizes, controls stack and the header scrolls away so episodes can use the viewport.
-Rows reserve two lines each for titles and description previews, plus consistent
+The lazy episode section lets its header scroll away at every text size, avoiding
+a second sticky bar under navigation. Compact rows reserve one line each for
+titles and description previews (two at accessibility sizes), plus consistent
 metadata and thumbnail space. Preview whitespace is normalized, while a shared,
 scrollable detail sheet retains the full description. Loaded, missing, and failed
 images occupy the same frame. Larger text uses a vertical row layout.
@@ -192,3 +192,35 @@ frames, and layouts. ASC's local validator accepted five iPhone screenshots as
 folders retain their existing `iphone-6.9` and `ipad-13` names; the ASC display types
 above identify the upload sets. Release preparation does not constitute an App
 Store review submission or a public release.
+
+
+## UI polish and replacement release: 1.0.18 (141)
+
+Follow-up to device feedback on build 140, prepared October 13, 2026:
+
+- Standard episode rows are approximately 75 points tall, down from 149, with
+  fixed thumbnail and preview space. Long descriptions remain available in the
+  detail sheet. Short/long rows and missing/loaded artwork have equal heights.
+- The episode header scrolls away at all text sizes. TV, anime, and movie detail
+  screens explicitly use an inline navigation bar. DEBUG navigation fixtures now
+  exercise the real back button instead of only presenting details at the root.
+- Ten-star ratings use one continuous, 44-point-high rating strip and stay on one
+  line. Five-star mode retains half-star selection. VoiceOver adjustment and rating
+  removal remain available; the animation task follows the view's lifetime.
+- Restored the compact poster-side year, runtime, progress, and watchlist-button
+  spacing. Accessibility sizes place each label above its value to avoid squeezed
+  words. The standard layout remains side by side.
+
+Validation: all 133 test definitions passed on iOS 27; all 21 focused rating and
+episode-browser definitions passed on iOS 18.5. Parameterized rating tests exercise
+every whole/half-star position, different widths, scale edges, and zero width.
+Final Debug and arm64/x86_64 Release simulator builds passed. Simulator inspection
+covered compact TV/anime rows, navigation scrolling, full descriptions, ten-star
+selection, five-star half selection, and the largest accessibility text size.
+
+The iPhone and iPad detail screenshots were recaptured from the offline PD
+fixtures and regenerated with the existing headlines, frames, and composition.
+The other eight screenshots are unchanged. The user-facing Changeset was folded
+into the existing 1.0.18 changelog and cumulative release notes because 1.0.18 is
+still unreleased; the marketing version remains 1.0.18 and ASC selected build 141
+for the replacement Xcode Cloud build. No App Store review submission is implied.

@@ -43,6 +43,14 @@ struct ContentView: View {
         NavigationStack { ShowDetailView(simkl_id: ScreenshotEpisodeFixtures.showID) }
       case "anime-detail":
         NavigationStack { AnimeDetailView(simkl_id: ScreenshotEpisodeFixtures.animeID) }
+      case "show-navigation":
+        ScreenshotDetailNavigation(title: "TV Shows") {
+          ShowDetailView(simkl_id: ScreenshotEpisodeFixtures.showID)
+        }
+      case "anime-navigation":
+        ScreenshotDetailNavigation(title: "Anime") {
+          AnimeDetailView(simkl_id: ScreenshotEpisodeFixtures.animeID)
+        }
       case "movie-detail":
         NavigationStack { MovieDetailView(simkl_id: ScreenshotDetailFixtures.featuredMovieID) }
       default: ListView()

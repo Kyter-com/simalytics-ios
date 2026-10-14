@@ -9,15 +9,13 @@ struct MediaEpisodeSection: View {
   let reconcile: () async -> [WatchlistSeason]?
   @AppStorage("blurEpisodeImages") private var blurImages = false
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @State private var selectedEpisode: EpisodeListItem?
   @State private var pendingEpisode: EpisodeListItem?
 
   var body: some View {
-    // Large text needs the whole viewport for rows; let its taller header scroll away.
-    LazyVStack(
-      spacing: 0, pinnedViews: dynamicTypeSize.isAccessibilitySize ? [] : [.sectionHeaders]
-    ) {
+    // Keep the episode controls in the content instead of pinning a second bar
+    // below the navigation bar while the episodes scroll.
+    LazyVStack(spacing: 0) {
       Section {
         ForEach(model.currentGroup?.episodes ?? []) { episode in
           EpisodeBrowserRow(

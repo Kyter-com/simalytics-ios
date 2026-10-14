@@ -35,7 +35,7 @@ struct EpisodeBrowserRow: View {
       .disabled(!canEdit || isBusy || !episode.canMarkWatched)
     }
     .padding(.horizontal)
-    .padding(.vertical, 12)
+    .padding(.vertical, 8)
     .background(.background)
     .episodeSwipeActions(
       isWatched: isWatched, canEdit: canEdit && episode.canMarkWatched,

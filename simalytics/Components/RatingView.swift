@@ -26,6 +26,7 @@ struct RatingView: View {
 
   @Environment(\.isEnabled) private var isEnabled
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.layoutDirection) private var layoutDirection
   @ScaledMetric(relativeTo: .body) private var scaledSize: CGFloat = 20
   private let fullStarImage: Image = Image(systemName: "star.fill")
   private let halfStarImage: Image = Image(systemName: "star.lefthalf.fill")
@@ -51,12 +52,34 @@ struct RatingView: View {
   }
 
   var body: some View {
-    ViewThatFits(in: .horizontal) {
-      HStack(spacing: 2) { stars(1...maxRating) }
-      VStack(spacing: 2) {
-        HStack(spacing: 2) { stars(1...max(1, maxRating / 2)) }
-        HStack(spacing: 2) { stars((max(1, maxRating / 2) + 1)...maxRating) }
+    // One adjustable control, with a full-height touch surface. Ten-star mode
+    // stays on one line even when ten separate 44-point buttons would not fit.
+    GeometryReader { geometry in
+      let segmentWidth = geometry.size.width / CGFloat(maxRating)
+      HStack(spacing: 0) {
+        ForEach(1...maxRating, id: \.self) { index in
+          starImageView(index: index, size: min(scaledSize, max(1, segmentWidth - 6)))
+            .foregroundStyle(starColor)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
       }
+      .contentShape(.rect)
+      .onTapGesture { location in
+        let x = layoutDirection == .rightToLeft ? geometry.size.width - location.x : location.x
+        guard
+          let value = RatingSelection.value(
+            at: x, width: geometry.size.width, maximum: maxRating, allowsHalfStars: allowsHalfStars
+          )
+        else { return }
+        updateRating(to: value, star: Int(value.rounded(.up)))
+      }
+    }
+    .frame(height: max(44, scaledSize + 8))
+    .frame(maxWidth: CGFloat(maxRating) * max(44, scaledSize + 8))
+    .task(id: selectedStar) {
+      guard selectedStar != nil else { return }
+      do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+      selectedStar = nil
     }
     .accessibilityElement(children: .ignore)
     .accessibilityLabel("Your rating")
@@ -75,33 +98,7 @@ struct RatingView: View {
     }
   }
 
-  private func stars(_ range: ClosedRange<Int>) -> some View {
-    ForEach(range, id: \.self) { index in
-      let hitSize = max(44, scaledSize + 8)
-      starImageView(index: index)
-        .foregroundStyle(starColor)
-        .frame(width: hitSize, height: hitSize)
-        .contentShape(.rect)
-        // Tap location is needed to select the left half of a star.
-        .onTapGesture { location in
-          let value = Double(index) - (allowsHalfStars && location.x < hitSize / 2 ? 0.5 : 0)
-          updateRating(to: value, star: index)
-        }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel("Rate \(index) out of \(maxRating)")
-        .accessibilityValue("Current rating \(rating.formatted()) out of \(maxRating)")
-        .accessibilityAction { updateRating(to: Double(index), star: index) }
-        .accessibilityActions {
-          if allowsHalfStars {
-            Button("Rate \((Double(index) - 0.5).formatted()) out of \(maxRating)") {
-              updateRating(to: Double(index) - 0.5, star: index)
-            }
-          }
-        }
-    }
-  }
-
-  func starImageView(index: Int) -> some View {
+  private func starImageView(index: Int, size: CGFloat) -> some View {
     let iFloat = Double(index)
     let image: Image
     switch starRounding {
@@ -128,7 +125,7 @@ struct RatingView: View {
       image
       .resizable()
       .aspectRatio(contentMode: .fit)
-      .frame(width: scaledSize, height: scaledSize)
+      .frame(width: size, height: size)
       .scaleEffect(selectedStar == index && !reduceMotion ? 1.2 : 1)
       .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: selectedStar)
   }
@@ -140,11 +137,5 @@ struct RatingView: View {
     guard !reduceMotion else { return }
 
     selectedStar = index
-    Task {
-      try? await Task.sleep(for: .milliseconds(250))
-      await MainActor.run {
-        selectedStar = nil
-      }
-    }
   }
 }

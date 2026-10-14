@@ -102,6 +102,7 @@ struct AnimeDetailView: View {
 
           MediaDetailHeader(poster: animeDetails?.poster, title: animeDetails?.title ?? "anime") {
             AnimeHeaderInfo(animeDetails: $animeDetails, animeWatchlist: $animeWatchlist)
+          } status: {
             if !auth.simklAccessToken.isEmpty {
               AnimeWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
             }
@@ -159,6 +160,7 @@ struct AnimeDetailView: View {
           Recommendations(recommendations: animeDetails?.users_recommendations ?? [])
         }
       }
+      .navigationBarTitleDisplayMode(.inline)
       .sheet(isPresented: $showingMemoSheet) {
         MemoView(
           memoText: $memoText, privacySelection: $privacySelection, simkl_id: simkl_id,
