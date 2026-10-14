@@ -52,6 +52,15 @@
       ProcessInfo.processInfo.environment["SIMALYTICS_SCREENSHOT_SCREEN"]
     }
 
+    /// Check longer status labels without sending a watchlist mutation.
+    static var watchlistStatus: String? {
+      guard isActive,
+        let status = ProcessInfo.processInfo.environment["SIMALYTICS_SCREENSHOT_WATCHLIST_STATUS"],
+        ["watching", "plantowatch", "completed", "hold", "dropped"].contains(status)
+      else { return nil }
+      return status
+    }
+
     /// Per-capture toggle for the Anime section/shelf. Off (shown) by default;
     /// `capture.sh` sets it for the Explore slide so its trending-anime shelf, whose
     /// only PD art is early B&W, doesn't sit among the color shelves.
