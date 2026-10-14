@@ -27,34 +27,41 @@ struct MovieDetailView: View {
   @State private var showingJustWatchSheet = false
 
   var body: some View {
+    // Attached outside the loading switch so it keeps running after the page
+    // appears; the cast then fills in below the title.
+    content.task(id: simkl_id) { await load() }
+  }
+
+  private func load() async {
+    movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
+    movieWatchlist = await MovieDetailView.getMovieWatchlist(simkl_id, auth.simklAccessToken)
+    watchlistStatus = movieWatchlist?.list
+
+    if let fanart = movieDetails?.fanart {
+      let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
+      KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
+    }
+
+    do {
+      let movies = try modelContext.fetch(
+        FetchDescriptor<V1.SDMovies>(predicate: #Predicate { $0.simkl == simkl_id })
+      )
+      if let movie = movies.first {
+        let simklRating = Double(movie.user_rating ?? 0)
+        self.localRating = simklRating
+        self.memoText = movie.memo_text ?? ""
+        self.privacySelection = movie.memo_is_private ?? true ? "Private" : "Public"
+      }
+    } catch {}
+
+    isLoading = false
+    guard movieDetails != nil else { return }
+    cast = await getCast(auth.simklAccessToken, movieDetails?.ids?.tmdb, mediaType: "movie")
+  }
+
+  @ViewBuilder private var content: some View {
     if isLoading {
       ProgressView("Loading...")
-        .task(id: simkl_id) {
-          movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
-          movieWatchlist = await MovieDetailView.getMovieWatchlist(simkl_id, auth.simklAccessToken)
-          watchlistStatus = movieWatchlist?.list
-
-          cast = await getCast(auth.simklAccessToken, movieDetails?.ids?.tmdb, mediaType: "movie")
-
-          if let fanart = movieDetails?.fanart {
-            let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
-            KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
-          }
-
-          do {
-            let movies = try modelContext.fetch(
-              FetchDescriptor<V1.SDMovies>(predicate: #Predicate { $0.simkl == simkl_id })
-            )
-            if let movie = movies.first {
-              let simklRating = Double(movie.user_rating ?? 0)
-              self.localRating = simklRating
-              self.memoText = movie.memo_text ?? ""
-              self.privacySelection = movie.memo_is_private ?? true ? "Private" : "Public"
-            }
-          } catch {}
-
-          isLoading = false
-        }
     } else if movieDetails == nil {
       ContentUnavailableView {
         Label("Movie unavailable", systemImage: "film")
@@ -138,6 +145,7 @@ struct MovieDetailView: View {
           Text(genres.joined(separator: " • "))
             .font(.footnote)
             .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .fontDesign(.monospaced)
         }
@@ -145,6 +153,7 @@ struct MovieDetailView: View {
         if let overview = movieDetails?.overview {
           Text(overview)
             .font(.footnote)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding([.leading, .trailing])
             .padding(.top, 8)
         }

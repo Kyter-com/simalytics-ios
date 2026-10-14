@@ -14,6 +14,7 @@ struct FullscreenPosterView: View {
   @State private var saveAlertMessage = ""
   @State private var scale: CGFloat = 1
   @State private var offset: CGSize = .zero
+  @State private var dismissOffset: CGFloat = 0
   @GestureState private var magnification: CGFloat = 1
   @GestureState private var translation: CGSize = .zero
 
@@ -24,7 +25,7 @@ struct FullscreenPosterView: View {
   var body: some View {
     GeometryReader { geometry in
       ZStack {
-        Color.black.ignoresSafeArea()
+        Color.black.opacity(1 - min(dismissOffset / 500, 0.5)).ignoresSafeArea()
         if isLoading {
           ProgressView("Loading poster…")
             .tint(.white)
@@ -39,12 +40,13 @@ struct FullscreenPosterView: View {
             .scaledToFit()
             .frame(width: geometry.size.width, height: geometry.size.height)
             .scaleEffect(displayedScale)
-            .offset(displayedOffset)
+            .offset(x: displayedOffset.width, y: displayedOffset.height + dismissOffset)
             .contentShape(.rect)
             .gesture(
               MagnifyGesture()
                 .updating($magnification) { value, state, _ in state = value.magnification }
                 .onEnded { value in
+                  dismissOffset = 0
                   scale = PosterViewport.boundedScale(scale * value.magnification)
                   offset = PosterViewport.clampedOffset(
                     offset, scale: scale, imageSize: image.size, viewport: geometry.size)
@@ -53,7 +55,24 @@ struct FullscreenPosterView: View {
             .simultaneousGesture(
               DragGesture()
                 .updating($translation) { value, state, _ in state = value.translation }
+                .onChanged { value in
+                  // Unzoomed, a downward drag previews closing, as in Photos.
+                  guard scale <= 1, magnification <= 1 else { return }
+                  dismissOffset = max(0, value.translation.height)
+                }
                 .onEnded { value in
+                  if scale <= 1 {
+                    let isDownward = value.translation.height > abs(value.translation.width)
+                    if isDownward
+                      && (value.translation.height > 120 || value.predictedEndTranslation.height > 300)
+                    {
+                      dismiss()
+                    } else {
+                      withAnimation(reduceMotion ? nil : .snappy) { dismissOffset = 0 }
+                    }
+                    return
+                  }
+                  dismissOffset = 0
                   offset = PosterViewport.clampedOffset(
                     CGSize(
                       width: offset.width + value.translation.width,

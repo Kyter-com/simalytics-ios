@@ -19,6 +19,7 @@ struct SettingsView: View {
   @AppStorage("hideAnime") private var hideAnime = false
   @AppStorage(AppTab.preferenceKey) private var defaultTab = AppTab.defaultLaunchTab
   @State private var showResetConfirmation = false
+  @State private var showSignOutConfirmation = false
   @State private var showErrorAlert = false
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var modelContext
@@ -41,6 +42,18 @@ struct SettingsView: View {
     clearAll(V1.TrendingAnimes.self)
 
     try? modelContext.save()
+  }
+
+  /// Sign Out and Reset & Sign Out both discard this device's library copy.
+  /// Clearing the sync account first stops any running sync from restoring it.
+  private func signOut() {
+    do {
+      try SimpleKeychain().deleteItem(forKey: "simkl-access-token")
+      auth.setAccessToken("")
+      clearLocalSwiftData()
+    } catch {
+      reportError(error)
+    }
   }
 
   var body: some View {
@@ -121,7 +134,7 @@ struct SettingsView: View {
 
                     let simpleKeychain = SimpleKeychain()
                     try simpleKeychain.set(accessToken, forKey: "simkl-access-token")
-                    auth.simklAccessToken = accessToken  // Update UI immediately
+                    auth.setAccessToken(accessToken)  // Update UI immediately
 
                     // Run sync in a background task
                     Task {
@@ -138,19 +151,21 @@ struct SettingsView: View {
               .frame(maxWidth: .infinity, alignment: .center)
             } else {
               Button("Sign Out") {
-                Task {
-                  do {
-                    let simpleKeychain = SimpleKeychain()
-                    try simpleKeychain.deleteItem(forKey: "simkl-access-token")
-                    auth.simklAccessToken = ""
-                    clearLocalSwiftData()
-                  } catch {
-                    reportError(error)
-                  }
-                }
+                showSignOutConfirmation = true
               }
               .foregroundStyle(.red)
               .frame(maxWidth: .infinity, alignment: .center)
+              .disabled(globalLoadingIndicator.isSyncing)
+              .confirmationDialog(
+                "Sign out of Simkl?", isPresented: $showSignOutConfirmation,
+                titleVisibility: .visible
+              ) {
+                Button("Sign Out", role: .destructive) { signOut() }
+              } message: {
+                Text(
+                  "Downloaded library data will be removed from this device. Your Simkl lists, ratings, and watch history stay on Simkl."
+                )
+              }
             }
           } header: {
             Text("Account")
@@ -427,15 +442,7 @@ struct SettingsView: View {
                 "Reset local data and sign out?", isPresented: $showResetConfirmation,
                 titleVisibility: .visible
               ) {
-                Button("Reset & Sign Out", role: .destructive) {
-                  do {
-                    try SimpleKeychain().deleteItem(forKey: "simkl-access-token")
-                    auth.simklAccessToken = ""
-                    clearLocalSwiftData()
-                  } catch {
-                    reportError(error)
-                  }
-                }
+                Button("Reset & Sign Out", role: .destructive) { signOut() }
               } message: {
                 Text(
                   "This removes downloaded library data from this device and signs you out. Your Simkl lists, ratings, and watch history stay on Simkl."

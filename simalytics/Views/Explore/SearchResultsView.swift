@@ -77,12 +77,15 @@ struct SearchResultsView: View {
     )
   }
 
+  /// Earlier results stay visible while a new query loads.
+  private var isSearching: Bool { viewModel.completedRequest != searchRequest }
+
   var body: some View {
     Group {
-      if viewModel.completedRequest != searchRequest {
+      if isSearching && visibleResults.isEmpty {
         ProgressView("Searching…")
           .frame(maxWidth: .infinity, maxHeight: .infinity)
-      } else if let errorMessage = viewModel.errorMessage {
+      } else if !isSearching, let errorMessage = viewModel.errorMessage {
         ContentUnavailableView {
           Label("Search Unavailable", systemImage: "wifi.exclamationmark")
         } description: {
@@ -146,6 +149,14 @@ struct SearchResultsView: View {
           }
           .padding(.horizontal, posterGridHorizontalPadding)
           .padding(.vertical, 8)
+        }
+      }
+    }
+    .toolbar {
+      if isSearching && !visibleResults.isEmpty {
+        ToolbarItem(placement: .topBarTrailing) {
+          ProgressView()
+            .accessibilityLabel("Searching")
         }
       }
     }

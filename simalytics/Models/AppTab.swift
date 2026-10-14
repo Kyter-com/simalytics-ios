@@ -1,8 +1,9 @@
 import Foundation
 
+/// Case order is the Default Tab picker order; raw values are persisted.
 enum AppTab: String, CaseIterable, Identifiable {
-  case upNext = "upnext"
   case lists
+  case upNext = "upnext"
   case explore
   case settings
 

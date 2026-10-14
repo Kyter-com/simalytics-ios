@@ -6,6 +6,7 @@ struct MediaEpisodeDetailSheet: View {
   let blurImages: Bool
   let canEdit: Bool
   let isBusy: Bool
+  let isUpdating: Bool
   let toggle: () -> Void
   @Environment(\.dismiss) private var dismiss
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -36,6 +37,8 @@ struct MediaEpisodeDetailSheet: View {
               isWatched ? "Mark unwatched" : "Mark watched",
               systemImage: isWatched ? "arrow.uturn.backward" : "checkmark"
             )
+            .opacity(isUpdating ? 0 : 1)
+            .overlay { if isUpdating { ProgressView() } }
             .frame(maxWidth: .infinity, minHeight: 32)
           }
           .buttonStyle(.borderedProminent)

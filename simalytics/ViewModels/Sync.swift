@@ -66,13 +66,15 @@ func syncLatestActivities(
     // mark-watched) is a no-op. See ScreenshotMode.
     if ScreenshotMode.isActive { return }
   #endif
+  // A caller that captured a token before sign-out must not resync that account.
+  guard SyncAccount.isActive(accessToken) else { return }
   var runForceRefresh = forceRefresh
   guard await syncLatestActivitiesGate.begin(forceRefresh: forceRefresh) else { return }
 
   while true {
     let syncStartedAt = Date()
     addSyncLifecycleBreadcrumb(message: "Sync started", forceRefresh: runForceRefresh)
-    let outcome = await SyncFailureScope.perform {
+    let outcome = await SyncFailureScope.perform(accessToken: accessToken) {
       await runSyncLatestActivities(
         accessToken, modelContainer: modelContainer, forceRefresh: runForceRefresh)
     }

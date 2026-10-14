@@ -50,6 +50,7 @@ struct MediaEpisodeSection: View {
         episode: episode, isWatched: model.watchedIDs.contains(episode.id),
         blurImages: blurImages, canEdit: canEdit,
         isBusy: pendingEpisode != nil || model.updatingID != nil,
+        isUpdating: pendingEpisode?.id == episode.id || model.updatingID == episode.id,
         toggle: { queueChange(episode) }
       )
       .presentationDetents([.medium, .large])

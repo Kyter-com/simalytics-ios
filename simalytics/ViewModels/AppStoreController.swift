@@ -26,6 +26,35 @@ final class AppStoreController {
       reportError(error)
     }
   }
+
+  /// Last resort when the store can't be opened at all: delete this device's
+  /// copy so the next sync rebuilds it from Simkl. Nothing on Simkl changes.
+  func resetAndLoad(
+    reset: @Sendable () async throws -> Void = deleteAppModelStore,
+    open: @Sendable () async throws -> ModelContainer = openAppModelContainer
+  ) async {
+    guard container == nil, !isLoading else { return }
+    do {
+      try await reset()
+    } catch {
+      reportError(error)
+    }
+    await load(open: open)
+  }
+}
+
+@concurrent
+func deleteAppModelStore() async throws {
+  try deleteStoreFiles(at: ModelConfiguration(schema: Schema(V1.models)).url)
+}
+
+/// SQLite keeps write-ahead companions next to the store; remove them together.
+nonisolated func deleteStoreFiles(at url: URL, fileManager: FileManager = .default) throws {
+  for suffix in ["", "-shm", "-wal"] {
+    let file = URL(fileURLWithPath: url.path + suffix)
+    guard fileManager.fileExists(atPath: file.path) else { continue }
+    try fileManager.removeItem(at: file)
+  }
 }
 
 /// Opening/migrating the store can involve disk I/O. Keep it off the UI actor,

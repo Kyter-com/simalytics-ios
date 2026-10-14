@@ -70,6 +70,18 @@ func shouldRefreshUpNext(lastRefresh: String?, now: Date = Date()) -> Bool {
   return now.timeIntervalSince(date) >= 6 * 60 * 60
 }
 
+/// Versions before 1.0.18 stored their own next-episode estimates, which the
+/// six-hour cache would keep showing after an update. Refresh once from SIMKL.
+@MainActor
+func refreshUpNextOnceAfterUpdate(
+  modelContainer: ModelContainer, defaults: UserDefaults = .standard
+) {
+  let key = "authoritativeUpNextRefreshRequested"
+  guard !defaults.bool(forKey: key) else { return }
+  invalidateUpNextCache(modelContainer: modelContainer)
+  defaults.set(true, forKey: key)
+}
+
 // Force the next syncLatestActivities to refresh authoritative Watching summaries.
 // Mark-watched / mark-unwatched must not reuse the six-hour catalog cache.
 @MainActor

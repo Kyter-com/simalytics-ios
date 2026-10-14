@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os
 
 enum SyncOutcome: Equatable, Sendable {
   case succeeded
@@ -22,6 +23,11 @@ enum SyncFailureScope {
 
   private actor Monitor {
     var outcome = SyncOutcome.succeeded
+    let accessToken: String?
+
+    init(accessToken: String?) {
+      self.accessToken = accessToken
+    }
 
     func record(_ error: Error) -> Bool {
       if outcome.shouldDiscardPendingSync { return false }
@@ -38,11 +44,15 @@ enum SyncFailureScope {
     func check() throws {
       if case .storageFailure(let failure) = outcome { throw failure }
       if case .cancelled = outcome { throw CancellationError() }
+      // Signing out discards local data; this attempt must not write it back.
+      if let accessToken, !SyncAccount.isActive(accessToken) { throw CancellationError() }
     }
   }
 
-  static func perform(_ operation: () async throws -> Void) async -> SyncOutcome {
-    let attempt = Monitor()
+  static func perform(
+    accessToken: String? = nil, _ operation: () async throws -> Void
+  ) async -> SyncOutcome {
+    let attempt = Monitor(accessToken: accessToken)
     return await $monitor.withValue(attempt) {
       do {
         try await operation()
@@ -68,6 +78,21 @@ enum SyncFailureScope {
     try await check()
     await operation()
     try await check()
+  }
+}
+
+/// The signed-in account that syncs may write for. Sign-out clears it, so a
+/// sync already running, or one started later with the old token, stops at its
+/// next check instead of restoring the previous account's library.
+enum SyncAccount {
+  private static let current = OSAllocatedUnfairLock<String?>(initialState: nil)
+
+  static func update(_ accessToken: String) {
+    current.withLock { $0 = accessToken.isEmpty ? nil : accessToken }
+  }
+
+  static func isActive(_ accessToken: String) -> Bool {
+    current.withLock { $0 == accessToken }
   }
 }
 

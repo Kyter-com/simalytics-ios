@@ -39,13 +39,7 @@ extension UpNextMedia {
       ), selection.season > 0
     else { return false }
     guard let date = next_to_watch_info_date else { return true }
-    let formatter = ISO8601DateFormatter()
-    var airDate = formatter.date(from: date)
-    if airDate == nil {
-      formatter.formatOptions.insert(.withFractionalSeconds)
-      airDate = formatter.date(from: date)
-    }
-    guard let airDate else { return false }
+    guard let airDate = SimklDateParser.date(from: date) else { return false }
     return airDate <= now
   }
 
@@ -81,8 +75,13 @@ struct UpNextView: View {
     // time, including the following reconciliation, even across different rows.
     guard updatingIDs.isEmpty else { return }
     updatingIDs.insert(mediaItem.simkl)
+    // The write and its resync can take a few seconds; show that work is running.
+    globalLoadingIndicator.startSync()
     Task {
-      defer { updatingIDs.remove(mediaItem.simkl) }
+      defer {
+        updatingIDs.remove(mediaItem.simkl)
+        globalLoadingIndicator.stopSync()
+      }
       let isAnime = mediaItem.type == "anime"
       guard
         let episodeSelection = validatedSimklEpisode(
@@ -214,6 +213,9 @@ struct UpNextView: View {
                       poster: mediaItem.poster,
                       badge: mediaItem.nextEpisodeBadge
                     )
+                    .overlay {
+                      if updatingIDs.contains(mediaItem.simkl) { UpdatingIndicator() }
+                    }
                   }
                   .buttonStyle(.plain)
                   .upNextGridSwipe(
@@ -237,14 +239,13 @@ struct UpNextView: View {
                 destinationView(for: mediaItem)
               } label: {
                 HStack {
-                  if let poster = mediaItem.poster {
-                    CustomKFImage(
-                      imageUrlString: "\(SIMKL_CDN_URL)/posters/\(poster)_m.jpg",
-                      memoryCacheOnly: false,
-                      height: 118,
-                      width: 80
-                    )
-                  }
+                  // Keep the placeholder for missing art so every row's text lines up.
+                  CustomKFImage(
+                    imageUrlString: mediaItem.poster.map { "\(SIMKL_CDN_URL)/posters/\($0)_m.jpg" },
+                    memoryCacheOnly: false,
+                    height: 118,
+                    width: 80
+                  )
 
                   VStack(alignment: .leading) {
                     if let title = mediaItem.title {
@@ -268,6 +269,10 @@ struct UpNextView: View {
                         .foregroundStyle(.secondary)
                     }
                     Spacer()
+                  }
+                  if updatingIDs.contains(mediaItem.simkl) {
+                    Spacer()
+                    UpdatingIndicator()
                   }
                 }
               }
@@ -331,6 +336,16 @@ struct UpNextView: View {
     default:
       ShowDetailView(simkl_id: mediaItem.simkl)
     }
+  }
+}
+
+/// Shown on the row being marked watched until its resync finishes.
+private struct UpdatingIndicator: View {
+  var body: some View {
+    ProgressView()
+      .padding(10)
+      .background(.regularMaterial, in: .circle)
+      .accessibilityLabel("Marking watched")
   }
 }
 

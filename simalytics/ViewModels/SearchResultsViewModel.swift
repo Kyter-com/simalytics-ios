@@ -40,9 +40,8 @@ final class SearchResultsViewModel {
   ) async {
     generation += 1
     let currentGeneration = generation
-    results = []
-    errorMessage = nil
-    completedRequest = nil
+    // Keep the previous results on screen while typing; `completedRequest`
+    // tells the view whether they still match the current query.
 
     do {
       let query = request.query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -58,11 +57,13 @@ final class SearchResultsViewModel {
       try Task.checkCancellation()
       guard generation == currentGeneration else { return }
       results = matches
+      errorMessage = nil
       completedRequest = request
     } catch {
       guard !isSimklCancellationError(error), !Task.isCancelled,
         generation == currentGeneration
       else { return }
+      results = []
       errorMessage = "Couldn't load search results. Check your connection and try again."
       completedRequest = request
     }

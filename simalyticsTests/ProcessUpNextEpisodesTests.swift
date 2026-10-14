@@ -32,6 +32,29 @@ struct ProcessUpNextCacheTests {
     #expect(refreshed?.changes_api == nil)
   }
 
+  @Test("An update refreshes estimates from older versions once, not on every launch")
+  func refreshOnceAfterUpdate() throws {
+    let container = try makeContainer()
+    let context = ModelContext(container)
+    let sync = V1.SDLastSync(id: 1)
+    sync.changes_api = "2026-10-14T10:00:00Z"
+    context.insert(sync)
+    try context.save()
+    let name = "ProcessUpNextCacheTests.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: name))
+    defer { defaults.removePersistentDomain(forName: name) }
+
+    refreshUpNextOnceAfterUpdate(modelContainer: container, defaults: defaults)
+    let first = try ModelContext(container).fetch(FetchDescriptor<V1.SDLastSync>()).first
+    #expect(first?.changes_api == nil)
+
+    first?.changes_api = "2026-10-14T11:00:00Z"
+    try first?.modelContext?.save()
+    refreshUpNextOnceAfterUpdate(modelContainer: container, defaults: defaults)
+    let second = try ModelContext(container).fetch(FetchDescriptor<V1.SDLastSync>()).first
+    #expect(second?.changes_api == "2026-10-14T11:00:00Z")
+  }
+
   @Test("Catalog refresh respects the six-hour boundary and invalid timestamps")
   func cacheBoundary() throws {
     let now = try #require(ISO8601DateFormatter().date(from: "2026-10-11T12:00:00Z"))

@@ -43,20 +43,19 @@ struct EpisodeListItem: Identifiable, Equatable, Sendable {
     self.number = number
     self.supportsWatchAction = supportsWatchAction
     self.title = title
-    let plainText = (overview ?? "")
-      .replacingOccurrences(of: "<br\\s*/?>", with: "\n", options: .regularExpression)
-      .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-      .trimmingCharacters(in: .whitespacesAndNewlines)
+    // Long anime catalogs build a thousand-plus rows at once; skip the regex
+    // passes for the common plain-text description.
+    var plainText = overview ?? ""
+    if plainText.contains("<") {
+      plainText =
+        plainText
+        .replacingOccurrences(of: "<br\\s*/?>", with: "\n", options: .regularExpression)
+        .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+    }
+    plainText = plainText.trimmingCharacters(in: .whitespacesAndNewlines)
     self.overview = plainText
     self.preview = plainText.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     self.image = image
-    if let date {
-      let formatter = ISO8601DateFormatter()
-      let standard = formatter.date(from: date)
-      formatter.formatOptions.insert(.withFractionalSeconds)
-      self.airDate = standard ?? formatter.date(from: date)
-    } else {
-      self.airDate = nil
-    }
+    self.airDate = date.flatMap { SimklDateParser.date(from: $0) }
   }
 }

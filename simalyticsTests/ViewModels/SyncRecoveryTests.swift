@@ -20,6 +20,20 @@ struct SyncRecoveryTests {
     #expect(retried == .succeeded)
   }
 
+  @Test("Signing out stops a running sync before another section can write")
+  func signOutStopsSync() async {
+    let token = "sync-recovery-\(UUID())"
+    SyncAccount.update(token)
+    let outcome = await SyncFailureScope.perform(accessToken: token) {
+      try await SyncFailureScope.step { SyncAccount.update("") }
+      try await SyncFailureScope.step {
+        Issue.record("No section may run after sign-out")
+      }
+    }
+    #expect(outcome == .cancelled)
+    #expect(!SyncAccount.isActive(token))
+  }
+
   @Test("A malformed response leaves sync incomplete while unrelated sections can still run")
   func malformedResponse() async {
     await confirmation("next section ran") { nextSection in

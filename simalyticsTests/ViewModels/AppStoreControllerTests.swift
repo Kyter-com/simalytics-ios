@@ -28,6 +28,36 @@ struct AppStoreControllerTests {
     }
   }
 
+  @Test("Resetting a store that won't open deletes it, then opens a fresh one")
+  func resetAfterOpenFailure() async throws {
+    let store = AppStoreController()
+    await store.load { throw NSError(domain: "NSSQLiteErrorDomain", code: 11) }
+    #expect(store.failure == .unavailable)
+    let container = try ModelContainer(
+      for: Schema(V1.models), configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    await confirmation("store deleted before reopening") { deleted in
+      await store.resetAndLoad(reset: { deleted() }, open: { container })
+    }
+    #expect(store.container === container)
+    #expect(store.failure == nil)
+  }
+
+  @Test("Store reset removes the database and its SQLite companions only")
+  func deleteStoreFilesTest() throws {
+    let directory = FileManager.default.temporaryDirectory
+      .appending(path: "AppStoreControllerTests.\(UUID())")
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = directory.appending(path: "default.store")
+    for name in ["default.store", "default.store-shm", "default.store-wal", "keep.txt"] {
+      try Data("x".utf8).write(to: directory.appending(path: name))
+    }
+    try deleteStoreFiles(at: store)
+    let remaining = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+    #expect(remaining == ["keep.txt"])
+    #expect(ModelConfiguration(schema: Schema(V1.models)).url.pathExtension == "store")
+  }
+
   @Test("Cancelled opening does not display a storage error")
   func cancellation() async {
     let store = AppStoreController()

@@ -55,36 +55,43 @@ struct ShowDetailView: View {
   }
 
   var body: some View {
+    // Attached outside the loading switch so it keeps running after the page
+    // appears; episodes and cast then fill in below the title.
+    content.task(id: simkl_id) { await load() }
+  }
+
+  private func load() async {
+    showDetails = await ShowDetailView.getShowDetails(simkl_id)
+    showWatchlist = await ShowDetailView.getShowWatchlist(simkl_id, auth.simklAccessToken)
+    watchlistStatus = showWatchlist?.list
+
+    if let fanart = showDetails?.fanart {
+      let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
+      KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
+    }
+
+    do {
+      let shows = try modelContext.fetch(
+        FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.simkl == simkl_id })
+      )
+      if let show = shows.first {
+        let simklRating = Double(show.user_rating ?? 0)
+        self.localRating = simklRating
+        self.memoText = show.memo_text ?? ""
+        self.privacySelection = show.memo_is_private ?? true ? "Private" : "Public"
+      }
+    } catch {}
+
+    // Long catalogs shouldn't hold the whole page behind a spinner.
+    isLoading = false
+    guard showDetails != nil else { return }
+    await loadEpisodes()
+    cast = await getCast(auth.simklAccessToken, showDetails?.ids?.tmdb, mediaType: "tv")
+  }
+
+  @ViewBuilder private var content: some View {
     if isLoading {
       ProgressView("Loading...")
-        .task(id: simkl_id) {
-          showDetails = await ShowDetailView.getShowDetails(simkl_id)
-          showWatchlist = await ShowDetailView.getShowWatchlist(
-            simkl_id, auth.simklAccessToken)
-          watchlistStatus = showWatchlist?.list
-          await loadEpisodes()
-
-          cast = await getCast(auth.simklAccessToken, showDetails?.ids?.tmdb, mediaType: "tv")
-
-          if let fanart = showDetails?.fanart {
-            let imageURL = URL(string: "\(SIMKL_CDN_URL)/fanart/\(fanart)_mobile.jpg")!
-            KingfisherManager.shared.retrieveImage(with: imageURL) { _ in }
-          }
-
-          do {
-            let shows = try modelContext.fetch(
-              FetchDescriptor<V1.SDShows>(predicate: #Predicate { $0.simkl == simkl_id })
-            )
-            if let show = shows.first {
-              let simklRating = Double(show.user_rating ?? 0)
-              self.localRating = simklRating
-              self.memoText = show.memo_text ?? ""
-              self.privacySelection = show.memo_is_private ?? true ? "Private" : "Public"
-            }
-          } catch {}
-
-          isLoading = false
-        }
     } else if showDetails == nil {
       ContentUnavailableView {
         Label("Show unavailable", systemImage: "tv")
@@ -118,6 +125,7 @@ struct ShowDetailView: View {
             Text(genres.joined(separator: " • "))
               .font(.footnote)
               .foregroundStyle(.secondary)
+              .frame(maxWidth: .infinity, alignment: .leading)
               .padding([.leading, .trailing])
               .fontDesign(.monospaced)
           }
@@ -125,6 +133,7 @@ struct ShowDetailView: View {
           if let overview = showDetails?.overview {
             Text(overview)
               .font(.footnote)
+              .frame(maxWidth: .infinity, alignment: .leading)
               .padding([.leading, .trailing])
               .padding(.top, 8)
           }
@@ -209,10 +218,12 @@ struct ShowDetailView: View {
       if ScreenshotMode.isActive { return nil }
     #endif
     guard !auth.simklAccessToken.isEmpty else { return nil }
-    await syncLatestActivities(
-      auth.simklAccessToken, modelContainer: modelContext.container, forceRefresh: true)
-    guard !Task.isCancelled,
-      let refreshed = await ShowDetailView.getShowWatchlist(simkl_id, auth.simklAccessToken),
+    let token = auth.simklAccessToken
+    let container = modelContext.container
+    // Library and Up Next catch up in the background; the episode list only
+    // needs this show's watched episodes, so it unlocks after that request.
+    Task { await syncLatestActivities(token, modelContainer: container, forceRefresh: true) }
+    guard let refreshed = await ShowDetailView.getShowWatchlist(simkl_id, token),
       !Task.isCancelled
     else { return nil }
     showWatchlist = refreshed

@@ -49,6 +49,27 @@ struct SearchResultsTests {
     #expect((model.errorMessage == nil) == (query == "empty"))
   }
 
+  @Test("Earlier results stay visible while the next query loads")
+  func keepsResultsWhileSearching() async throws {
+    let model = SearchResultsViewModel()
+    let session = session()
+    defer { session.invalidateAndCancel() }
+    let first = MediaSearchRequest(query: "moon", category: .tv, hideAnime: false)
+    await model.search(first, session: session, debounce: .zero)
+    let pending = Task {
+      await model.search(
+        MediaSearchRequest(query: "moons", category: .tv, hideAnime: false), session: session,
+        debounce: .seconds(30))
+    }
+    try await Task.sleep(for: .milliseconds(50))
+    #expect(model.results.count == 1)
+    #expect(model.completedRequest == first)
+    pending.cancel()
+    await pending.value
+    #expect(model.results.count == 1)
+    #expect(model.completedRequest == first)
+  }
+
   @Test("Cancellation leaves no false no-results state and a subsequent query can finish")
   func cancellation() async {
     let model = SearchResultsViewModel()

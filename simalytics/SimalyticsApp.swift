@@ -33,6 +33,13 @@ class Auth {
     } catch {
       self.simklAccessToken = ""
     }
+    SyncAccount.update(simklAccessToken)
+  }
+
+  /// Change accounts here so background syncs stop writing for a signed-out one.
+  func setAccessToken(_ accessToken: String) {
+    simklAccessToken = accessToken
+    SyncAccount.update(accessToken)
   }
 }
 
@@ -125,13 +132,15 @@ struct SimalyticsApp: App {
             .modelContainer(modelContainer)
             .task {
               if !auth.simklAccessToken.isEmpty {
+                refreshUpNextOnceAfterUpdate(modelContainer: modelContainer)
                 globalLoadingIndicator.startSync()
                 await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContainer)
                 globalLoadingIndicator.stopSync()
               }
             }
         } else if let failure = store.failure {
-          StorageRecoveryView(failure: failure) { await store.load() }
+          StorageRecoveryView(
+            failure: failure, retry: { await store.load() }, reset: { await store.resetAndLoad() })
         } else {
           ProgressView("Opening your library…")
         }
