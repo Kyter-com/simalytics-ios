@@ -1,5 +1,17 @@
 # @kyter/simalytics-ios
 
+## 1.1.0
+
+### Minor Changes
+
+- Explore is now a browse-only tab with today's trending picks, genre tiles, Top 10s, curated collections like Hidden Gems and Weekend Binges, the best of each streaming service and TV network, and picks by decade.
+- Explore adds a For You row picked from the genres you rate highest, a Hide Titles in My Library switch, Add to Plan to Watch and Watch Trailer in each title's long-press menu, synopses on the Trending Today cards, and how many people watched each Top 10 title today. Refreshes now download only the Simkl files that changed.
+- Search now has its own tab, with today's trending titles as quick suggestions.
+
+### Patch Changes
+
+- Explore scrolls smoothly while it loads, sort menus name each list's own order, Collections fill whole rows on iPad, and Explore's cards and tiles stay readable at the largest text sizes.
+
 ## 1.0.18
 
 ### Patch Changes

@@ -100,19 +100,8 @@ POSTER_OVERRIDES = {
 def poster_for(key: str) -> str:
     return POSTER_OVERRIDES.get(key, key)
 
-# Explore trending shelves (ordered). Keys must appear above.
-# Lead with the most vivid color posters so the Explore trending shelf pops.
-TRENDING_MOVIES = [
-    "the-lost-world-1925", "the-gorilla-1927", "don-q-son-of-zorro-1925", "robin-hood-1922",
-    "ben-hur-1925", "the-black-pirate-1926", "7th-heaven-1927", "the-gold-rush-1925",
-    "the-general-1926", "his-girl-friday-1940", "meet-john-doe-1941", "a-star-is-born-1937",
-]
-TRENDING_SHOWS = [
-    "the-cisco-kid-1950", "the-lone-ranger-1949", "hopalong-cassidy-1936",
-    "sherlock-holmes-1954-tv-series-1954", "dragnet-1951", "the-beverly-hillbillies-1962",
-    "alcoa-presents-one-step-beyond-1959", "the-red-skelton-show-1951", "you-bet-your-life-1950",
-    "the-george-burns-and-gracie-allen-show-1950",
-]
+# Explore no longer reads SwiftData; its public-domain titles live in
+# simalytics/Utils/ScreenshotDiscoverFixtures.swift.
 
 # Anime for the Lists "Anime" section counts (shown on the Lists slide, hidden on
 # Explore via SIMALYTICS_SCREENSHOT_HIDE_ANIME). Posters are NOT displayed in any
@@ -143,7 +132,7 @@ def main() -> int:
 
     # Every identity key (+ every poster-override target) must be in the catalog for
     # provenance; every RESOLVED poster (after overrides) must have an image file.
-    identity_keys = set(MOVIES) | set(TV) | set(TRENDING_MOVIES) | set(TRENDING_SHOWS)
+    identity_keys = set(MOVIES) | set(TV)
     catalog_refs = identity_keys | set(POSTER_OVERRIDES.values()) | {ANIME_POSTER}
     missing = [k for k in catalog_refs if k not in catalog]
     if missing:
@@ -156,7 +145,6 @@ def main() -> int:
         return 1
 
     movie_rows, show_rows = [], []
-    tmovie_rows, tshow_rows = [], []
 
     simkl = 900_101
     for key, (status, rating, added, watched) in MOVIES.items():
@@ -195,17 +183,6 @@ def main() -> int:
         show_rows.append(f"        show({', '.join(args)}, {', '.join(kw)}),")
         simkl += 1
 
-    for i, key in enumerate(TRENDING_MOVIES, 1):
-        c = catalog[key]
-        tmovie_rows.append(
-            f"        V1.TrendingMovies(simkl: {910_000 + i}, title: {swift_str(display_title(c['title']))}, "
-            f"poster: {swift_str(key)}, order: {i}, year: {c['year']}),")
-    for i, key in enumerate(TRENDING_SHOWS, 1):
-        c = catalog[key]
-        tshow_rows.append(
-            f"        V1.TrendingShows(simkl: {920_000 + i}, title: {swift_str(display_title(c['title']))}, "
-            f"poster: {swift_str(poster_for(key))}, order: {i}, year: {c['year']}),")
-
     anime_rows = []
     simkl = 900_401
     for a in ANIME:
@@ -226,13 +203,10 @@ def main() -> int:
         movies="\n".join(movie_rows),
         shows="\n".join(show_rows),
         animes="\n".join(anime_rows),
-        trending_movies="\n".join(tmovie_rows),
-        trending_shows="\n".join(tshow_rows),
         n_movies=len(MOVIES), n_shows=len(TV), n_anime=len(ANIME),
     )
     OUT.write_text(swift)
-    print(f"wrote {OUT} ({len(MOVIES)} movies, {len(TV)} shows, {len(ANIME)} anime, "
-          f"{len(TRENDING_MOVIES)}+{len(TRENDING_SHOWS)} trending)")
+    print(f"wrote {OUT} ({len(MOVIES)} movies, {len(TV)} shows, {len(ANIME)} anime)")
     return 0
 
 
@@ -256,8 +230,6 @@ TEMPLATE = '''//
       for movie in movies() {{ context.insert(movie) }}
       for show in shows() {{ context.insert(show) }}
       for anime in animes() {{ context.insert(anime) }}
-      for trending in trendingMovies() {{ context.insert(trending) }}
-      for trending in trendingShows() {{ context.insert(trending) }}
       try? context.save()
     }}
 
@@ -331,20 +303,6 @@ TEMPLATE = '''//
         user_rated_at: rating != nil ? iso(added) : nil, user_rating: rating,
         status: status, watched_episodes_count: watchedEps, total_episodes_count: totalEps,
         anime_type: "movie", poster: poster, year: year, title: title)
-    }}
-
-    // MARK: Trending (Explore)
-
-    private static func trendingMovies() -> [V1.TrendingMovies] {{
-      [
-{trending_movies}
-      ]
-    }}
-
-    private static func trendingShows() -> [V1.TrendingShows] {{
-      [
-{trending_shows}
-      ]
     }}
   }}
 #endif

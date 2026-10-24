@@ -80,6 +80,7 @@ SLIDES = [
     {"title": "All your shows, movies, and anime.", "screen": "lists"},
     {"title": "Always know what to watch next.", "screen": "upnext"},
     {"title": "See what everyone's watching.", "screen": "explore"},
+    {"title": "Today's Top 10s, plus lists to binge.", "screen": "explore-top10"},
     {"title": "Your whole collection at a glance.", "screen": "grid"},
     {"title": "Go deeper on every title you track.", "screen": "movie-detail"},
 ]

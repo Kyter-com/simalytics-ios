@@ -44,19 +44,16 @@ renders with Liquid Glass; it exits before building when either requirement is n
 Captures use light appearance, the standard Large text size, and the app's five-star
 rating preference. The featured title is rated 3½ stars to show half-star support.
 
-Before compositing, inspect the iPhone Explore capture. Native search activates the
-keyboard on entry. For the browsing screenshot, launch Explore again with the same
-fixture environment, dismiss any first-use keyboard tutorial, and drag downward in
-the content to dismiss the keyboard interactively (do not tap Cancel, which returns
-to the previous tab). Keep the query empty and the shelves at the top, then replace
-`raw/iphone-6.9/03-explore.png` with a new `simctl io <device> screenshot` capture.
-The October 2026 set used the Orca emulator skill for this interaction; its captured
-screen includes the native bottom search field with the keyboard dismissed.
+Explore is a browse-only tab, so its capture needs no keyboard handling; search
+lives in the separate Search tab. Sets captured before the split (October 2026 and
+earlier) show the old combined Explore with the bottom search field.
 
 ## How the data gets in (public domain, offline)
 
-Simalytics hard-gates Explore + Up Next behind login, and every list/up-next/
-explore screen reads from **local SwiftData** (the network only writes into it).
+Simalytics hard-gates Explore + Up Next behind login. Lists and Up Next read from
+**local SwiftData** (the network only writes into it); Explore reads Simkl's
+discover files through `DiscoverStore`, which screenshot mode fills from
+`ScreenshotDiscoverFixtures` instead of the network.
 Because Apple reviews the poster **images**, and Simkl's CDN posters can be
 copyrighted even for public-domain films, we don't sync a real account at all.
 Instead a **DEBUG-only screenshot mode** (`simalytics/Utils/ScreenshotMode.swift`,
@@ -65,8 +62,8 @@ compiled out of Release) is switched on by launch env vars that `capture.sh` set
 | env var | effect |
 | --- | --- |
 | `SIMALYTICS_SCREENSHOTS=1` | in-memory store pre-seeded with public-domain fixtures (`ScreenshotSeedData`); sync disabled; a sentinel token opens the Explore/Up Next gates (never networked, never stored); grid layout forced |
-| `SIMALYTICS_SCREENSHOT_TAB=<tab>` | launch straight into `lists` \| `upnext` \| `explore` \| `settings` (tap-free capture) |
-| `SIMALYTICS_SCREENSHOT_SCREEN=<screen>` | route the Lists tab to a sub-screen: `movies-grid` \| `tv-grid` (poster-wall grids) \| `movie-detail` (rich detail view) \| `show-detail` \| `anime-detail` (synthetic episode browsers). Empty = the Lists hub. |
+| `SIMALYTICS_SCREENSHOT_TAB=<tab>` | launch straight into `lists` \| `upnext` \| `explore` \| `search` \| `settings` (tap-free capture) |
+| `SIMALYTICS_SCREENSHOT_SCREEN=<screen>` | route the Lists tab to a sub-screen: `movies-grid` \| `tv-grid` (poster-wall grids) \| `movie-detail` (rich detail view) \| `show-detail` \| `anime-detail` (synthetic episode browsers); with the Explore tab, `explore-top10` scrolls to Top 10 Movies. Empty = the tab's default view. |
 | `SIMALYTICS_SCREENSHOT_HIDE_ANIME=1` | hide the Anime section/shelf for this capture; `capture.sh` sets it only for the Explore slide (early-B&W anime art clashes with the color shelves), so Lists still shows anime |
 | `SIMALYTICS_SCREENSHOT_POSTER_DIR=<dir>` | local dir of public-domain poster JPEGs; `PosterURLProtocol` serves these for `/posters/`, `/fanart/`, and `/episodes/` requests so nothing is fetched from Simkl |
 | `SIMALYTICS_EPISODE_TEST_FAILURE=1` | in screenshot mode only, fail synthetic episode writes to check visible errors and rollback; otherwise these writes update the in-memory browser |
@@ -147,7 +144,7 @@ marketing/app-store-screenshots/
 ├── frames/             # <device>.svg sources + pre-rasterized <device>.png (iphone-16, ipad-13)
 ├── headlines/<device>/ # original headline/background plates, with headline metadata
 ├── pd-posters/         # verified public-domain poster JPEGs (<key>.jpg)
-├── raw/<device>/       # per-device captures (01-lists, 02-upnext, 03-explore)
+├── raw/<device>/       # per-device captures (01-lists … 06-movie-detail)
 ├── output/<device>/    # composited App Store PNGs
 └── .capture-runs/      # DerivedData build output (gitignored)
 ```
@@ -159,13 +156,16 @@ marketing/app-store-screenshots/
 1. `01-lists` — the categorized watchlist (Movies / TV / Anime; anime shows here but
    its shelf is hidden on Explore)
 2. `02-upnext` — Up Next, the "what to watch next" queue
-3. `03-explore` — trending discovery
-4. `04-grid` — the Movies poster-wall grid (`movies-grid` sub-screen)
-5. `05-movie-detail` — a rich movie detail view (`movie-detail` sub-screen): hero
+3. `03-explore` — the top of Explore: the Trending Today hero and genre tiles
+4. `04-explore-top10` — Explore scrolled to Top 10 Movies, with the Collections grid
+   below (`explore-top10` sub-screen)
+5. `05-grid` — the Movies poster-wall grid (`movies-grid` sub-screen)
+6. `06-movie-detail` — a rich movie detail view (`movie-detail` sub-screen): hero
    banner, poster, metadata, synopsis, rating, and a "Users Also Watched" row
 
 Sub-screens (grids, detail) are reached tap-free via `SIMALYTICS_SCREENSHOT_SCREEN`,
-routed in `ContentView.listsTab` — no XCUITest target needed.
+routed in `ContentView.listsTab` (Explore's `explore-top10` scrolls to its section
+via `ScreenshotMode.exploreSection`) — no XCUITest target needed.
 
 ## Adding a slide
 

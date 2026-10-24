@@ -43,7 +43,7 @@ if [[ ! "$SDK_MAJOR" =~ ^[0-9]+$ ]] || (( SDK_MAJOR < 26 )); then
 fi
 
 # Ordered capture plan: "<NN-name>:<tab>[:<screen>]" where <tab> is a
-# SIMALYTICS_SCREENSHOT_TAB value (lists | upnext | explore | settings), the
+# SIMALYTICS_SCREENSHOT_TAB value (lists | upnext | explore | search | settings), the
 # optional <screen> is a SIMALYTICS_SCREENSHOT_SCREEN sub-screen (e.g.
 # movies-grid), and <NN-name> is the raw filename (must match a `screen` in
 # generate.py's SLIDES).
@@ -51,8 +51,9 @@ SCREENS=(
   "01-lists:lists"
   "02-upnext:upnext"
   "03-explore:explore"
-  "04-grid:lists:movies-grid"
-  "05-movie-detail:lists:movie-detail"
+  "04-explore-top10:explore:explore-top10"
+  "05-grid:lists:movies-grid"
+  "06-movie-detail:lists:movie-detail"
 )
 
 if [[ ! -d "$POSTER_DIR" ]]; then
