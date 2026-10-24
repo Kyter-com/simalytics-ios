@@ -61,6 +61,8 @@ fixtures with `seed-fixtures.py`. The screenshot hooks never affect Release buil
 
 ASC plus git plus Changesets are the release source of truth.
 
+For the step-by-step release (single push, ASC staging, swapping a build in review), follow `.agents/skills/simalytics-release/SKILL.md`.
+
 - Use `npm run changeset` for user-facing changes.
 - Use `npm run version` to snapshot `docs/next-release-notes.md`, consume changesets into `CHANGELOG.md`, and sync Xcode `MARKETING_VERSION`.
 - Use `ASC_OP_ITEM=<1password-item-id-or-name> npm run release:next-build -- --apply` to get the next build number from ASC and sync Xcode `CURRENT_PROJECT_VERSION`.
