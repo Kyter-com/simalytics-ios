@@ -194,13 +194,10 @@ private func runSyncLatestActivities(
         token, activity, ctx, forceRefresh: refreshUpNext)
     }
 
-    // Trending (CDN) and stale-data refresh (per-id detail endpoints) also
-    // write to SDLastSync, so they're sequenced here for the same
-    // last-write-wins reason. Their internal network work parallelizes
-    // independently — only the final SDLastSync writes need ordering.
-    try await SyncFailureScope.step {
-      await syncLatestTrending(accessToken, makeSyncContext(modelContainer))
-    }
+    // Stale-data refresh (per-id detail endpoints) also writes to SDLastSync,
+    // so it's sequenced here for the same last-write-wins reason. Its internal
+    // network work parallelizes independently — only the final SDLastSync
+    // write needs ordering. Explore's trending data lives in DiscoverStore.
     try await SyncFailureScope.step {
       await refreshStaleData(accessToken, makeSyncContext(modelContainer))
     }
@@ -1624,97 +1621,6 @@ private func fetchShowReleaseDateWithRetry(_ simklID: Int) async -> String? {
 
   return nil
 }
-
-// Trending CDN returns release_date as "MM/DD/YYYY" — year is the last component.
-// Defensive parse handles unusual formats by returning nil if no sensible year is found.
-func yearFromTrendingReleaseDate(_ raw: String?) -> Int? {
-  guard let raw, !raw.isEmpty else { return nil }
-  let separator: Character = raw.contains("/") ? "/" : "-"
-  let parts = raw.split(separator: separator)
-  // Try the last component first (MM/DD/YYYY), then the first (YYYY-MM-DD).
-  for candidate in [parts.last, parts.first].compactMap({ $0 }) {
-    if let year = Int(candidate), year > 1800, year < 2200 {
-      return year
-    }
-  }
-  return nil
-}
-
-func syncLatestTrending(_ accessToken: String, _ context: ModelContext) async {
-  do {
-    var syncRecord = try context.fetch(FetchDescriptor<V1.SDLastSync>(predicate: #Predicate { $0.id == 1 })).first
-    if syncRecord == nil {
-      syncRecord = V1.SDLastSync(id: 1)
-      context.insert(syncRecord!)
-    }
-
-    let now = Date()
-    let twentyFourHoursInSeconds: TimeInterval = 24 * 60 * 60
-    let twentyFourHoursAgo = now.addingTimeInterval(-twentyFourHoursInSeconds)
-    var needsSync = false
-    if let lastSyncDate = syncRecord!.trending_data {
-      if lastSyncDate < twentyFourHoursAgo.ISO8601Format() {
-        needsSync = true
-      }
-    } else {
-      needsSync = true
-    }
-    if !needsSync { return }
-
-    let movies = try await getTrendingMovies()
-    let shows = try await getTrendingShows()
-    let animes = try await getTrendingAnimes()
-
-    let oldMovies = try context.fetch(FetchDescriptor<V1.TrendingMovies>())
-    oldMovies.forEach { context.delete($0) }
-    for (index, movieItem) in movies.enumerated() {
-      context.insert(
-        V1.TrendingMovies(
-          simkl: movieItem.ids.simkl_id,
-          title: movieItem.title,
-          poster: movieItem.poster,
-          order: index + 1,
-          year: yearFromTrendingReleaseDate(movieItem.release_date)
-        )
-      )
-    }
-
-    let oldShows = try context.fetch(FetchDescriptor<V1.TrendingShows>())
-    oldShows.forEach { context.delete($0) }
-    for (index, showItem) in shows.enumerated() {
-      context.insert(
-        V1.TrendingShows(
-          simkl: showItem.ids.simkl_id,
-          title: showItem.title,
-          poster: showItem.poster,
-          order: index + 1,
-          year: yearFromTrendingReleaseDate(showItem.release_date)
-        )
-      )
-    }
-
-    let oldAnimes = try context.fetch(FetchDescriptor<V1.TrendingAnimes>())
-    oldAnimes.forEach { context.delete($0) }
-    for (index, animeItem) in animes.enumerated() {
-      context.insert(
-        V1.TrendingAnimes(
-          simkl: animeItem.ids.simkl_id,
-          title: animeItem.title,
-          poster: animeItem.poster,
-          order: index + 1,
-          year: yearFromTrendingReleaseDate(animeItem.release_date)
-        )
-      )
-    }
-
-    syncRecord!.trending_data = now.ISO8601Format()
-    try await saveSyncContext(context)
-  } catch {
-    context.rollback()
-    await SyncFailureScope.report(error)
-  }
-}
-
 
 // TODO: Widgets with next episode and show progress
 // TODO: Sync calendar data for "new" and notifications

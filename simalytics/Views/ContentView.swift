@@ -15,9 +15,9 @@ struct ContentView: View {
   @State private var storageFailure: StorageFailure?
   @State private var showStorageFailure = false
   @State private var selectedTab: AppTab = ContentView.initialTab
-  @State private var exploreSearchFocusTrigger = 0
-  @State private var exploreSearchText = ""
-  @State private var exploreSearchCategory: SearchCategory = .all
+  @State private var searchFocusTrigger = 0
+  @State private var searchText = ""
+  @State private var searchCategory: SearchCategory = .all
   @AppStorage("hideAnime") private var hideAnime = false
 
   /// Read the saved launch preference once so changing it in Settings does not
@@ -64,8 +64,8 @@ struct ContentView: View {
     Binding {
       selectedTab
     } set: { newTab in
-      if selectedTab == .explore && newTab == .explore {
-        exploreSearchFocusTrigger += 1
+      if selectedTab == .search && newTab == .search {
+        searchFocusTrigger += 1
       }
       selectedTab = newTab
     }
@@ -81,7 +81,10 @@ struct ContentView: View {
     }
     .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
     .onChange(of: hideAnime) {
-      if hideAnime && exploreSearchCategory == .anime { exploreSearchCategory = .all }
+      if hideAnime && searchCategory == .anime { searchCategory = .all }
+    }
+    .onChange(of: auth.simklAccessToken) {
+      DiscoverLibrary.shared.accountChanged()
     }
     .onReceive(NotificationCenter.default.publisher(for: .syncStorageFailed)) { notification in
       guard let failure = notification.object as? StorageFailure else { return }
@@ -107,17 +110,23 @@ struct ContentView: View {
   @available(iOS 26, *)
   private var modernTabs: some View {
     TabView(selection: $selectedTab) {
-      Tab("Lists", systemImage: "list.bullet.indent", value: AppTab.lists) {
+      Tab(AppTab.lists.title, systemImage: AppTab.lists.symbol, value: AppTab.lists) {
         listsTab
       }
-      Tab("Up Next", systemImage: "play.tv", value: AppTab.upNext) {
+      Tab(AppTab.upNext.title, systemImage: AppTab.upNext.symbol, value: AppTab.upNext) {
         UpNextView()
       }
-      Tab("Settings", systemImage: "gearshape", value: AppTab.settings) {
+      Tab(AppTab.explore.title, systemImage: AppTab.explore.symbol, value: AppTab.explore) {
+        ExploreView()
+      }
+      Tab(AppTab.settings.title, systemImage: AppTab.settings.symbol, value: AppTab.settings) {
         SettingsView()
       }
-      Tab("Explore", systemImage: "magnifyingglass", value: AppTab.explore, role: .search) {
-        ExploreView(searchText: $exploreSearchText, searchCategory: $exploreSearchCategory)
+      // Only Search raises the keyboard; Explore is for browsing.
+      Tab(
+        AppTab.search.title, systemImage: AppTab.search.symbol, value: AppTab.search, role: .search
+      ) {
+        SearchView(searchText: $searchText, searchCategory: $searchCategory)
       }
     }
     .tabViewSearchActivation(.searchTabSelection)
@@ -127,25 +136,30 @@ struct ContentView: View {
     TabView(selection: tabSelection) {
       listsTab
         .tabItem {
-          Label("Lists", systemImage: "list.bullet.indent")
+          Label(AppTab.lists.title, systemImage: AppTab.lists.symbol)
         }
         .tag(AppTab.lists)
-      ExploreView(
-        searchFocusTrigger: exploreSearchFocusTrigger,
-        searchText: $exploreSearchText, searchCategory: $exploreSearchCategory
-      )
-      .tabItem {
-        Label("Explore", systemImage: "magnifyingglass")
-      }
-      .tag(AppTab.explore)
       UpNextView()
         .tabItem {
-          Label("Up Next", systemImage: "play.tv")
+          Label(AppTab.upNext.title, systemImage: AppTab.upNext.symbol)
         }
         .tag(AppTab.upNext)
+      ExploreView()
+        .tabItem {
+          Label(AppTab.explore.title, systemImage: AppTab.explore.symbol)
+        }
+        .tag(AppTab.explore)
+      SearchView(
+        searchFocusTrigger: searchFocusTrigger,
+        searchText: $searchText, searchCategory: $searchCategory
+      )
+      .tabItem {
+        Label(AppTab.search.title, systemImage: AppTab.search.symbol)
+      }
+      .tag(AppTab.search)
       SettingsView()
         .tabItem {
-          Label("Settings", systemImage: "gearshape")
+          Label(AppTab.settings.title, systemImage: AppTab.settings.symbol)
         }
         .tag(AppTab.settings)
     }

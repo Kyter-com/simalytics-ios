@@ -117,7 +117,8 @@ func decodeSimklWatchedResponse<T: Decodable & Sendable>(
 func simklWatchedBatch<T: Decodable & Sendable>(
   simklIDs: [Int],
   type: String,
-  accessToken: String
+  accessToken: String,
+  session: URLSession = .shared
 ) async -> SimklWatchedBatch<T> {
   guard !simklIDs.isEmpty else {
     return SimklWatchedBatch(items: [], hadFailures: false, terminalRejectionCount: 0)
@@ -141,7 +142,7 @@ func simklWatchedBatch<T: Decodable & Sendable>(
       let body: [[String: Any]] = chunk.map { ["ids": ["simkl": $0], "type": type] }
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-      let (data, response) = try await URLSession.shared.simklData(for: request)
+      let (data, response) = try await session.simklData(for: request)
       if let status = (response as? HTTPURLResponse)?.statusCode, status != 200 {
         if shouldReportWatchedLookupStatus(status) {
           reportError(

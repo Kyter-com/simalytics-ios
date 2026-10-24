@@ -18,8 +18,6 @@
       for movie in movies() { context.insert(movie) }
       for show in shows() { context.insert(show) }
       for anime in animes() { context.insert(anime) }
-      for trending in trendingMovies() { context.insert(trending) }
-      for trending in trendingShows() { context.insert(trending) }
       try? context.save()
     }
 
@@ -136,40 +134,6 @@
         user_rated_at: rating != nil ? iso(added) : nil, user_rating: rating,
         status: status, watched_episodes_count: watchedEps, total_episodes_count: totalEps,
         anime_type: "movie", poster: poster, year: year, title: title)
-    }
-
-    // MARK: Trending (Explore)
-
-    private static func trendingMovies() -> [V1.TrendingMovies] {
-      [
-        V1.TrendingMovies(simkl: 910001, title: "The Lost World", poster: "the-lost-world-1925", order: 1, year: 1925),
-        V1.TrendingMovies(simkl: 910002, title: "The Gorilla", poster: "the-gorilla-1927", order: 2, year: 1927),
-        V1.TrendingMovies(simkl: 910003, title: "Don Q, Son of Zorro", poster: "don-q-son-of-zorro-1925", order: 3, year: 1925),
-        V1.TrendingMovies(simkl: 910004, title: "Robin Hood", poster: "robin-hood-1922", order: 4, year: 1922),
-        V1.TrendingMovies(simkl: 910005, title: "Ben-Hur: A Tale of the Christ", poster: "ben-hur-1925", order: 5, year: 1925),
-        V1.TrendingMovies(simkl: 910006, title: "The Black Pirate", poster: "the-black-pirate-1926", order: 6, year: 1926),
-        V1.TrendingMovies(simkl: 910007, title: "7th Heaven", poster: "7th-heaven-1927", order: 7, year: 1927),
-        V1.TrendingMovies(simkl: 910008, title: "The Gold Rush", poster: "the-gold-rush-1925", order: 8, year: 1925),
-        V1.TrendingMovies(simkl: 910009, title: "The General", poster: "the-general-1926", order: 9, year: 1926),
-        V1.TrendingMovies(simkl: 910010, title: "His Girl Friday", poster: "his-girl-friday-1940", order: 10, year: 1940),
-        V1.TrendingMovies(simkl: 910011, title: "Meet John Doe", poster: "meet-john-doe-1941", order: 11, year: 1941),
-        V1.TrendingMovies(simkl: 910012, title: "A Star Is Born", poster: "a-star-is-born-1937", order: 12, year: 1937),
-      ]
-    }
-
-    private static func trendingShows() -> [V1.TrendingShows] {
-      [
-        V1.TrendingShows(simkl: 920001, title: "The Cisco Kid", poster: "in-old-arizona-1929", order: 1, year: 1950),
-        V1.TrendingShows(simkl: 920002, title: "The Lone Ranger", poster: "the-lone-ranger-1938-serial", order: 2, year: 1949),
-        V1.TrendingShows(simkl: 920003, title: "Hopalong Cassidy", poster: "hopalong-cassidy-1936", order: 3, year: 1949),
-        V1.TrendingShows(simkl: 920004, title: "Sherlock Holmes", poster: "sherlock-holmes-1922", order: 4, year: 1954),
-        V1.TrendingShows(simkl: 920005, title: "Dragnet", poster: "dragnet-1951", order: 5, year: 1951),
-        V1.TrendingShows(simkl: 920006, title: "The Beverly Hillbillies", poster: "the-beverly-hillbillies-1962", order: 6, year: 1962),
-        V1.TrendingShows(simkl: 920007, title: "Alcoa Presents: One Step Beyond", poster: "alcoa-presents-one-step-beyond-1959", order: 7, year: 1959),
-        V1.TrendingShows(simkl: 920008, title: "The Red Skelton Show", poster: "the-red-skelton-show-1951", order: 8, year: 1951),
-        V1.TrendingShows(simkl: 920009, title: "You Bet Your Life", poster: "you-bet-your-life-1950", order: 9, year: 1950),
-        V1.TrendingShows(simkl: 920010, title: "The George Burns and Gracie Allen Show", poster: "the-george-burns-and-gracie-allen-show-1950", order: 10, year: 1950),
-      ]
     }
   }
 #endif

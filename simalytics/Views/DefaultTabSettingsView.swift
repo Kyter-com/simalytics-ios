@@ -8,7 +8,7 @@ struct DefaultTabSettingsView: View {
     Form {
       Section {
         Picker("Default Tab", selection: $defaultTab) {
-          ForEach(AppTab.allCases) { tab in
+          ForEach(AppTab.launchOptions) { tab in
             HStack(spacing: 14) {
               if !dynamicTypeSize.isAccessibilitySize {
                 Image(systemName: tab.symbol)
@@ -42,5 +42,9 @@ struct DefaultTabSettingsView: View {
     .navigationTitle("Default Tab")
     .navigationBarTitleDisplayMode(.inline)
     .sensoryFeedback(.selection, trigger: defaultTab)
+    .onAppear {
+      // A value the picker doesn't offer (such as Search) would show no selection.
+      if !AppTab.launchOptions.contains(defaultTab) { defaultTab = AppTab.defaultLaunchTab }
+    }
   }
 }

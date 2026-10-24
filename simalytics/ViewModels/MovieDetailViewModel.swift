@@ -115,7 +115,7 @@ extension MovieWatchlistButton {
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        try await performSimklMutationRequest(request)
+        _ = try await performSimklRequest(request, session: session)
       }
       return nil
     } catch {

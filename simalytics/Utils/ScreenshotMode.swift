@@ -13,14 +13,15 @@
 //  set by capture.sh:
 //
 //    SIMALYTICS_SCREENSHOTS=1                 enable screenshot fixture mode
-//    SIMALYTICS_SCREENSHOT_TAB=<tab>          initial tab (lists|explore|upnext|settings)
+//    SIMALYTICS_SCREENSHOT_TAB=<tab>          initial tab (lists|upnext|explore|search|settings)
 //    SIMALYTICS_SCREENSHOT_POSTER_DIR=<path>  host dir of public-domain poster JPEGs
 //
 //  In screenshot mode:
 //    - Auth is given a non-empty sentinel token so the Explore/Up Next gates open
 //      (no real token, nothing is persisted to the keychain).
 //    - The ModelContainer is in-memory and pre-seeded with public-domain fixtures
-//      (see ScreenshotSeedData), so Lists/Up Next/Explore render real UI.
+//      (see ScreenshotSeedData), so Lists/Up Next render real UI; Explore's
+//      DiscoverStore serves ScreenshotDiscoverFixtures instead of Simkl's files.
 //    - `syncLatestActivities` is a no-op (see Sync.swift), so no network call can
 //      overwrite the fixtures.
 //    - Poster image requests are intercepted and served from local PD JPEGs.
@@ -29,6 +30,7 @@
   import Foundation
   import Kingfisher
   import SwiftData
+  import UIKit
 
   enum ScreenshotMode {
     /// True when capture.sh launched us in screenshot fixture mode.
@@ -50,6 +52,14 @@
     /// "movies-grid" opens the Movies "Completed" list forced to grid layout.
     static var screen: String? {
       ProcessInfo.processInfo.environment["SIMALYTICS_SCREENSHOT_SCREEN"]
+    }
+
+    /// The Explore section to scroll to, for slides past the top of the page:
+    /// "explore-top10" lands on Top 10 Movies with Collections below it. The
+    /// taller iPad starts a row higher, so both Top 10s fit.
+    @MainActor static var exploreSection: String? {
+      guard screen == "explore-top10" else { return nil }
+      return UIDevice.current.userInterfaceIdiom == .pad ? "trending-tv" : "trending-movies"
     }
 
     /// Check longer status labels without sending a watchlist mutation.
@@ -75,6 +85,10 @@
       guard isActive else { return }
       UserDefaults.standard.set(ListLayout.grid.rawValue, forKey: "movieListLayout")
       UserDefaults.standard.set(ListLayout.grid.rawValue, forKey: "tvListLayout")
+      // Explore remembers its filter and hide switch, and reinstalls keep
+      // them; capture everything from All.
+      UserDefaults.standard.set(ExploreFilter.all.rawValue, forKey: "exploreFilter")
+      UserDefaults.standard.set(false, forKey: "exploreHidesLibrary")
       // Anime visibility is per-capture (SIMALYTICS_SCREENSHOT_HIDE_ANIME=1): the
       // Lists slide shows the Anime section, but the Explore slide hides the Trending
       // Anime shelf (its posters are early B&W and would clash with the color shelves).

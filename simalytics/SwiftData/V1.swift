@@ -408,6 +408,8 @@ enum V1: VersionedSchema {
     }
   }
 
+  // The Trending* models and `trending_data` are no longer written; Explore
+  // reads DiscoverStore's file cache. They stay so the V1 schema is unchanged.
   @Model
   class TrendingMovies {
     @Attribute(.unique) var simkl: Int
