@@ -24,10 +24,30 @@ struct AnimeDetailView: View {
   @State private var showingMemoSheet = false
   @State private var memoText: String = ""
   @State private var privacySelection: String = "Public"
+  @State private var followsRewatch = true
+  @AppStorage(RewatchStore.preferenceKey) private var trackRewatches = false
+  private let rewatches = RewatchStore.shared
   var simkl_id: Int
 
   // MARK: - Sheets
   @State private var showingJustWatchSheet = false
+
+  /// The rewatch the episode list shows and edits, instead of the first watch.
+  private var listedRewatch: RewatchSession? {
+    guard trackRewatches, followsRewatch, rewatches.isPlanEligible else { return nil }
+    return rewatches.activeSession(simkl: simkl_id, kind: .anime)
+  }
+
+  private var listedSeasons: [WatchlistSeason]? {
+    listedRewatch?.watchlistSeasons ?? animeWatchlist?.seasons
+  }
+
+  /// A sync or a switch between the rewatch and the first watch changes which
+  /// episodes are checked; an episode update in flight reconciles on its own.
+  private func refreshEpisodeChecks() {
+    guard let episodeBrowser, episodeBrowser.updatingID == nil else { return }
+    episodeBrowser.updateWatched(seasons: listedSeasons)
+  }
 
   private func loadEpisodes() async {
     guard !isLoadingEpisodes else { return }
@@ -39,7 +59,7 @@ struct AnimeDetailView: View {
       try Task.checkCancellation()
       let browser = EpisodeBrowserModel(
         episodes: episodes.map { EpisodeListItem(anime: $0) },
-        seasons: animeWatchlist?.seasons, isAnime: true)
+        seasons: listedSeasons, isAnime: true)
       if let selected = episodeBrowser?.selectedGroup,
         browser.groups.contains(where: { $0.id == selected })
       {
@@ -57,7 +77,9 @@ struct AnimeDetailView: View {
   var body: some View {
     // Attached outside the loading switch so it keeps running after the page
     // appears; episodes and cast then fill in below the title.
-    content.task(id: simkl_id) { await load() }
+    content
+      .task(id: simkl_id) { await load() }
+      .onChange(of: listedRewatch) { refreshEpisodeChecks() }
   }
 
   private func load() async {
@@ -151,6 +173,13 @@ struct AnimeDetailView: View {
             addMemo: { showingMemoSheet = true },
             whereToWatch: { showingJustWatchSheet = true })
 
+          RewatchCard(
+            simkl: simkl_id, kind: .anime, title: animeDetails?.title,
+            poster: animeDetails?.poster, animeType: animeDetails?.anime_type,
+            status: watchlistStatus, totalEpisodes: animeDetails?.total_episodes,
+            followsRewatch: $followsRewatch,
+            isEpisodeListBusy: episodeBrowser?.updatingID != nil)
+
           EpisodeLoadStatus(
             isLoading: isLoadingEpisodes, errorMessage: episodeLoadError,
             retry: { await loadEpisodes() })
@@ -158,7 +187,7 @@ struct AnimeDetailView: View {
           if let episodeBrowser, !episodeBrowser.groups.isEmpty {
             MediaEpisodeSection(
               model: episodeBrowser, scrollProxy: scrollProxy,
-              canEdit: !auth.simklAccessToken.isEmpty,
+              canEdit: !auth.simklAccessToken.isEmpty, isRewatch: listedRewatch != nil,
               mutation: mutateEpisode, commit: commitEpisode, reconcile: reconcileEpisodes
             )
             .padding(.top)
@@ -197,6 +226,15 @@ struct AnimeDetailView: View {
     #if DEBUG
       if ScreenshotMode.isActive { return ScreenshotEpisodeFixtures.mutationResult }
     #endif
+    if let rewatch = listedRewatch {
+      let key = RewatchEpisode(season: season, episode: number)
+      if watched {
+        return await RewatchMutation.markEpisodeWatched(auth.simklAccessToken, rewatch, key)
+      }
+      let removal = await RewatchMutation.markEpisodeUnwatched(auth.simklAccessToken, rewatch, key)
+      if removal.sessionEnded { rewatches.removeSession(id: rewatch.id) }
+      return removal.result
+    }
     if watched {
       return await AnimeDetailView.markEpisodeWatched(
         auth.simklAccessToken, animeDetails?.title ?? "", simkl_id, season, number)
@@ -207,7 +245,11 @@ struct AnimeDetailView: View {
 
   private func commitEpisode(_ episode: EpisodeListItem, watched: Bool) {
     invalidateUpNextCache(modelContainer: modelContext.container)
-    if watched, let season = episode.watchSeason, let number = episode.number {
+    guard let season = episode.watchSeason, let number = episode.number else { return }
+    if let rewatch = listedRewatch {
+      rewatches.record(
+        RewatchEpisode(season: season, episode: number), watched: watched, sessionID: rewatch.id)
+    } else if watched {
       optimisticallyClearNextToWatch(
         simklId: simkl_id, season: season, episode: number, kind: .anime,
         modelContainer: modelContext.container)
@@ -224,6 +266,8 @@ struct AnimeDetailView: View {
     // Library and Up Next catch up in the background; the episode list only
     // needs this title's watched episodes, so it unlocks after that request.
     Task { await syncLatestActivities(token, modelContainer: container, forceRefresh: true) }
+    // A rewatch's local copy already holds the change; the sync confirms it.
+    if let rewatch = listedRewatch { return rewatch.watchlistSeasons }
     guard let refreshed = await AnimeDetailView.getAnimeWatchlist(simkl_id, token),
       !Task.isCancelled
     else { return nil }

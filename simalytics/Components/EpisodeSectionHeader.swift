@@ -5,6 +5,8 @@ struct EpisodeSectionHeader: View {
   @Binding var selection: Int
   let watched: Int
   let total: Int
+  /// "rewatched" while the list follows a rewatch.
+  var progressVerb = "watched"
   let canJump: Bool
   let jump: () -> Void
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -42,7 +44,7 @@ struct EpisodeSectionHeader: View {
         .accessibilityIdentifier("episode-group-picker")
       }
       layout {
-        Text("\(watched) of \(total) watched")
+        Text("\(watched) of \(total) \(progressVerb)")
           .font(.subheadline)
           .foregroundStyle(.secondary)
           .fixedSize(horizontal: false, vertical: true)

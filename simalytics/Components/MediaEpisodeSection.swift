@@ -4,6 +4,8 @@ struct MediaEpisodeSection: View {
   @Bindable var model: EpisodeBrowserModel
   let scrollProxy: ScrollViewProxy
   let canEdit: Bool
+  /// The checkmarks belong to a rewatch session rather than the first watch.
+  var isRewatch = false
   let mutation: (EpisodeListItem, Bool) async -> SimklMutationResult
   let commit: (EpisodeListItem, Bool) -> Void
   let reconcile: () async -> [WatchlistSeason]?
@@ -31,6 +33,7 @@ struct MediaEpisodeSection: View {
         EpisodeSectionHeader(
           groups: model.groups, selection: $model.selectedGroup,
           watched: model.watchedCount, total: model.currentGroup?.episodes.count ?? 0,
+          progressVerb: isRewatch ? "rewatched" : "watched",
           canJump: model.nextUnwatched != nil, jump: jumpToNext
         )
         .id(EpisodeScrollTarget.header)
