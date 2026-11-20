@@ -44,9 +44,9 @@ struct ShowHeaderInfo: View {
         .foregroundStyle(.secondary)
       }
     }
-    let watched = showWatchlist?.episodes_watched ?? 0
-    let total = showDetails?.total_episodes ?? 0
-    let percentage = total > 0 ? Int((Double(watched) / Double(total)) * 100) : 0
+    let percentage = watchedPercentage(
+      seasons: showWatchlist?.seasons, episodesWatched: showWatchlist?.episodes_watched,
+      total: showDetails?.total_episodes)
     LabeledContent {
       Text("\(percentage)%")
         .fontDesign(.monospaced)
