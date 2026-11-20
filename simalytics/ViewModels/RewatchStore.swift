@@ -51,6 +51,9 @@ final class RewatchStore {
   }
 
   private(set) var state: State
+  /// Titles whose rewatch SIMKL just marked complete, so their page can say
+  /// so. In memory only: the next launch shows the plain Start button.
+  private(set) var completedTitles: Set<Int> = []
   @ObservationIgnored private let fileURL: URL?
   @ObservationIgnored private let defaults: UserDefaults
 
@@ -106,7 +109,8 @@ final class RewatchStore {
   /// The account is checked here, on the main actor, so a sign-out that lands
   /// while a pull is in flight can't be undone by its result.
   func apply(_ pull: RewatchPull, kind: RewatchKind, base: [RewatchSession], accessToken: String) {
-    guard SyncAccount.isActive(accessToken) else { return }
+    // Switching tracking off mid-pull also drops what the pull brought back.
+    guard SyncAccount.isActive(accessToken), isTrackingEnabled else { return }
     let current = state.sessions.filter { $0.kind == kind }
     let sessions = RewatchSession.reconciled(pulled: pull.sessions, base: base, current: current)
     let counts = RewatchSession.reconciledCounts(
@@ -132,8 +136,38 @@ final class RewatchStore {
     save()
   }
 
+  /// Resolves the session's next episode from a catalog the caller already
+  /// has, such as the detail page's episode list, instead of waiting for sync.
+  func resolveNext(sessionID: Int, catalog: [RewatchCatalogEpisode], at date: Date = Date()) {
+    guard !catalog.isEmpty,
+      let index = state.sessions.firstIndex(where: { $0.id == sessionID })
+    else { return }
+    state.sessions[index].next = RewatchSession.nextEpisode(
+      after: state.sessions[index].episodes, in: catalog)
+    state.sessions[index].nextResolvedAt = date
+    save()
+  }
+
+  /// SIMKL completes a rewatch once it covers every aired episode. The session
+  /// leaves the active list, and its page says the rewatch is done.
+  func complete(sessionID: Int) {
+    guard let session = state.sessions.first(where: { $0.id == sessionID }) else { return }
+    completedTitles.insert(session.simkl)
+    removeSession(id: sessionID)
+  }
+
+  func isRecentlyCompleted(simkl: Int) -> Bool { completedTitles.contains(simkl) }
+
+  /// Reads the type in full on the next sync, such as after Start returned a
+  /// session that already existed, whose episodes no delta will repeat.
+  func requestFullPull(_ kind: RewatchKind) {
+    if kind == .tv { state.tv.baselineAt = nil } else { state.anime.baselineAt = nil }
+    save()
+  }
+
   /// A session the user just started, counted toward the title's cap.
   func insert(_ session: RewatchSession) {
+    completedTitles.remove(session.simkl)
     state.sessions.removeAll { $0.simkl == session.simkl && $0.kind == session.kind }
     state.sessions.append(session)
     state.sessions.sort { $0.id < $1.id }
@@ -156,6 +190,7 @@ final class RewatchStore {
 
   /// Turning the switch off keeps the plan, so turning it back on is instant.
   func clearSessions() {
+    completedTitles = []
     state.sessions = []
     state.tv = Cursor()
     state.anime = Cursor()
@@ -164,9 +199,13 @@ final class RewatchStore {
     save()
   }
 
-  /// Signing out forgets the account's plan and sessions.
+  /// Signing out forgets the account's plan and sessions, and turns the switch
+  /// off: SIMKL asks for rewatch tracking to be each user's own choice, so the
+  /// next account on this device opts in for itself.
   func reset() {
     state = State()
+    completedTitles = []
+    disableTracking()
     if let fileURL { try? FileManager.default.removeItem(at: fileURL) }
   }
 

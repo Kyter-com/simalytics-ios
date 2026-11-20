@@ -36,7 +36,7 @@ struct RewatchSessionTests {
   @Test("Active sessions come from rewatch rows; canonical rows are skipped")
   func parsesActiveSessions() throws {
     let response = try RewatchSession.response(from: Self.rows(Self.gotRows), kind: .tv)
-    #expect(response.sessionCounts == [17465: 1, 100: 1])
+    #expect(response.endedIDs == [500])
     let session = try #require(response.sessions.first)
     #expect(response.sessions.count == 1)
     #expect(session.id == 7482)
@@ -55,24 +55,59 @@ struct RewatchSessionTests {
       {"shows":[{"status":"completed","show":{"title":"Lost","ids":{"simkl":7}}}]}
       """
     let response = try RewatchSession.response(from: Self.rows(json), kind: .tv)
-    #expect(response == RewatchResponse(sessions: [], sessionCounts: [:]))
+    #expect(response == RewatchResponse(sessions: []))
   }
 
-  @Test("A title returned without sessions has none left, unless SIMKL skipped the flag")
-  func deletedSessionsDropOut() throws {
+  /// SIMKL's live deltas list only the rows that changed: a rated title can
+  /// come back without its sessions, and a deleted session never comes back.
+  @Test("A delta's canonical row leaves the title's sessions alone")
+  func canonicalRowsKeepSessions() throws {
+    let json = """
+      {"shows":[{"show":{"ids":{"simkl":10}},"is_rewatch":false,"user_rating":7}]}
+      """
+    let response = try RewatchSession.response(from: Self.rows(json), kind: .tv)
+    let cached = [RewatchSession(id: 1, simkl: 10, kind: .tv)]
+    #expect(RewatchSession.merged(cached: cached, with: response, isFullPull: false) == cached)
+  }
+
+  @Test("The membership list drops deleted sessions and counts every saved one")
+  func membershipPrunesAndCounts() throws {
     let json = """
       {"shows":[
         {"show":{"ids":{"simkl":10}},"is_rewatch":false},
-        {"show":{"ids":{"simkl":20}}}
+        {"show":{"ids":{"simkl":10}},"is_rewatch":true,"rewatch_id":3,"rewatch_status":"closed"},
+        {"show":{"ids":{"simkl":10}},"is_rewatch":true,"rewatch_id":4,"rewatch_status":"active"},
+        {"show":{"ids":{"simkl":20}},"is_rewatch":false},
+        {"show":{"ids":{"simkl":30}},"is_rewatch":true,"rewatch_id":9,"rewatch_status":"active"}
       ]}
       """
-    let response = try RewatchSession.response(from: Self.rows(json), kind: .tv)
-    #expect(response.sessionCounts == [10: 0])
+    let membership = try #require(try RewatchSession.membership(from: Self.rows(json)))
+    #expect(membership.activeIDs == [4, 9])
+    #expect(membership.counts == [10: 2, 30: 1])
+
     let cached = [
-      RewatchSession(id: 1, simkl: 10, kind: .tv),  // deleted on simkl.com
-      RewatchSession(id: 2, simkl: 20, kind: .tv),  // unknown: kept
+      RewatchSession(id: 2, simkl: 20, kind: .tv),  // deleted on simkl.com
+      RewatchSession(id: 4, simkl: 10, kind: .tv),  // still active
     ]
-    #expect(RewatchSession.merged(cached: cached, with: response, isFullPull: false).map(\.id) == [2])
+    let pruned = RewatchSession.pruned(cached, by: membership)
+    #expect(pruned.sessions.map(\.id) == [4])
+    #expect(pruned.missingIDs == [9])
+  }
+
+  @Test("Without SIMKL's rewatch flag, the membership list is unknown rather than empty")
+  func membershipNeedsTheFlag() throws {
+    let json = """
+      {"shows":[{"show":{"ids":{"simkl":10}}}]}
+      """
+    #expect(try RewatchSession.membership(from: Self.rows(json)) == nil)
+    #expect(
+      try RewatchSession.membership(from: []) == RewatchMembership(titles: [:], activeIDs: []))
+    let malformed = """
+      {"shows":[{"show":{"ids":{"simkl":10}},"is_rewatch":true,"rewatch_status":"active"}]}
+      """
+    #expect(throws: SimklMutationError.invalidResponse) {
+      try RewatchSession.membership(from: Self.rows(malformed))
+    }
   }
 
   @Test("A rewatch row without a session id fails the pull")
@@ -103,33 +138,38 @@ struct RewatchSessionTests {
   @Test("A full pull replaces cached sessions")
   func fullPullReplaces() {
     let cached = [RewatchSession(id: 1, simkl: 10, kind: .tv)]
-    let response = RewatchResponse(
-      sessions: [RewatchSession(id: 2, simkl: 20, kind: .tv)], sessionCounts: [20: 1])
+    let response = RewatchResponse(sessions: [RewatchSession(id: 2, simkl: 20, kind: .tv)])
     #expect(
       RewatchSession.merged(cached: cached, with: response, isFullPull: true).map(\.id) == [2])
   }
 
-  @Test("A delta replaces the sessions of each title it returns, and only those")
+  @Test("A delta updates session by session")
   func deltaMerge() {
     let cached = [
       RewatchSession(id: 1, simkl: 10, kind: .tv),  // not in the delta: kept
-      RewatchSession(id: 2, simkl: 20, kind: .tv),  // session completed: dropped
+      RewatchSession(id: 2, simkl: 20, kind: .tv),  // closed or completed: dropped
+      RewatchSession(id: 4, simkl: 40, kind: .tv),  // replaced by a newer active session
     ]
     let response = RewatchResponse(
-      sessions: [RewatchSession(id: 3, simkl: 30, kind: .tv)], sessionCounts: [20: 1, 30: 1])
+      sessions: [
+        RewatchSession(id: 3, simkl: 30, kind: .tv), RewatchSession(id: 5, simkl: 40, kind: .tv),
+      ],
+      endedIDs: [2])
     #expect(
-      RewatchSession.merged(cached: cached, with: response, isFullPull: false).map(\.id) == [1, 3])
+      RewatchSession.merged(cached: cached, with: response, isFullPull: false).map(\.id)
+        == [1, 3, 5])
   }
 
-  @Test("Session counts follow the same full and delta rules")
-  func countsMerge() {
-    let response = RewatchResponse(sessions: [], sessionCounts: [10: 3, 20: 0])
-    #expect(
-      RewatchSession.mergedCounts(
-        cached: [10: 1, 20: 2, 30: 4], with: response, isFullPull: false) == [10: 3, 30: 4])
-    #expect(
-      RewatchSession.mergedCounts(cached: [10: 1, 30: 4], with: response, isFullPull: true)
-        == [10: 3])
+  @Test("A logged next episode marks the row stale until it's resolved again")
+  func staleNextEpisode() {
+    var session = RewatchSession(
+      id: 1, simkl: 10, kind: .tv, episodes: Self.episodes(1, 1...4),
+      next: RewatchNextEpisode(season: 1, episode: 5, title: nil, date: nil),
+      nextResolvedAt: Date())
+    #expect(!session.isNextLogged)
+    session.record(RewatchEpisode(season: 1, episode: 5), watched: true)
+    #expect(session.isNextLogged)
+    #expect(session.nextResolvedAt == nil)
   }
 
   @Test("A rewatch started while a pull was in flight still counts toward the cap")
@@ -156,14 +196,12 @@ struct RewatchSessionTests {
     let advanced = RewatchSession(id: 1, simkl: 10, kind: .tv, episodes: Self.episodes(1, 1...5))
 
     let unchanged = RewatchSession.merged(
-      cached: [cached], with: RewatchResponse(sessions: [same], sessionCounts: [10: 1]),
-      isFullPull: false)
+      cached: [cached], with: RewatchResponse(sessions: [same]), isFullPull: false)
     #expect(unchanged.first?.next == next)
     #expect(unchanged.first?.nextResolvedAt == resolvedAt)
 
     let moved = RewatchSession.merged(
-      cached: [cached], with: RewatchResponse(sessions: [advanced], sessionCounts: [10: 1]),
-      isFullPull: false)
+      cached: [cached], with: RewatchResponse(sessions: [advanced]), isFullPull: false)
     #expect(moved.first?.nextResolvedAt == nil)
   }
 
@@ -267,6 +305,25 @@ struct RewatchSessionTests {
   }
 
   @MainActor
+  @Test("Up Next lists the most recently watched first, rewatches included")
+  func upNextOrder() {
+    func item(_ id: Int, _ title: String, _ lastWatched: String?) -> RewatchUpNextItem {
+      RewatchUpNextItem(
+        session: RewatchSession(
+          id: id, simkl: id, kind: .tv, title: title, lastWatchedAt: lastWatched))
+    }
+    let items: [any UpNextMedia] = [
+      item(1, "Older", "2026-11-01T10:00:00Z"),
+      item(2, "Undated", nil),
+      item(3, "Newest", "2026-11-20T22:00:00Z"),
+      item(4, "Also Older", "2026-11-01T10:00:00Z"),
+    ]
+    #expect(
+      items.sorted(by: isListedBeforeInUpNext).map(\.title)
+        == ["Newest", "Also Older", "Older", "Undated"])
+  }
+
+  @MainActor
   @Test("The episode list checks off exactly the session's episodes")
   func episodeListFollowsSession() {
     let items = (1...3).map {
@@ -341,5 +398,51 @@ struct RewatchStoreTests {
     #expect(store.isTrackingEnabled)
     store.disableTracking()
     #expect(!store.isTrackingEnabled)
+  }
+
+  @Test("Signing out turns tracking off, so the next account opts in for itself")
+  func signOutDisablesTracking() throws {
+    let defaults = try #require(UserDefaults(suiteName: "rewatch-\(UUID())"))
+    defaults.set(true, forKey: RewatchStore.preferenceKey)
+    let store = RewatchStore(fileURL: nil, defaults: defaults)
+    store.reset()
+    #expect(!store.isTrackingEnabled)
+  }
+
+  @Test("Logging resolves the next episode at once, and a finished rewatch leaves")
+  func nextEpisodeAndCompletion() throws {
+    let defaults = try #require(UserDefaults(suiteName: "rewatch-\(UUID())"))
+    let store = RewatchStore(fileURL: nil, defaults: defaults)
+    store.insert(RewatchSession(id: 1, simkl: 10, kind: .tv))
+    store.record(RewatchEpisode(season: 1, episode: 1), watched: true, sessionID: 1)
+    let resolvedAt = Date(timeIntervalSince1970: 5)
+    store.resolveNext(sessionID: 1, catalog: RewatchSessionTests.catalog, at: resolvedAt)
+    #expect(store.activeSession(simkl: 10, kind: .tv)?.next?.episode == 2)
+    #expect(store.activeSession(simkl: 10, kind: .tv)?.nextResolvedAt == resolvedAt)
+
+    store.complete(sessionID: 1)
+    #expect(store.activeSession(simkl: 10, kind: .tv) == nil)
+    #expect(store.isRecentlyCompleted(simkl: 10))
+    store.insert(RewatchSession(id: 2, simkl: 10, kind: .tv))
+    #expect(!store.isRecentlyCompleted(simkl: 10))
+  }
+
+  @Test("A reused session asks the next sync for a full read of its type")
+  func fullPullRequest() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: "rewatch-\(UUID())")
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let file = directory.appending(path: "state.json")
+    var state = RewatchStore.State()
+    state.tv = RewatchStore.Cursor(activity: "2026-11-20T10:00:00Z", baselineAt: Date())
+    state.anime = state.tv
+    try JSONEncoder().encode(state).write(to: file)
+    let defaults = try #require(UserDefaults(suiteName: "rewatch-\(UUID())"))
+
+    let store = RewatchStore(fileURL: file, defaults: defaults)
+    store.requestFullPull(.tv)
+    #expect(!store.hasCountedSessions(.tv))
+    #expect(store.hasCountedSessions(.anime))
+    #expect(RewatchStore(fileURL: file, defaults: defaults).state.tv.baselineAt == nil)
   }
 }

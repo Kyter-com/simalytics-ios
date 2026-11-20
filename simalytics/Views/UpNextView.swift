@@ -18,6 +18,8 @@ protocol UpNextMedia {
   var next_to_watch_info_season: Int? { get }
   var next_to_watch_info_episode: Int? { get }
   var type: String { get }
+  /// The most recent watch, which orders the list: what was watched last comes first.
+  var last_watched_at: String? { get }
   /// A title can be listed twice: its next episode and a rewatch.
   var upNextID: String { get }
   /// The session this row advances, for a rewatch.
@@ -46,8 +48,18 @@ struct RewatchUpNextItem: UpNextMedia {
   var next_to_watch_info_season: Int? { session.kind == .tv ? session.next?.season : nil }
   var next_to_watch_info_episode: Int? { session.next?.episode }
   var type: String { session.kind.rawValue }
+  var last_watched_at: String? { session.lastWatchedAt }
   var upNextID: String { "rewatch-\(session.id)" }
   var rewatch: RewatchSession? { session }
+}
+
+/// Up Next order: most recently watched first, so an active rewatch sits among
+/// the titles being watched instead of below all of them. Undated rows go last.
+func isListedBeforeInUpNext(_ lhs: any UpNextMedia, _ rhs: any UpNextMedia) -> Bool {
+  let left = lhs.last_watched_at.flatMap { SimklDateParser.date(from: $0) } ?? .distantPast
+  let right = rhs.last_watched_at.flatMap { SimklDateParser.date(from: $0) } ?? .distantPast
+  if left != right { return left > right }
+  return (lhs.title ?? "").localizedStandardCompare(rhs.title ?? "") == .orderedAscending
 }
 
 extension UpNextMedia {
@@ -136,10 +148,12 @@ struct UpNextView: View {
       if let session = mediaItem.rewatch {
         let episode = RewatchEpisode(
           season: episodeSelection.season, episode: episodeSelection.episode)
-        result = await RewatchMutation.markEpisodeWatched(
+        let logged = await RewatchMutation.markEpisodeWatched(
           auth.simklAccessToken, session, episode)
+        result = logged.result
         if result == .succeeded {
           rewatches.record(episode, watched: true, sessionID: session.id)
+          if logged.completed { rewatches.complete(sessionID: session.id) }
         }
       } else if isAnime {
         result = await AnimeDetailView.markEpisodeWatched(
@@ -202,18 +216,21 @@ struct UpNextView: View {
     }
   ) private var animes: [V1.SDAnimes]
 
-  /// Active rewatches, held to the same anime rules as the Watching rows.
+  /// Active rewatches, held to the same anime rules as the Watching rows. A
+  /// row whose episode was just logged stays only while its write is running;
+  /// it returns with the following episode once sync resolves it.
   private var rewatchItems: [any UpNextMedia] {
     guard trackRewatches, rewatches.isPlanEligible else { return [] }
     return rewatches.state.sessions
       .filter { $0.kind == .tv || (!hideAnime && $0.animeType == "tv") }
       .map(RewatchUpNextItem.init)
+      .filter { !$0.session.isNextLogged || updatingIDs.contains($0.upNextID) }
   }
 
   var filteredMedia: [any UpNextMedia] {
     var candidates: [any UpNextMedia] = hideAnime ? Array(shows) : shows + animes
     candidates += rewatchItems
-    let allMedia = candidates.filter { $0.isAvailableUpNext() }
+    let allMedia = candidates.filter { $0.isAvailableUpNext() }.sorted(by: isListedBeforeInUpNext)
     if searchText.isEmpty {
       return allMedia
     } else {
@@ -299,9 +316,14 @@ struct UpNextView: View {
                         .padding(.top, 8)
                     }
                     if mediaItem.rewatch != nil {
-                      Label("Rewatching", systemImage: "arrow.counterclockwise")
-                        .font(.caption)
-                        .foregroundStyle(.tint)
+                      // Not a Label: List rows give a Label's icon its own column.
+                      HStack(spacing: 4) {
+                        Image(systemName: "arrow.counterclockwise")
+                        Text("Rewatching")
+                      }
+                      .font(.caption)
+                      .foregroundStyle(.tint)
+                      .accessibilityElement(children: .combine)
                     }
                     if let title = mediaItem.next_to_watch_info_title {
                       Text(title)

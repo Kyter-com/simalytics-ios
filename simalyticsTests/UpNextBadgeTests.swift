@@ -22,6 +22,7 @@ struct UpNextBadgeTests {
     var next_to_watch_info_season: Int?
     var next_to_watch_info_episode: Int?
     var type: String = "tv"
+    var last_watched_at: String? = nil
   }
 
   @Test("Joins season and episode with spaced middle dot")

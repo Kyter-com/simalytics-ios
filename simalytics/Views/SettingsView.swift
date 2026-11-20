@@ -95,7 +95,11 @@ struct SettingsView: View {
     } catch {
       guard !isSimklCancellationError(error) else { return }
       reportError(error)
-      rewatchPlanError = "Couldn't check your Simkl plan. Check your connection and try again."
+      // Name Simkl's answer, such as an expired sign-in, instead of blaming the connection.
+      rewatchPlanError =
+        error is SimklMutationError
+        ? simklMutationUserMessage(for: error)
+        : "Couldn't check your Simkl plan. Check your connection and try again."
     }
   }
 

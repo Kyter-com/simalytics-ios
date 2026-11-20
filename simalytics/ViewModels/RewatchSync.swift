@@ -20,8 +20,9 @@ struct RewatchPull: Sendable {
 /// when `settings.all` moves. Sessions come from `/sync/all-items` with
 /// `extended=full` (without it, rewatch rows carry no episodes): one full pull,
 /// then `date_from` deltas whenever the type's `all` activity moves, as SIMKL
-/// asks. A delta returns each changed title with every session it still has,
-/// so a session deleted on simkl.com drops out without another full pull.
+/// asks. A delta lists only the session rows that changed and never a deleted
+/// one, so each pull also reads the type's `simkl_ids_only` list, which names
+/// every saved session; that drops deleted sessions and counts the rest.
 /// See https://api.simkl.org/guides/rewatches
 func syncRewatchSessions(
   _ accessToken: String,
@@ -38,7 +39,13 @@ func syncRewatchSessions(
   do {
     var state = await store.state
     let settingsActivity = activities.settings?.all
-    if state.accountType == nil
+    if state.accountType != nil, state.settingsActivity == nil, let settingsActivity {
+      // Settings read the plan when the switch went on; adopt this marker
+      // instead of reading the same plan again.
+      await store.updatePlan(
+        state.accountType ?? "free", settingsActivity: settingsActivity, accessToken: accessToken)
+      state = await store.state
+    } else if state.accountType == nil
       || (settingsActivity != nil && settingsActivity != state.settingsActivity)
     {
       let accountType = try await fetchSimklAccountType(accessToken, session: session)
@@ -97,11 +104,31 @@ func pullRewatchSessions(
       needsBaseline ? nil : anchor.map { formatter.string(from: $0.addingTimeInterval(-5 * 60)) }
     let rows = try await fetchRewatchRows(
       kind, dateFrom: dateFrom, accessToken: accessToken, session: session)
-    let response = try RewatchSession.response(from: rows, kind: kind)
-    pull.sessions = RewatchSession.merged(
-      cached: cached, with: response, isFullPull: dateFrom == nil)
-    pull.sessionCounts = RewatchSession.mergedCounts(
-      cached: cachedCounts, with: response, isFullPull: dateFrom == nil)
+    var sessions = RewatchSession.merged(
+      cached: cached, with: try RewatchSession.response(from: rows, kind: kind),
+      isFullPull: dateFrom == nil)
+
+    try await SyncFailureScope.check()
+    if let membership = try await fetchRewatchMembership(
+      kind, accessToken: accessToken, session: session)
+    {
+      let pruned = RewatchSession.pruned(sessions, by: membership)
+      sessions = pruned.sessions
+      if !pruned.missingIDs.isEmpty, dateFrom != nil {
+        // An active session no delta described: read the type in full once.
+        let full = try RewatchSession.response(
+          from: try await fetchRewatchRows(
+            kind, dateFrom: nil, accessToken: accessToken, session: session),
+          kind: kind)
+        sessions = RewatchSession.merged(
+          cached: sessions,
+          with: RewatchResponse(
+            sessions: full.sessions.filter { pruned.missingIDs.contains($0.id) }),
+          isFullPull: false)
+      }
+      pull.sessionCounts = membership.counts
+    }
+    pull.sessions = sessions
     pull.cursor.activity = activity ?? cursor.activity
     if needsBaseline { pull.cursor.baselineAt = now }
   }
@@ -130,19 +157,59 @@ func pullRewatchSessions(
   return pull
 }
 
+/// Session rows with their episodes. SIMKL answers a list too large for one
+/// call (`max_items`, or too many episodes) with a 400 that repeats on retry,
+/// and asks for it to be split by status, so a full pull does that on a 400.
+/// Rewatches only exist on titles with a watch, so Plan to Watch is skipped.
 func fetchRewatchRows(
   _ kind: RewatchKind, dateFrom: String?, accessToken: String, session: URLSession = .shared
+) async throws -> [RewatchRowModel] {
+  do {
+    return try await fetchRewatchRows(
+      kind, status: nil, dateFrom: dateFrom, accessToken: accessToken, session: session)
+  } catch SimklMutationError.httpStatusCode(400, _) where dateFrom == nil {
+    var rows: [RewatchRowModel] = []
+    for status in ["completed", "watching", "hold", "dropped"] {
+      try Task.checkCancellation()
+      rows += try await fetchRewatchRows(
+        kind, status: status, dateFrom: nil, accessToken: accessToken, session: session)
+    }
+    return rows
+  }
+}
+
+private func fetchRewatchRows(
+  _ kind: RewatchKind, status: String?, dateFrom: String?, accessToken: String,
+  session: URLSession
 ) async throws -> [RewatchRowModel] {
   var queryItems = [
     URLQueryItem(name: "allow_rewatch", value: "yes"),
     URLQueryItem(name: "extended", value: "full"),
   ]
   if let dateFrom { queryItems.append(URLQueryItem(name: "date_from", value: dateFrom)) }
-  var request = URLRequest(
-    url: simklAPIURL(path: "sync/all-items/\(kind.libraryKey)", queryItems: queryItems))
+  let path = ["sync/all-items", kind.libraryKey, status].compactMap { $0 }.joined(separator: "/")
+  var request = URLRequest(url: simklAPIURL(path: path, queryItems: queryItems))
   request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
   let (data, _) = try await performSimklRequest(request, session: session)
   return try decodeSimklLibraryResponse(RewatchRowModel.self, from: data, key: kind.libraryKey)
+}
+
+/// Every saved session of the type, by id and status only. Nil when SIMKL
+/// didn't apply `allow_rewatch`.
+func fetchRewatchMembership(
+  _ kind: RewatchKind, accessToken: String, session: URLSession = .shared
+) async throws -> RewatchMembership? {
+  var request = URLRequest(
+    url: simklAPIURL(
+      path: "sync/all-items/\(kind.libraryKey)",
+      queryItems: [
+        URLQueryItem(name: "allow_rewatch", value: "yes"),
+        URLQueryItem(name: "extended", value: "simkl_ids_only"),
+      ]))
+  request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+  let (data, _) = try await performSimklRequest(request, session: session)
+  return try RewatchSession.membership(
+    from: decodeSimklLibraryResponse(RewatchRowModel.self, from: data, key: kind.libraryKey))
 }
 
 /// `free`, `pro`, or `vip`. A missing plan reads as `free`, which turns rewatches off.

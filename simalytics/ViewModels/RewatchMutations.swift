@@ -6,9 +6,17 @@
 import Foundation
 
 enum RewatchStartResult: Equatable, Sendable {
-  case started(rewatchID: Int)
+  /// `reused` is true when the title already had an active session, which
+  /// SIMKL returns instead of opening another; its episodes are already there.
+  case started(rewatchID: Int, reused: Bool)
   case cancelled
   case failed(userMessage: String)
+}
+
+struct RewatchLogResult: Equatable, Sendable {
+  let result: SimklMutationResult
+  /// SIMKL finished the rewatch: it now covers every aired regular episode.
+  var completed = false
 }
 
 struct RewatchRemovalResult: Equatable, Sendable {
@@ -32,13 +40,13 @@ enum RewatchMutation {
   static func markEpisodeWatched(
     _ accessToken: String, _ rewatch: RewatchSession, _ episode: RewatchEpisode,
     session: URLSession = .shared
-  ) async -> SimklMutationResult {
+  ) async -> RewatchLogResult {
     guard rewatch.id > 0, rewatch.simkl > 0,
       validatedSimklEpisode(season: episode.season, episode: episode.episode) != nil
     else {
       let error = SimklMutationError.invalidEpisode
       reportError(error)
-      return .failed(userMessage: simklMutationUserMessage(for: error))
+      return RewatchLogResult(result: .failed(userMessage: simklMutationUserMessage(for: error)))
     }
 
     do {
@@ -50,12 +58,16 @@ enum RewatchMutation {
         item: item(for: rewatch, ["rewatch_id": rewatch.id, "seasons": seasons]))
       let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
       let acknowledgement = try parseRewatchHistoryResponse(data, singleEpisode: true)
+      try await undoFork(acknowledgement, of: rewatch, accessToken: accessToken, session: session)
       // Zero means SIMKL ignored it: too soon after the last watch of this
       // episode, or a date that matches the first watch.
-      return acknowledgement.addedEpisodes == 1
-        ? .succeeded : .failed(userMessage: notLoggedMessage)
+      guard acknowledgement.addedEpisodes == 1 else {
+        return RewatchLogResult(result: .failed(userMessage: notLoggedMessage))
+      }
+      return RewatchLogResult(
+        result: .succeeded, completed: acknowledgement.rewatchStatus == "completed")
     } catch {
-      return await failure(error, rewatch: rewatch)
+      return RewatchLogResult(result: await failure(error, rewatch: rewatch))
     }
   }
 
@@ -121,7 +133,7 @@ enum RewatchMutation {
       guard let rewatchID = acknowledgement.rewatchID, rewatchID > 0,
         acknowledgement.rewatchStatus == "active"
       else { return .failed(userMessage: notStartedMessage) }
-      return .started(rewatchID: rewatchID)
+      return .started(rewatchID: rewatchID, reused: acknowledgement.addedShows == 0)
     } catch {
       switch await failure(error) {
       case .failed(let message): return .failed(userMessage: message)
@@ -147,12 +159,44 @@ enum RewatchMutation {
         skipAutoWatching: true)
       let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
       let acknowledgement = try parseRewatchHistoryResponse(data, singleEpisode: false)
+      try await undoFork(acknowledgement, of: rewatch, accessToken: accessToken, session: session)
       // Closing a session SIMKL already completed is a no-op that reports `completed`.
       return ["closed", "completed"].contains(acknowledgement.rewatchStatus)
         ? .succeeded : .failed(userMessage: notStoppedMessage)
     } catch {
       return await failure(error, rewatch: rewatch)
     }
+  }
+
+  /// A write pinned to a session SIMKL no longer has, such as one deleted on
+  /// simkl.com, doesn't fail: SIMKL opens a new session for it and reports
+  /// that one's `rewatch_id`. Unless the pinned session still exists (SIMKL
+  /// splits a session when an episode is written again days apart), the new
+  /// one is a phantom, so it's deleted and the pinned session is reported gone.
+  private static func undoFork(
+    _ acknowledgement: RewatchHistoryAcknowledgement, of rewatch: RewatchSession,
+    accessToken: String, session: URLSession
+  ) async throws {
+    guard let forkedID = acknowledgement.rewatchID, forkedID > 0, forkedID != rewatch.id,
+      let membership = try await fetchRewatchMembership(
+        rewatch.kind, accessToken: accessToken, session: session),
+      membership.titles[rewatch.id] == nil,
+      membership.titles[forkedID] == rewatch.simkl
+    else { return }
+    do {
+      var request = URLRequest(url: simklAPIURL(path: "sync/history/remove"))
+      request.httpMethod = "POST"
+      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.httpBody = try JSONSerialization.data(withJSONObject: [
+        "shows": [["ids": ["simkl": rewatch.simkl], "rewatch_id": forkedID]]
+      ])
+      let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
+      _ = try validateRewatchRemovalResponse(data)
+    } catch {
+      if isSimklCancellationError(error) { throw error }
+      reportError(error)
+    }
+    throw SimklMutationError.mediaNotFound
   }
 
   private static func item(for rewatch: RewatchSession, _ fields: [String: Any]) -> [String: Any] {
@@ -195,8 +239,18 @@ enum RewatchMutation {
 
 struct RewatchHistoryAcknowledgement: Equatable, Sendable {
   let addedEpisodes: Int
+  /// Sessions the write created. Zero on a Start means SIMKL returned the
+  /// title's existing active session.
+  var addedShows = 0
   let rewatchID: Int?
   let rewatchStatus: String?
+
+  init(addedEpisodes: Int, addedShows: Int = 0, rewatchID: Int?, rewatchStatus: String?) {
+    self.addedEpisodes = addedEpisodes
+    self.addedShows = addedShows
+    self.rewatchID = rewatchID
+    self.rewatchStatus = rewatchStatus
+  }
 }
 
 /// Rewatch writes answer like any `/sync/history` write, plus the session's
@@ -219,8 +273,9 @@ func parseRewatchHistoryResponse(_ data: Data, singleEpisode: Bool) throws
     $0.rewatch_id != nil || $0.rewatch_status != nil
   }
   return RewatchHistoryAcknowledgement(
-    addedEpisodes: addedEpisodes, rewatchID: outcome?.rewatch_id,
-    rewatchStatus: outcome?.rewatch_status)
+    addedEpisodes: addedEpisodes,
+    addedShows: (response.added.shows ?? 0) + (response.added.anime ?? 0),
+    rewatchID: outcome?.rewatch_id, rewatchStatus: outcome?.rewatch_status)
 }
 
 /// True when SIMKL deleted the session along with its last episode. A
@@ -254,6 +309,8 @@ private struct RewatchHistoryResponse: Decodable {
 
   struct Added: Decodable {
     let episodes: Int?
+    let shows: Int?
+    let anime: Int?
     let statuses: [Status]?
   }
 

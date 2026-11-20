@@ -9,9 +9,9 @@ struct RewatchCard: View {
   let title: String?
   let poster: String?
   var animeType: String? = nil
-  /// The title's list. Starting and stopping stay on Completed titles: SIMKL
-  /// auto-fills a show posted without episodes, which for anything unfinished
-  /// would mark its remaining episodes watched.
+  /// The title's list. Starting stays on Completed titles: a rewatch is a
+  /// second viewing of something finished. Stopping works on any list, since
+  /// it pins the session and sends `skip_auto_watching=yes`.
   let status: String?
   let totalEpisodes: Int?
   /// Whether the episode list shows and edits this rewatch or the first watch.
@@ -19,6 +19,7 @@ struct RewatchCard: View {
   let isEpisodeListBusy: Bool
   @Environment(Auth.self) private var auth
   @Environment(\.modelContext) private var modelContext
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @AppStorage(RewatchStore.preferenceKey) private var trackRewatches = false
   @State private var isUpdating = false
   @State private var errorMessage: String?
@@ -38,11 +39,28 @@ struct RewatchCard: View {
     rewatches.sessionCount(simkl: simkl, kind: kind) >= RewatchStore.maxSessionsPerTitle
   }
 
+  private var canStart: Bool {
+    isTracking && status == "completed" && rewatches.hasCountedSessions(kind)
+  }
+
+  /// With nothing to show, the card adds no view at all, so the stack around it
+  /// keeps the spacing it has without rewatches. An alert keeps it on screen.
   var body: some View {
-    VStack(spacing: 0) {
+    if session != nil || canStart || errorMessage != nil {
+      card
+    }
+  }
+
+  private var card: some View {
+    VStack(alignment: .leading, spacing: 8) {
       if let session {
         activeCard(session)
-      } else if isTracking, status == "completed", rewatches.hasCountedSessions(kind) {
+      } else if canStart {
+        if rewatches.isRecentlyCompleted(simkl: simkl) {
+          Label("Rewatch complete", systemImage: "checkmark.circle.fill")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.green)
+        }
         if isAtSessionLimit {
           Text(
             "You've reached Simkl's limit of \(RewatchStore.maxSessionsPerTitle) rewatches for this title."
@@ -79,23 +97,38 @@ struct RewatchCard: View {
 
   private func activeCard(_ session: RewatchSession) -> some View {
     VStack(alignment: .leading, spacing: 10) {
-      HStack(alignment: .firstTextBaseline) {
-        Label("Rewatching", systemImage: "arrow.counterclockwise")
-          .font(.headline)
-        Spacer()
-        if let total = session.totalEpisodes, total > 0 {
+      let total = session.totalEpisodes.flatMap { $0 > 0 ? $0 : nil }
+      let header =
+        dynamicTypeSize.isAccessibilitySize
+        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+        : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+      header {
+        Group {
+          // At accessibility sizes the icon would push the word onto two lines.
+          if dynamicTypeSize.isAccessibilitySize {
+            Text("Rewatching")
+          } else {
+            Label("Rewatching", systemImage: "arrow.counterclockwise")
+          }
+        }
+        .font(.headline)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        if let total {
           Text("\(session.watchedCount) of \(total)")
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .monospacedDigit()
+            // The progress bar below reads the same count.
+            .accessibilityHidden(true)
         }
       }
-      if let total = session.totalEpisodes, total > 0 {
+      .accessibilityAddTraits(.isHeader)
+      if let total {
         ProgressView(value: Double(min(session.watchedCount, total)), total: Double(total))
           .accessibilityLabel("Rewatch progress")
           .accessibilityValue("\(session.watchedCount) of \(total) episodes")
       }
-      if let next = session.next {
+      if let next = session.next, !session.isNextLogged {
         Text("Next: \(nextLabel(next))")
           .font(.subheadline)
           .lineLimit(2)
@@ -106,10 +139,12 @@ struct RewatchCard: View {
       }
       .pickerStyle(.segmented)
       .disabled(isEpisodeListBusy)
+      .accessibilityLabel("Episode checkmarks")
+      .accessibilityHint("Choose whether the episode list shows this rewatch or your first watch.")
       if isUpdating {
         ProgressView("Updating rewatch…")
           .frame(maxWidth: .infinity, minHeight: 44)
-      } else if status == "completed" {
+      } else {
         Button("Stop Rewatching", systemImage: "stop.circle", role: .destructive) {
           confirmingStop = true
         }
@@ -155,11 +190,13 @@ struct RewatchCard: View {
     defer { isUpdating = false }
     let token = auth.simklAccessToken
     switch await RewatchMutation.start(token, simkl: simkl, kind: kind, title: title) {
-    case .started(let rewatchID):
+    case .started(let rewatchID, let reused):
       rewatches.insert(
         RewatchSession(
           id: rewatchID, simkl: simkl, kind: kind, title: title, poster: poster,
           animeType: animeType, totalEpisodes: totalEpisodes))
+      // An existing session keeps its episodes, which only a full read returns.
+      if reused { rewatches.requestFullPull(kind) }
       followsRewatch = true
       resync(token)
     case .failed(let message):
@@ -190,5 +227,23 @@ struct RewatchCard: View {
     let container = modelContext.container
     invalidateUpNextCache(modelContainer: container)
     Task { await syncLatestActivities(token, modelContainer: container, forceRefresh: true) }
+  }
+}
+
+extension RewatchSession {
+  /// SIMKL deletes a session once its last episode is removed, so unmarking
+  /// that episode in the episode list asks first.
+  func endingConfirmation(unmarking episode: EpisodeListItem, watched: Bool)
+    -> EpisodeChangeConfirmation?
+  {
+    guard !watched, episodes.count == 1, let season = episode.watchSeason,
+      let number = episode.number,
+      episodes.first == RewatchEpisode(season: season, episode: number)
+    else { return nil }
+    return EpisodeChangeConfirmation(
+      title: "End this rewatch?",
+      message:
+        "This is the only episode in this rewatch. Simkl deletes a rewatch when its last episode is removed.",
+      action: "Remove and End Rewatch")
   }
 }

@@ -126,6 +126,14 @@ struct RewatchSession: Codable, Equatable, Identifiable, Sendable {
     episodes = updated.sorted()
     nextResolvedAt = nil
   }
+
+  /// True after the next episode was logged but before a sync resolved the one
+  /// after it. Up Next hides such a row, since logging it again within 2 days
+  /// is a no-op on SIMKL.
+  var isNextLogged: Bool {
+    guard let next else { return false }
+    return episodes.contains(RewatchEpisode(season: next.season, episode: next.episode))
+  }
 }
 
 extension RewatchNextEpisode {
@@ -137,16 +145,29 @@ extension RewatchNextEpisode {
 
 // MARK: - Reading sessions back
 
-/// Active sessions in one `allow_rewatch=yes` response.
+/// The session rows in one `allow_rewatch=yes&extended=full` response. A full
+/// pull lists every session. A `date_from` delta lists only the rows that
+/// changed, and never a deleted session; `RewatchMembership` covers those.
 struct RewatchResponse: Equatable, Sendable {
-  /// One per title; if SIMKL ever reports two, the newest session wins.
+  /// Active sessions, one per title; if SIMKL ever reports two, the newest wins.
   var sessions: [RewatchSession]
-  /// Saved sessions of any status, for each title the response covers.
-  /// SIMKL lists every saved session next to a title's entry, so a title
-  /// here with zero has none left.
-  var sessionCounts: [Int: Int]
+  /// Sessions the response reports as closed or completed.
+  var endedIDs: Set<Int> = []
+}
 
-  var titles: Set<Int> { Set(sessionCounts.keys) }
+/// Every saved session of a type, from `allow_rewatch=yes&extended=simkl_ids_only`.
+/// It carries no episodes, but it is the only read that shows a session was
+/// deleted, and it counts each title's sessions for the 50-session cap.
+struct RewatchMembership: Equatable, Sendable {
+  /// Each saved session's title, by `rewatch_id`.
+  var titles: [Int: Int]
+  /// The `rewatch_id`s of active sessions.
+  var activeIDs: Set<Int>
+
+  /// Saved sessions of any status per title.
+  var counts: [Int: Int] {
+    titles.values.reduce(into: [:]) { counts, title in counts[title, default: 0] += 1 }
+  }
 }
 
 extension RewatchSession {
@@ -154,21 +175,19 @@ extension RewatchSession {
   /// pulls, so the cursor stays put for a retry.
   static func response(from rows: [RewatchRowModel], kind: RewatchKind) throws -> RewatchResponse {
     var byTitle: [Int: RewatchSession] = [:]
-    var counts: [Int: Int] = [:]
+    var ended = Set<Int>()
     for row in rows {
       guard let simkl = row.show?.ids?.simkl, simkl > 0 else {
         throw SimklMutationError.invalidResponse
       }
-      guard row.is_rewatch == true else {
-        // SIMKL marks canonical entries `is_rewatch: false` only when it
-        // applied `allow_rewatch`. Without that, the title's sessions are
-        // unknown rather than gone.
-        if row.is_rewatch == false, counts[simkl] == nil { counts[simkl] = 0 }
+      // Canonical (first watch) rows carry no session data. A delta can list
+      // one without its sessions, so it says nothing about them.
+      guard row.is_rewatch == true else { continue }
+      guard let id = row.rewatch_id, id > 0 else { throw SimklMutationError.invalidResponse }
+      guard row.rewatch_status == "active" else {
+        ended.insert(id)
         continue
       }
-      guard let id = row.rewatch_id, id > 0 else { throw SimklMutationError.invalidResponse }
-      counts[simkl, default: 0] += 1
-      guard row.rewatch_status == "active" else { continue }
       if let existing = byTitle[simkl], existing.id > id { continue }
       let episodes = (row.seasons ?? []).flatMap { season -> [RewatchEpisode] in
         guard let number = season.number, number >= 0 else { return [] }
@@ -182,29 +201,55 @@ extension RewatchSession {
         animeType: row.anime_type, episodes: episodes, totalEpisodes: row.total_episodes_count,
         notAiredEpisodes: row.not_aired_episodes_count, lastWatchedAt: row.last_watched_at)
     }
-    return RewatchResponse(
-      sessions: byTitle.values.sorted { $0.id < $1.id }, sessionCounts: counts)
+    return RewatchResponse(sessions: byTitle.values.sorted { $0.id < $1.id }, endedIDs: ended)
+  }
+
+  /// Every saved session in a `simkl_ids_only` response. Nil when SIMKL didn't
+  /// apply `allow_rewatch` (no row says whether it is a rewatch), since the
+  /// sessions are then unknown rather than gone.
+  static func membership(from rows: [RewatchRowModel]) throws -> RewatchMembership? {
+    guard rows.isEmpty || rows.contains(where: { $0.is_rewatch != nil }) else { return nil }
+    var membership = RewatchMembership(titles: [:], activeIDs: [])
+    for row in rows where row.is_rewatch == true {
+      guard let simkl = row.show?.ids?.simkl, simkl > 0, let id = row.rewatch_id, id > 0,
+        let status = row.rewatch_status, !status.isEmpty
+      else { throw SimklMutationError.invalidResponse }
+      membership.titles[id] = simkl
+      if status == "active" { membership.activeIDs.insert(id) }
+    }
+    return membership
   }
 
   /// A full pull replaces every cached session of the type. A `date_from`
-  /// delta replaces the sessions of each title it covers, since SIMKL lists
-  /// all of them: one that closed, completed, or was deleted on simkl.com
-  /// drops out, while titles the delta didn't return keep theirs.
+  /// delta lists only rows that changed, so it updates session by session:
+  /// an active row replaces whatever the title had (there is one active
+  /// session per title), and a closed or completed row drops that session.
+  /// Sessions the delta didn't mention are kept.
   static func merged(
     cached: [RewatchSession], with response: RewatchResponse, isFullPull: Bool
   ) -> [RewatchSession] {
     let previous = Dictionary(cached.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     let incoming = response.sessions.map { $0.keepingResolution(from: previous[$0.id]) }
-    let kept = isFullPull ? [] : cached.filter { !response.titles.contains($0.simkl) }
+    let incomingTitles = Set(incoming.map(\.simkl))
+    let kept =
+      isFullPull
+      ? []
+      : cached.filter {
+        !response.endedIDs.contains($0.id) && !incomingTitles.contains($0.simkl)
+      }
     return (kept + incoming).sorted { $0.id < $1.id }
   }
 
-  /// Per-title session counts after a response, merged like the sessions.
-  static func mergedCounts(
-    cached: [Int: Int], with response: RewatchResponse, isFullPull: Bool
-  ) -> [Int: Int] {
-    let kept = isFullPull ? [:] : cached.filter { !response.titles.contains($0.key) }
-    return kept.merging(response.sessionCounts.filter { $0.value > 0 }) { _, new in new }
+  /// Drops cached sessions that SIMKL no longer lists as active, such as one
+  /// deleted on simkl.com, which no delta reports. Also returns the active
+  /// sessions the cache is missing.
+  static func pruned(
+    _ sessions: [RewatchSession], by membership: RewatchMembership
+  ) -> (sessions: [RewatchSession], missingIDs: Set<Int>) {
+    let kept = sessions.filter {
+      membership.activeIDs.contains($0.id) && membership.titles[$0.id] == $0.simkl
+    }
+    return (kept, membership.activeIDs.subtracting(kept.map(\.id)))
   }
 
   /// Lands a pull that started from `base` on top of `current`. Episodes logged,

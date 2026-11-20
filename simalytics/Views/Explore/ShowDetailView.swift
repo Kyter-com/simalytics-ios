@@ -24,6 +24,11 @@ struct ShowDetailView: View {
   @State private var memoText: String = ""
   @State private var privacySelection: String = "Public"
   @State private var followsRewatch = true
+  /// The loaded episode list in rewatch coordinates, to resolve a rewatch's
+  /// next episode as soon as one is logged.
+  @State private var rewatchCatalog: [RewatchCatalogEpisode] = []
+  /// Set when logging an episode completed the listed rewatch.
+  @State private var completedRewatchID: Int?
   @AppStorage(RewatchStore.preferenceKey) private var trackRewatches = false
   private let rewatches = RewatchStore.shared
   var simkl_id: Int
@@ -57,6 +62,7 @@ struct ShowDetailView: View {
     do {
       let episodes = try await ShowDetailView.getShowEpisodes(simkl_id)
       try Task.checkCancellation()
+      rewatchCatalog = episodes.compactMap(RewatchCatalogEpisode.init(show:))
       let browser = EpisodeBrowserModel(
         episodes: episodes.map { EpisodeListItem(show: $0) },
         seasons: listedSeasons, isAnime: false)
@@ -183,6 +189,7 @@ struct ShowDetailView: View {
             MediaEpisodeSection(
               model: episodeBrowser, scrollProxy: scrollProxy,
               canEdit: !auth.simklAccessToken.isEmpty, isRewatch: listedRewatch != nil,
+              confirmChange: { listedRewatch?.endingConfirmation(unmarking: $0, watched: $1) },
               mutation: mutateEpisode, commit: commitEpisode, reconcile: reconcileEpisodes
             )
             .padding(.top)
@@ -227,7 +234,9 @@ struct ShowDetailView: View {
     if let rewatch = listedRewatch {
       let key = RewatchEpisode(season: season, episode: number)
       if watched {
-        return await RewatchMutation.markEpisodeWatched(auth.simklAccessToken, rewatch, key)
+        let logged = await RewatchMutation.markEpisodeWatched(auth.simklAccessToken, rewatch, key)
+        if logged.completed { completedRewatchID = rewatch.id }
+        return logged.result
       }
       let removal = await RewatchMutation.markEpisodeUnwatched(auth.simklAccessToken, rewatch, key)
       if removal.sessionEnded { rewatches.removeSession(id: rewatch.id) }
@@ -247,6 +256,12 @@ struct ShowDetailView: View {
     if let rewatch = listedRewatch {
       rewatches.record(
         RewatchEpisode(season: season, episode: number), watched: watched, sessionID: rewatch.id)
+      if completedRewatchID == rewatch.id {
+        completedRewatchID = nil
+        rewatches.complete(sessionID: rewatch.id)
+      } else {
+        rewatches.resolveNext(sessionID: rewatch.id, catalog: rewatchCatalog)
+      }
     } else if watched {
       optimisticallyClearNextToWatch(
         simklId: simkl_id, season: season, episode: number, kind: .tv,
