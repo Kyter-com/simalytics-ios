@@ -1,5 +1,3 @@
-• A new Explore tab for browsing: today's trending picks, genre tiles, daily Top 10s, collections like Hidden Gems and Weekend Binges, the best of each streaming service and TV network, and picks by decade.
-• For You suggests titles from the genres you rate highest, and a switch hides titles already in your library.
-• Long-press any title in Explore to add it to Plan to Watch, watch its trailer, or share it.
-• Search now has its own tab, with today's trending titles as quick suggestions.
-• Explore stays smooth while it loads, downloads only what changed, and stays readable at the largest text sizes.
+• Track your rewatches. With Simkl PRO or VIP, turn on Track Rewatches in Settings to see your next rewatch episode in Up Next, check off rewatched episodes on a show or anime page, start or stop a rewatch, and log movies you watch again. Rewatches you add on simkl.com show up here too.
+• Up Next now lists the shows you watched most recently first.
+• Show and anime pages no longer report more than 100% watched when Simkl also counts watched specials.

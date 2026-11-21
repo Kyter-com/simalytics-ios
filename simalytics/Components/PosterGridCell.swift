@@ -37,6 +37,8 @@ struct PosterGridCell: View {
   let poster: String?
   var year: Int? = nil
   var badge: String? = nil
+  /// Marks the badge as a rewatch's next episode.
+  var rewatching = false
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -55,16 +57,23 @@ struct PosterGridCell: View {
         }
 
         if let badge {
-          Text(badge)
-            .font(.caption)
-            .bold()
-            .foregroundStyle(.white)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(.black.opacity(0.7), in: Capsule())
-            .padding(6)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .accessibilityLabel("Next episode \(badge)")
+          HStack(spacing: 3) {
+            if rewatching {
+              Image(systemName: "arrow.counterclockwise")
+                .imageScale(.small)
+            }
+            Text(badge)
+          }
+          .font(.caption)
+          .bold()
+          .foregroundStyle(.white)
+          .padding(.horizontal, 6)
+          .padding(.vertical, 3)
+          .background(.black.opacity(0.7), in: Capsule())
+          .padding(6)
+          .frame(maxWidth: .infinity, alignment: .trailing)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(rewatching ? "Rewatching, next episode \(badge)" : "Next episode \(badge)")
         }
       }
       .frame(width: 110, height: 165)

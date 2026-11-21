@@ -18,9 +18,13 @@ struct SettingsView: View {
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @AppStorage("hideAnime") private var hideAnime = false
   @AppStorage(AppTab.preferenceKey) private var defaultTab = AppTab.defaultLaunchTab
+  @AppStorage(RewatchStore.preferenceKey) private var trackRewatches = false
   @State private var showResetConfirmation = false
   @State private var showSignOutConfirmation = false
   @State private var showErrorAlert = false
+  @State private var isCheckingRewatchPlan = false
+  @State private var showRewatchPlanRequired = false
+  @State private var rewatchPlanError: String?
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var modelContext
 
@@ -51,8 +55,51 @@ struct SettingsView: View {
       try SimpleKeychain().deleteItem(forKey: "simkl-access-token")
       auth.setAccessToken("")
       clearLocalSwiftData()
+      RewatchStore.shared.reset()
     } catch {
       reportError(error)
+    }
+  }
+
+  private var trackRewatchesBinding: Binding<Bool> {
+    Binding {
+      trackRewatches
+    } set: { enabled in
+      if enabled {
+        Task { await enableRewatches() }
+      } else {
+        trackRewatches = false
+        RewatchStore.shared.clearSessions()
+      }
+    }
+  }
+
+  /// SIMKL only records rewatches for PRO and VIP plans and silently ignores
+  /// the rest, so read the plan before turning tracking on.
+  private func enableRewatches() async {
+    guard !isCheckingRewatchPlan, !auth.simklAccessToken.isEmpty else { return }
+    isCheckingRewatchPlan = true
+    defer { isCheckingRewatchPlan = false }
+    let token = auth.simklAccessToken
+    do {
+      let accountType = try await fetchSimklAccountType(token)
+      RewatchStore.shared.updatePlan(accountType, settingsActivity: nil, accessToken: token)
+      guard RewatchStore.shared.isPlanEligible else {
+        showRewatchPlanRequired = true
+        return
+      }
+      trackRewatches = true
+      globalLoadingIndicator.startSync()
+      await syncLatestActivities(token, modelContainer: modelContext.container)
+      globalLoadingIndicator.stopSync()
+    } catch {
+      guard !isSimklCancellationError(error) else { return }
+      reportError(error)
+      // Name Simkl's answer, such as an expired sign-in, instead of blaming the connection.
+      rewatchPlanError =
+        error is SimklMutationError
+        ? simklMutationUserMessage(for: error)
+        : "Couldn't check your Simkl plan. Check your connection and try again."
     }
   }
 
@@ -228,6 +275,50 @@ struct SettingsView: View {
             }
           } header: {
             Text("Display")
+          }
+
+          Section {
+            Toggle(isOn: trackRewatchesBinding) {
+              Label {
+                HStack {
+                  Text("Track Rewatches")
+                  if isCheckingRewatchPlan {
+                    Spacer()
+                    ProgressView()
+                  }
+                }
+              } icon: {
+                Image(systemName: "arrow.counterclockwise.circle.fill")
+                  .font(.title2)
+                  .foregroundStyle(.teal)
+                  .frame(width: 28, height: 28)
+              }
+            }
+            .disabled(auth.simklAccessToken.isEmpty || isCheckingRewatchPlan)
+            .alert("Simkl PRO or VIP Required", isPresented: $showRewatchPlanRequired) {
+              Button("OK", role: .cancel) {}
+            } message: {
+              Text(
+                "Rewatch tracking is part of Simkl PRO and VIP. Your Simkl account is on the free plan, so Simkl doesn't record rewatches for it."
+              )
+            }
+          } header: {
+            Text("Rewatches")
+          } footer: {
+            Text(
+              "Log each rewatch as its own viewing with separate episode progress, see your next rewatch episode in Up Next, and log movies you watch again. Requires Simkl PRO or VIP."
+            )
+          }
+          .alert(
+            "Couldn't Turn On Rewatches",
+            isPresented: Binding(
+              get: { rewatchPlanError != nil },
+              set: { if !$0 { rewatchPlanError = nil } }
+            )
+          ) {
+            Button("OK", role: .cancel) { rewatchPlanError = nil }
+          } message: {
+            Text(rewatchPlanError ?? "Please try again.")
           }
 
           Section(header: Text("Support")) {

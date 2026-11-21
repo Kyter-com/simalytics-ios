@@ -1,9 +1,21 @@
 import SwiftUI
 
+/// A question to ask before an episode change with side effects goes through.
+struct EpisodeChangeConfirmation: Equatable {
+  let title: String
+  let message: String
+  let action: String
+}
+
 struct MediaEpisodeSection: View {
   @Bindable var model: EpisodeBrowserModel
   let scrollProxy: ScrollViewProxy
   let canEdit: Bool
+  /// The checkmarks belong to a rewatch session rather than the first watch.
+  var isRewatch = false
+  /// Asked before each change (episode, will be watched); a confirmation
+  /// holds the change until the user agrees.
+  var confirmChange: (EpisodeListItem, Bool) -> EpisodeChangeConfirmation? = { _, _ in nil }
   let mutation: (EpisodeListItem, Bool) async -> SimklMutationResult
   let commit: (EpisodeListItem, Bool) -> Void
   let reconcile: () async -> [WatchlistSeason]?
@@ -11,6 +23,7 @@ struct MediaEpisodeSection: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var selectedEpisode: EpisodeListItem?
   @State private var pendingEpisode: EpisodeListItem?
+  @State private var confirmingChange: PendingEpisodeChange?
 
   var body: some View {
     // Keep the episode controls in the content instead of pinning a second bar
@@ -31,6 +44,7 @@ struct MediaEpisodeSection: View {
         EpisodeSectionHeader(
           groups: model.groups, selection: $model.selectedGroup,
           watched: model.watchedCount, total: model.currentGroup?.episodes.count ?? 0,
+          progressVerb: isRewatch ? "rewatched" : "watched",
           canJump: model.nextUnwatched != nil, jump: jumpToNext
         )
         .id(EpisodeScrollTarget.header)
@@ -56,12 +70,21 @@ struct MediaEpisodeSection: View {
       .presentationDetents([.medium, .large])
       .presentationDragIndicator(.visible)
       .episodeErrorAlert(model: model, enabled: true)
+      .episodeChangeConfirmation($confirmingChange, enabled: true) { pendingEpisode = $0 }
     }
     .episodeErrorAlert(model: model, enabled: selectedEpisode == nil)
+    .episodeChangeConfirmation($confirmingChange, enabled: selectedEpisode == nil) {
+      pendingEpisode = $0
+    }
   }
 
   private func queueChange(_ episode: EpisodeListItem) {
     guard canEdit, pendingEpisode == nil, model.updatingID == nil else { return }
+    let willWatch = !model.watchedIDs.contains(episode.id)
+    if let confirmation = confirmChange(episode, willWatch) {
+      confirmingChange = PendingEpisodeChange(episode: episode, confirmation: confirmation)
+      return
+    }
     pendingEpisode = episode
   }
 
@@ -73,7 +96,35 @@ struct MediaEpisodeSection: View {
   }
 }
 
+private struct PendingEpisodeChange {
+  let episode: EpisodeListItem
+  let confirmation: EpisodeChangeConfirmation
+}
+
 extension View {
+  /// Shown from the section, or from the episode sheet while it's open.
+  fileprivate func episodeChangeConfirmation(
+    _ change: Binding<PendingEpisodeChange?>, enabled: Bool,
+    confirm: @escaping (EpisodeListItem) -> Void
+  ) -> some View {
+    confirmationDialog(
+      change.wrappedValue?.confirmation.title ?? "",
+      isPresented: Binding(
+        get: { enabled && change.wrappedValue != nil },
+        set: { if !$0 && enabled { change.wrappedValue = nil } }
+      ),
+      titleVisibility: .visible,
+      presenting: change.wrappedValue
+    ) { pending in
+      Button(pending.confirmation.action, role: .destructive) {
+        change.wrappedValue = nil
+        confirm(pending.episode)
+      }
+    } message: { pending in
+      Text(pending.confirmation.message)
+    }
+  }
+
   fileprivate func episodeErrorAlert(model: EpisodeBrowserModel, enabled: Bool) -> some View {
     alert(
       "Couldn't Update Episode",

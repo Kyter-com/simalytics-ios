@@ -18,6 +18,12 @@ protocol UpNextMedia {
   var next_to_watch_info_season: Int? { get }
   var next_to_watch_info_episode: Int? { get }
   var type: String { get }
+  /// The most recent watch, which orders the list: what was watched last comes first.
+  var last_watched_at: String? { get }
+  /// A title can be listed twice: its next episode and a rewatch.
+  var upNextID: String { get }
+  /// The session this row advances, for a rewatch.
+  var rewatch: RewatchSession? { get }
 }
 
 extension V1.SDShows: UpNextMedia {
@@ -28,7 +34,38 @@ extension V1.SDAnimes: UpNextMedia {
   var next_to_watch_info_season: Int? { nil }
 }
 
+/// An active rewatch's next episode, listed beside the regular Up Next rows.
+struct RewatchUpNextItem: UpNextMedia {
+  let session: RewatchSession
+
+  var simkl: Int { session.simkl }
+  var title: String? { session.title }
+  var poster: String? { session.poster }
+  var next_to_watch: String? { session.next?.marker(for: session.kind) }
+  var next_to_watch_info_date: String? { session.next?.date }
+  var next_to_watch_info_title: String? { session.next?.title }
+  // Anime rows leave the season out, like SIMKL's own anime markers.
+  var next_to_watch_info_season: Int? { session.kind == .tv ? session.next?.season : nil }
+  var next_to_watch_info_episode: Int? { session.next?.episode }
+  var type: String { session.kind.rawValue }
+  var last_watched_at: String? { session.lastWatchedAt }
+  var upNextID: String { "rewatch-\(session.id)" }
+  var rewatch: RewatchSession? { session }
+}
+
+/// Up Next order: most recently watched first, so an active rewatch sits among
+/// the titles being watched instead of below all of them. Undated rows go last.
+func isListedBeforeInUpNext(_ lhs: any UpNextMedia, _ rhs: any UpNextMedia) -> Bool {
+  let left = lhs.last_watched_at.flatMap { SimklDateParser.date(from: $0) } ?? .distantPast
+  let right = rhs.last_watched_at.flatMap { SimklDateParser.date(from: $0) } ?? .distantPast
+  if left != right { return left > right }
+  return (lhs.title ?? "").localizedStandardCompare(rhs.title ?? "") == .orderedAscending
+}
+
 extension UpNextMedia {
+  var upNextID: String { "\(type)-\(simkl)" }
+  var rewatch: RewatchSession? { nil }
+
   /// SIMKL's marker is authoritative; stale info or a future date is not watchable.
   func isAvailableUpNext(now: Date = Date()) -> Bool {
     guard let marker = next_to_watch,
@@ -64,22 +101,24 @@ struct UpNextView: View {
   @Environment(Auth.self) private var auth
   @AppStorage("hideAnime") private var hideAnime = false
   @AppStorage("upNextLayout") private var layout: ListLayout = .list
+  @AppStorage(RewatchStore.preferenceKey) private var trackRewatches = false
   @State private var searchText: String = ""
-  @State private var updatingIDs: Set<Int> = []
+  @State private var updatingIDs: Set<String> = []
   @State private var mutationError: String?
   @Environment(\.modelContext) private var context
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
+  private let rewatches = RewatchStore.shared
 
   private func markWatched(_ mediaItem: any UpNextMedia) {
     // SIMKL serializes writes per user; allow only one Up Next action at a
     // time, including the following reconciliation, even across different rows.
     guard updatingIDs.isEmpty else { return }
-    updatingIDs.insert(mediaItem.simkl)
+    updatingIDs.insert(mediaItem.upNextID)
     // The write and its resync can take a few seconds; show that work is running.
     globalLoadingIndicator.startSync()
     Task {
       defer {
-        updatingIDs.remove(mediaItem.simkl)
+        updatingIDs.remove(mediaItem.upNextID)
         globalLoadingIndicator.stopSync()
       }
       let isAnime = mediaItem.type == "anime"
@@ -106,7 +145,17 @@ struct UpNextView: View {
       #endif
 
       let result: SimklMutationResult
-      if isAnime {
+      if let session = mediaItem.rewatch {
+        let episode = RewatchEpisode(
+          season: episodeSelection.season, episode: episodeSelection.episode)
+        let logged = await RewatchMutation.markEpisodeWatched(
+          auth.simklAccessToken, session, episode)
+        result = logged.result
+        if result == .succeeded {
+          rewatches.record(episode, watched: true, sessionID: session.id)
+          if logged.completed { rewatches.complete(sessionID: session.id) }
+        }
+      } else if isAnime {
         result = await AnimeDetailView.markEpisodeWatched(
           auth.simklAccessToken,
           mediaItem.title ?? "",
@@ -167,9 +216,21 @@ struct UpNextView: View {
     }
   ) private var animes: [V1.SDAnimes]
 
+  /// Active rewatches, held to the same anime rules as the Watching rows. A
+  /// row whose episode was just logged stays only while its write is running;
+  /// it returns with the following episode once sync resolves it.
+  private var rewatchItems: [any UpNextMedia] {
+    guard trackRewatches, rewatches.isPlanEligible else { return [] }
+    return rewatches.state.sessions
+      .filter { $0.kind == .tv || (!hideAnime && $0.animeType == "tv") }
+      .map(RewatchUpNextItem.init)
+      .filter { !$0.session.isNextLogged || updatingIDs.contains($0.upNextID) }
+  }
+
   var filteredMedia: [any UpNextMedia] {
-    let candidates: [any UpNextMedia] = hideAnime ? Array(shows) : shows + animes
-    let allMedia = candidates.filter { $0.isAvailableUpNext() }
+    var candidates: [any UpNextMedia] = hideAnime ? Array(shows) : shows + animes
+    candidates += rewatchItems
+    let allMedia = candidates.filter { $0.isAvailableUpNext() }.sorted(by: isListedBeforeInUpNext)
     if searchText.isEmpty {
       return allMedia
     } else {
@@ -204,17 +265,18 @@ struct UpNextView: View {
           } else if layout == .grid {
             ScrollView {
               LazyVGrid(columns: posterGridColumns, spacing: 16) {
-                ForEach(filteredMedia, id: \.simkl) { mediaItem in
-                  MediaDetailLink(sourceID: "upnext-\(mediaItem.simkl)") {
+                ForEach(filteredMedia, id: \.upNextID) { mediaItem in
+                  MediaDetailLink(sourceID: "upnext-\(mediaItem.upNextID)") {
                     destinationView(for: mediaItem)
                   } label: {
                     PosterGridCell(
                       title: mediaItem.title ?? "",
                       poster: mediaItem.poster,
-                      badge: mediaItem.nextEpisodeBadge
+                      badge: mediaItem.nextEpisodeBadge,
+                      rewatching: mediaItem.rewatch != nil
                     )
                     .overlay {
-                      if updatingIDs.contains(mediaItem.simkl) { UpdatingIndicator() }
+                      if updatingIDs.contains(mediaItem.upNextID) { UpdatingIndicator() }
                     }
                   }
                   .buttonStyle(.plain)
@@ -234,8 +296,8 @@ struct UpNextView: View {
             }
             .upNextSwipeContainer()
           } else {
-            List(filteredMedia, id: \.simkl) { mediaItem in
-              MediaDetailLink(sourceID: "upnext-\(mediaItem.simkl)") {
+            List(filteredMedia, id: \.upNextID) { mediaItem in
+              MediaDetailLink(sourceID: "upnext-\(mediaItem.upNextID)") {
                 destinationView(for: mediaItem)
               } label: {
                 HStack {
@@ -252,6 +314,16 @@ struct UpNextView: View {
                       Text(title)
                         .font(.headline)
                         .padding(.top, 8)
+                    }
+                    if mediaItem.rewatch != nil {
+                      // Not a Label: List rows give a Label's icon its own column.
+                      HStack(spacing: 4) {
+                        Image(systemName: "arrow.counterclockwise")
+                        Text("Rewatching")
+                      }
+                      .font(.caption)
+                      .foregroundStyle(.tint)
+                      .accessibilityElement(children: .combine)
                     }
                     if let title = mediaItem.next_to_watch_info_title {
                       Text(title)
@@ -270,7 +342,7 @@ struct UpNextView: View {
                     }
                     Spacer()
                   }
-                  if updatingIDs.contains(mediaItem.simkl) {
+                  if updatingIDs.contains(mediaItem.upNextID) {
                     Spacer()
                     UpdatingIndicator()
                   }
@@ -448,7 +520,7 @@ struct UpNextPreviewCard: View {
           .foregroundStyle(.secondary)
         }
 
-        Text("Watching")
+        Text(mediaItem.rewatch == nil ? "Watching" : "Rewatching")
           .font(.caption)
           .padding(.horizontal, 8)
           .padding(.vertical, 4)

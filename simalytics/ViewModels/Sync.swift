@@ -194,6 +194,12 @@ private func runSyncLatestActivities(
         token, activity, ctx, forceRefresh: refreshUpNext)
     }
 
+    // Rewatch sessions are opt-in and kept outside SwiftData, so they never
+    // touch SDLastSync. Writes force `refreshUpNext`, which re-reads them too.
+    try await SyncFailureScope.step {
+      await syncRewatchSessions(accessToken, activities: result, refreshUpNext: refreshUpNext)
+    }
+
     // Stale-data refresh (per-id detail endpoints) also writes to SDLastSync,
     // so it's sequenced here for the same last-write-wins reason. Its internal
     // network work parallelizes independently — only the final SDLastSync

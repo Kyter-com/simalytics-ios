@@ -98,9 +98,9 @@ struct AnimeHeaderInfo: View {
         }
       }
     } else {
-      let watched = animeWatchlist?.episodes_watched ?? 0
-      let total = animeDetails?.total_episodes ?? 0
-      let percentage = total > 0 ? Int((Double(watched) / Double(total)) * 100) : 0
+      let percentage = watchedPercentage(
+        seasons: animeWatchlist?.seasons, episodesWatched: animeWatchlist?.episodes_watched,
+        total: animeDetails?.total_episodes)
       LabeledContent {
         Text("\(percentage)%")
           .fontDesign(.monospaced)
