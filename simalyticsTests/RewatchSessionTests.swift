@@ -231,6 +231,51 @@ struct RewatchSessionTests {
     #expect(result[1].episodes == Self.episodes(1, 1...3))
   }
 
+  static func movieRows(_ json: String) throws -> [MovieRewatchRowModel] {
+    try decodeSimklLibraryResponse(MovieRewatchRowModel.self, from: Data(json.utf8), key: "movies")
+  }
+
+  /// As live: each movie rewatch is its own row, already complete.
+  @Test("Each movie rewatch row is one rewatch; the first watch isn't one")
+  func movieRewatchIDs() throws {
+    let json = """
+      {"movies":[
+        {"movie":{"ids":{"simkl":53186,"slug":"gladiator"}},"is_rewatch":false},
+        {"movie":{"ids":{"simkl":53186,"slug":"gladiator"}},"is_rewatch":true,"rewatch_id":831262,"rewatch_status":"completed"},
+        {"movie":{"ids":{"simkl":53186,"slug":"gladiator"}},"is_rewatch":true,"rewatch_id":831260,"rewatch_status":"completed"},
+        {"movie":{"ids":{"simkl":54424}},"is_rewatch":false}
+      ]}
+      """
+    #expect(try MovieRewatches.ids(from: Self.movieRows(json)) == [53186: [831260, 831262]])
+    #expect(try MovieRewatches.ids(from: []) == [:])
+  }
+
+  @Test("Without SIMKL's rewatch flag, movie rewatches are unknown rather than none")
+  func movieRewatchIDsNeedTheFlag() throws {
+    let unflagged = """
+      {"movies":[{"movie":{"ids":{"simkl":53186}}}]}
+      """
+    #expect(try MovieRewatches.ids(from: Self.movieRows(unflagged)) == nil)
+    let malformed = """
+      {"movies":[{"movie":{"ids":{"simkl":53186}},"is_rewatch":true,"rewatch_status":"completed"}]}
+      """
+    #expect(throws: SimklMutationError.invalidResponse) {
+      try MovieRewatches.ids(from: Self.movieRows(malformed))
+    }
+  }
+
+  @Test("Movie rewatches logged or removed while a pull was in flight keep their local copy")
+  func reconcilesInFlightMovieRewatches() {
+    let base = [1: [10], 2: [20], 3: [30]]
+    // A rewatch of 1 was logged and 2's only one was removed; 3 was untouched.
+    let current = [1: [10, 11], 3: [30]]
+    // Meanwhile simkl.com added one to 3 and to 4.
+    let pulled = [1: [10], 2: [20], 3: [30, 31], 4: [40]]
+    #expect(
+      MovieRewatches.reconciled(pulled: pulled, base: base, current: current)
+        == [1: [10, 11], 3: [30, 31], 4: [40]])
+  }
+
   static let catalog = [
     RewatchCatalogEpisode(season: 1, episode: 1, title: "One", date: nil, aired: true),
     RewatchCatalogEpisode(season: 1, episode: 2, title: "Two", date: nil, aired: true),
@@ -444,5 +489,60 @@ struct RewatchStoreTests {
     #expect(!store.hasCountedSessions(.tv))
     #expect(store.hasCountedSessions(.anime))
     #expect(RewatchStore(fileURL: file, defaults: defaults).state.tv.baselineAt == nil)
+  }
+
+  @Test("An older cache keeps its sessions and counts movies on the next pull")
+  func cacheWithoutMovies() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: "rewatch-\(UUID())")
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let file = directory.appending(path: "state.json")
+    var state = RewatchStore.State()
+    state.accountType = "vip"
+    state.tv = RewatchStore.Cursor(activity: "2026-11-20T10:00:00Z", baselineAt: Date())
+    state.sessions = [RewatchSession(id: 1, simkl: 10, kind: .tv)]
+    var saved = try #require(
+      try JSONSerialization.jsonObject(with: JSONEncoder().encode(state)) as? [String: Any])
+    saved["movies"] = nil
+    saved["movieRewatchIDs"] = nil
+    try JSONSerialization.data(withJSONObject: saved).write(to: file)
+    let defaults = try #require(UserDefaults(suiteName: "rewatch-\(UUID())"))
+
+    let store = RewatchStore(fileURL: file, defaults: defaults)
+    #expect(store.isPlanEligible)
+    #expect(store.hasCountedSessions(.tv))
+    #expect(store.activeSession(simkl: 10, kind: .tv)?.id == 1)
+    #expect(!store.hasCountedMovieRewatches)
+    #expect(store.movieRewatchIDs(simkl: 53186).isEmpty)
+  }
+
+  @Test("Movie rewatches persist oldest first, and removing the last one clears the movie")
+  func movieRewatches() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: "rewatch-\(UUID())")
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let file = directory.appending(path: "state.json")
+    var state = RewatchStore.State()
+    state.movies = RewatchStore.Cursor(activity: "2026-11-20T10:00:00Z", baselineAt: Date())
+    try JSONEncoder().encode(state).write(to: file)
+    let defaults = try #require(UserDefaults(suiteName: "rewatch-\(UUID())"))
+
+    let store = RewatchStore(fileURL: file, defaults: defaults)
+    #expect(store.hasCountedMovieRewatches)
+    store.recordMovieRewatch(simkl: 53186, id: 831262)
+    store.recordMovieRewatch(simkl: 53186, id: 831260)
+    #expect(store.movieRewatchIDs(simkl: 53186) == [831260, 831262])
+
+    let reopened = RewatchStore(fileURL: file, defaults: defaults)
+    #expect(reopened.movieRewatchIDs(simkl: 53186) == [831260, 831262])
+    reopened.removeMovieRewatch(simkl: 53186, id: 831262)
+    #expect(reopened.movieRewatchIDs(simkl: 53186) == [831260])
+    reopened.removeMovieRewatch(simkl: 53186, id: 831260)
+    #expect(reopened.state.movieRewatchIDs.isEmpty)
+
+    reopened.recordMovieRewatch(simkl: 53186, id: 831264)
+    reopened.clearSessions()
+    #expect(!reopened.hasCountedMovieRewatches)
+    #expect(reopened.movieRewatchIDs(simkl: 53186).isEmpty)
   }
 }

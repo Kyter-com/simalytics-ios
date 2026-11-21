@@ -306,7 +306,7 @@ struct SettingsView: View {
             Text("Rewatches")
           } footer: {
             Text(
-              "Log each rewatch as its own viewing with separate episode progress, and see your next rewatch episode in Up Next. Requires Simkl PRO or VIP."
+              "Log each rewatch as its own viewing with separate episode progress, see your next rewatch episode in Up Next, and log movies you watch again. Requires Simkl PRO or VIP."
             )
           }
           .alert(

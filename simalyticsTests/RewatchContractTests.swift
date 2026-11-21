@@ -249,6 +249,84 @@ struct RewatchContractTests {
     }
     #expect(!paths.contains("GET /sync/all-items/shows/plantowatch full"))
   }
+
+  @Test("A movie rewatch is logged as watched now, and one SIMKL ignored isn't reported as logged")
+  func logsMovie() async {
+    let session = fixtureSession()
+    defer { session.invalidateAndCancel() }
+    let logged = await RewatchMutation.logMovie(
+      "movie-logged", simkl: 53186, title: "Gladiator", session: session)
+    #expect(logged == .logged(rewatchID: 831260))
+    let ignored = await RewatchMutation.logMovie(
+      "movie-ignored", simkl: 53186, title: "Gladiator", session: session)
+    #expect(ignored == .failed(userMessage: RewatchMutation.movieNotLoggedMessage))
+  }
+
+  @Test(
+    "Removing a movie rewatch deletes only that rewatch, or finds it already gone",
+    arguments: [
+      ("movie-removed", MovieRewatchRemovalResult.removed), ("movie-gone", .gone),
+    ])
+  func removesMovieRewatch(scenario: String, expected: MovieRewatchRemovalResult) async {
+    let session = fixtureSession()
+    defer { session.invalidateAndCancel() }
+    let result = await RewatchMutation.removeMovieRewatch(
+      scenario, simkl: 53186, rewatchID: 831260, session: session)
+    #expect(result == expected)
+    #expect(RewatchFixtureProtocol.requests(for: scenario) == ["POST remove rewatch 831260"])
+  }
+
+  @Test("Movie rewatches come from the movies' id list")
+  func movieRewatchList() async throws {
+    let session = fixtureSession()
+    defer { session.invalidateAndCancel() }
+    let ids = try await fetchMovieRewatchIDs(accessToken: "movie-list", session: session)
+    #expect(ids == [53186: [831260, 831262]])
+  }
+
+  @MainActor
+  @Test("Movie rewatches are read on the first sync, then only when the movies' activity moves")
+  func movieRewatchCadence() async throws {
+    let defaults = try #require(UserDefaults(suiteName: "rewatch-\(UUID())"))
+    defaults.set(true, forKey: RewatchStore.preferenceKey)
+    let counted = Date(timeIntervalSince1970: 1_800_000_000)
+
+    // Shows and anime are already counted and unchanged, so only movies may be read.
+    func sync(_ scenario: String, movies: String, cursor: RewatchStore.Cursor) async throws {
+      let directory = FileManager.default.temporaryDirectory.appending(path: "rewatch-\(UUID())")
+      defer { try? FileManager.default.removeItem(at: directory) }
+      try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+      let file = directory.appending(path: "state.json")
+      var seeded = RewatchStore.State()
+      seeded.accountType = "vip"
+      seeded.settingsActivity = "2026-11-01T00:00:00Z"
+      seeded.tv = RewatchStore.Cursor(activity: "2026-11-20T10:00:00Z", baselineAt: counted)
+      seeded.anime = RewatchStore.Cursor(activity: "2026-11-20T11:00:00Z", baselineAt: counted)
+      seeded.movies = cursor
+      try JSONEncoder().encode(seeded).write(to: file)
+      let activities = try JSONDecoder().decode(
+        LastActivitiesModel.self,
+        from: Data(
+          #"""
+          {"settings":{"all":"2026-11-01T00:00:00Z"},"tv_shows":{"all":"2026-11-20T10:00:00Z"},
+           "anime":{"all":"2026-11-20T11:00:00Z"},"movies":{"all":"\#(movies)"}}
+          """#.utf8))
+      let session = fixtureSession()
+      defer { session.invalidateAndCancel() }
+      await syncRewatchSessions(
+        scenario, activities: activities, refreshUpNext: false,
+        store: RewatchStore(fileURL: file, defaults: defaults), session: session)
+    }
+
+    let read = ["GET /sync/all-items/movies simkl_ids_only"]
+    try await sync("movie-first", movies: "2026-11-20T12:00:00Z", cursor: RewatchStore.Cursor())
+    #expect(RewatchFixtureProtocol.requests(for: "movie-first") == read)
+    let current = RewatchStore.Cursor(activity: "2026-11-20T12:00:00Z", baselineAt: counted)
+    try await sync("movie-idle", movies: "2026-11-20T12:00:00Z", cursor: current)
+    #expect(RewatchFixtureProtocol.requests(for: "movie-idle").isEmpty)
+    try await sync("movie-moved", movies: "2026-11-20T13:00:00Z", cursor: current)
+    #expect(RewatchFixtureProtocol.requests(for: "movie-moved") == read)
+  }
 }
 
 /// No live writes: a request that doesn't match the documented rewatch shape
@@ -294,15 +372,23 @@ private final class RewatchFixtureProtocol: URLProtocol, @unchecked Sendable {
         $0.append((scenario, "GET \(library) \(query["extended"] ?? "")"))
       }
       reply = self.library(scenario, query, status: status.isEmpty ? nil : status)
+    case ("GET", "/sync/all-items/movies"):
+      Self.log.withLock {
+        $0.append((scenario, "GET /sync/all-items/movies \(query["extended"] ?? "")"))
+      }
+      reply = movieRewatchList(scenario, query)
     case ("GET", "/tv/episodes/17465"): reply = (200, Self.catalog)
     case ("GET", "/users/settings"):
+      Self.log.withLock { $0.append((scenario, "GET /users/settings")) }
       reply = (
         200,
         scenario == "vip"
           ? #"{"user":{"name":"andy"},"account":{"id":1,"timezone":"UTC","type":"vip"}}"#
           : #"{"user":{"name":"andy"}}"#
       )
-    default: reply = (500, "{}")
+    default:
+      Self.log.withLock { $0.append((scenario, "\(method) \(path) unexpected")) }
+      reply = (500, "{}")
     }
     let status = hasAppParameters ? reply.0 : 400
     let response = HTTPURLResponse(
@@ -332,7 +418,7 @@ private final class RewatchFixtureProtocol: URLProtocol, @unchecked Sendable {
     return data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
   }
 
-  /// The single item under `shows` or `anime`, and which key held it.
+  /// The single item under `shows`, `anime`, or `movies`, and which key held it.
   private var payload: (key: String, item: [String: Any])? {
     guard let body, body.count == 1, let key = body.keys.first,
       let items = body[key] as? [[String: Any]], items.count == 1
@@ -421,6 +507,27 @@ private final class RewatchFixtureProtocol: URLProtocol, @unchecked Sendable {
         )
       }
 
+    case "movie-logged", "movie-ignored":
+      let watchedAt = (item["watched_at"] as? String).flatMap {
+        ISO8601DateFormatter().date(from: $0)
+      }
+      guard query["skip_auto_watching"] == nil, key == "movies", ids?["simkl"] as? Int == 53186,
+        item["title"] as? String == "Gladiator", watchedAt != nil, item["rewatch_id"] == nil,
+        item["rewatch_status"] == nil, item["seasons"] == nil
+      else { return (400, "{}") }
+      if scenario == "movie-ignored" {
+        // As live: a second viewing within 2 days adds nothing and opens no rewatch.
+        return (
+          201,
+          #"{"added":{"movies":0,"shows":0,"episodes":0,"statuses":[{"request":{},"response":{"status":"completed","simkl_type":"movie","anime_type":null}}]},"not_found":{"movies":[],"shows":[],"episodes":[]}}"#
+        )
+      }
+      // As live: the rewatch is complete as soon as it's logged.
+      return (
+        201,
+        #"{"added":{"movies":1,"shows":0,"episodes":0,"statuses":[{"request":{},"response":{"status":"completed","simkl_type":"movie","anime_type":null,"rewatch_id":831260,"rewatch_status":"completed"}}]},"not_found":{"movies":[],"shows":[],"episodes":[]}}"#
+      )
+
     case "closed", "completed", "forked-stop":
       guard query["skip_auto_watching"] == "yes", key == "shows", ids?["simkl"] as? Int == 17465,
         item["rewatch_id"] as? Int == 7482, item["rewatch_status"] as? String == "closed",
@@ -444,7 +551,9 @@ private final class RewatchFixtureProtocol: URLProtocol, @unchecked Sendable {
   }
 
   private func removal(_ scenario: String, _ query: [String: String]) -> (Int, String) {
-    guard query["allow_rewatch"] == nil, let payload, payload.key == "shows",
+    guard query["allow_rewatch"] == nil, let payload else { return (400, "{}") }
+    if payload.key == "movies" { return movieRemoval(scenario, payload.item) }
+    guard payload.key == "shows",
       (payload.item["ids"] as? [String: Any])?["simkl"] as? Int == 17465
     else { return (400, "{}") }
     let rewatchID = payload.item["rewatch_id"] as? Int
@@ -475,6 +584,43 @@ private final class RewatchFixtureProtocol: URLProtocol, @unchecked Sendable {
       return (400, "{}")
     }
     return (201, #"{"deleted":{\#(deleted)},"not_found":{"movies":[],"shows":[],"episodes":[]}}"#)
+  }
+
+  /// Only the movie and its `rewatch_id`, so the first watch is never touched.
+  private func movieRemoval(_ scenario: String, _ item: [String: Any]) -> (Int, String) {
+    guard item.count == 2, (item["ids"] as? [String: Any])?["simkl"] as? Int == 53186,
+      item["rewatch_id"] as? Int == 831260
+    else { return (400, "{}") }
+    switch scenario {
+    case "movie-removed":
+      return (
+        201,
+        #"{"deleted":{"movies":0,"shows":0,"episodes":0,"rewatches":1,"rewatch_episodes":0},"not_found":{"movies":[],"shows":[],"episodes":[]}}"#
+      )
+    case "movie-gone":
+      // As live: a rewatch already deleted comes back under not_found.
+      return (
+        201,
+        #"{"deleted":{"movies":0,"shows":0,"episodes":0,"rewatches":0,"rewatch_episodes":0},"not_found":{"movies":[{"ids":{"simkl":53186},"rewatch_id":831260,"type":"movie"}],"shows":[],"episodes":[]}}"#
+      )
+    default:
+      return (400, "{}")
+    }
+  }
+
+  /// The movies' `simkl_ids_only` list, as live: one row per rewatch.
+  private func movieRewatchList(_ scenario: String, _ query: [String: String]) -> (Int, String) {
+    guard query["allow_rewatch"] == "yes", query["extended"] == "simkl_ids_only",
+      query["date_from"] == nil,
+      ["movie-list", "movie-first", "movie-moved"].contains(scenario)
+    else { return (400, "{}") }
+    func row(_ simkl: Int, rewatch: Int? = nil) -> String {
+      guard let rewatch else { return #"{"movie":{"ids":{"simkl":\#(simkl)}},"is_rewatch":false}"# }
+      return
+        #"{"movie":{"ids":{"simkl":\#(simkl),"slug":"gladiator"}},"is_rewatch":true,"rewatch_id":\#(rewatch),"rewatch_status":"completed"}"#
+    }
+    let rows = [row(53186), row(53186, rewatch: 831262), row(53186, rewatch: 831260), row(54424)]
+    return (200, #"{"movies":[\#(rows.joined(separator: ","))]}"#)
   }
 
   private func library(_ scenario: String, _ query: [String: String], status: String?) -> (

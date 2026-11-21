@@ -73,9 +73,44 @@ func syncRewatchSessions(
       try await SyncFailureScope.check()
       await store.apply(pull, kind: kind, base: base, accessToken: accessToken)
     }
+
+    // Movie rewatches are complete as they're logged, so a movie needs only
+    // its rewatch ids. Logging, deleting, or a rewatch on simkl.com moves the
+    // movies' `all` activity, so read the list only when it does.
+    try await SyncFailureScope.check()
+    let moviesActivity = activities.movies?.all
+    if state.movies.baselineAt == nil
+      || (moviesActivity != nil && moviesActivity != state.movies.activity),
+      let pulled = try await fetchMovieRewatchIDs(accessToken: accessToken, session: session)
+    {
+      try await SyncFailureScope.check()
+      await store.applyMovieRewatches(
+        pulled,
+        cursor: RewatchStore.Cursor(
+          activity: moviesActivity ?? state.movies.activity,
+          baselineAt: state.movies.baselineAt ?? now),
+        base: state.movieRewatchIDs, accessToken: accessToken)
+    }
   } catch {
     await SyncFailureScope.report(error)
   }
+}
+
+/// Every movie's saved rewatch ids. Nil when SIMKL didn't apply `allow_rewatch`.
+func fetchMovieRewatchIDs(accessToken: String, session: URLSession = .shared) async throws
+  -> [Int: [Int]]?
+{
+  var request = URLRequest(
+    url: simklAPIURL(
+      path: "sync/all-items/movies",
+      queryItems: [
+        URLQueryItem(name: "allow_rewatch", value: "yes"),
+        URLQueryItem(name: "extended", value: "simkl_ids_only"),
+      ]))
+  request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+  let (data, _) = try await performSimklRequest(request, session: session)
+  return try MovieRewatches.ids(
+    from: decodeSimklLibraryResponse(MovieRewatchRowModel.self, from: data, key: "movies"))
 }
 
 /// Nil when nothing changed: no pull was due and every next episode is known.

@@ -25,6 +25,20 @@ struct RewatchRemovalResult: Equatable, Sendable {
   let sessionEnded: Bool
 }
 
+enum MovieRewatchLogResult: Equatable, Sendable {
+  case logged(rewatchID: Int)
+  case cancelled
+  case failed(userMessage: String)
+}
+
+enum MovieRewatchRemovalResult: Equatable, Sendable {
+  case removed
+  /// SIMKL no longer had it, such as one deleted on simkl.com.
+  case gone
+  case cancelled
+  case failed(userMessage: String)
+}
+
 /// Writes for one rewatch session. Each comes from an explicit user action and
 /// pins the session's `rewatch_id`; none are retried automatically, because
 /// SIMKL warns that retried rewatch writes create phantom sessions.
@@ -36,6 +50,69 @@ enum RewatchMutation {
     "Simkl didn't start a rewatch. Rewatch tracking needs Simkl PRO or VIP, and each title can be rewatched up to 50 times."
   static let notStoppedMessage = "Simkl didn't stop this rewatch. Please try again."
   static let sessionGoneMessage = "This rewatch is no longer on Simkl, so it's been removed here."
+  static let movieNotLoggedMessage =
+    "Simkl didn't log this rewatch. It skips a movie watched again within 2 days of the last time."
+
+  /// Logs a rewatch of a movie the user completed. SIMKL marks it complete
+  /// right away; a reply that adds no movie means it was ignored, such as a
+  /// second viewing within 2 days.
+  static func logMovie(
+    _ accessToken: String, simkl: Int, title: String?, session: URLSession = .shared
+  ) async -> MovieRewatchLogResult {
+    guard simkl > 0 else {
+      let error = SimklMutationError.mediaNotFound
+      reportError(error)
+      return .failed(userMessage: simklMutationUserMessage(for: error))
+    }
+
+    do {
+      var item: [String: Any] = [
+        "ids": ["simkl": simkl], "is_rewatch": true,
+        "watched_at": ISO8601DateFormatter().string(from: Date()),
+      ]
+      if let title { item["title"] = title }
+      let request = try historyRequest(accessToken, key: "movies", item: item)
+      let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
+      let acknowledgement = try parseRewatchHistoryResponse(data, singleEpisode: false)
+      guard acknowledgement.addedMovies == 1, let rewatchID = acknowledgement.rewatchID,
+        rewatchID > 0
+      else { return .failed(userMessage: movieNotLoggedMessage) }
+      return .logged(rewatchID: rewatchID)
+    } catch {
+      switch await failure(error) {
+      case .failed(let message): return .failed(userMessage: message)
+      case .cancelled, .succeeded: return .cancelled
+      }
+    }
+  }
+
+  /// Deletes one movie rewatch; the first watch is untouched.
+  static func removeMovieRewatch(
+    _ accessToken: String, simkl: Int, rewatchID: Int, session: URLSession = .shared
+  ) async -> MovieRewatchRemovalResult {
+    guard simkl > 0, rewatchID > 0 else {
+      let error = SimklMutationError.mediaNotFound
+      reportError(error)
+      return .failed(userMessage: simklMutationUserMessage(for: error))
+    }
+
+    do {
+      var request = URLRequest(url: simklAPIURL(path: "sync/history/remove"))
+      request.httpMethod = "POST"
+      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.httpBody = try JSONSerialization.data(withJSONObject: [
+        "movies": [["ids": ["simkl": simkl], "rewatch_id": rewatchID]]
+      ])
+      let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
+      guard try validateRewatchRemovalResponse(data) else { throw SimklMutationError.mediaNotFound }
+      return .removed
+    } catch {
+      if isSimklCancellationError(error) { return .cancelled }
+      if error as? SimklMutationError == .mediaNotFound { return .gone }
+      reportError(error)
+      return .failed(userMessage: simklMutationUserMessage(for: error))
+    }
+  }
 
   static func markEpisodeWatched(
     _ accessToken: String, _ rewatch: RewatchSession, _ episode: RewatchEpisode,
@@ -208,6 +285,14 @@ enum RewatchMutation {
   private static func historyRequest(
     _ accessToken: String, kind: RewatchKind, item: [String: Any], skipAutoWatching: Bool = false
   ) throws -> URLRequest {
+    try historyRequest(
+      accessToken, key: kind.libraryKey, item: item, skipAutoWatching: skipAutoWatching)
+  }
+
+  /// `key` is the body's list: `shows`, `anime`, or `movies`.
+  private static func historyRequest(
+    _ accessToken: String, key: String, item: [String: Any], skipAutoWatching: Bool = false
+  ) throws -> URLRequest {
     var queryItems = [URLQueryItem(name: "allow_rewatch", value: "yes")]
     if skipAutoWatching {
       queryItems.append(URLQueryItem(name: "skip_auto_watching", value: "yes"))
@@ -215,7 +300,7 @@ enum RewatchMutation {
     var request = URLRequest(url: simklAPIURL(path: "sync/history", queryItems: queryItems))
     request.httpMethod = "POST"
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-    request.httpBody = try JSONSerialization.data(withJSONObject: [kind.libraryKey: [item]])
+    request.httpBody = try JSONSerialization.data(withJSONObject: [key: [item]])
     return request
   }
 
@@ -242,12 +327,18 @@ struct RewatchHistoryAcknowledgement: Equatable, Sendable {
   /// Sessions the write created. Zero on a Start means SIMKL returned the
   /// title's existing active session.
   var addedShows = 0
+  /// Movie rewatches the write created; zero means SIMKL ignored it.
+  var addedMovies = 0
   let rewatchID: Int?
   let rewatchStatus: String?
 
-  init(addedEpisodes: Int, addedShows: Int = 0, rewatchID: Int?, rewatchStatus: String?) {
+  init(
+    addedEpisodes: Int, addedShows: Int = 0, addedMovies: Int = 0, rewatchID: Int?,
+    rewatchStatus: String?
+  ) {
     self.addedEpisodes = addedEpisodes
     self.addedShows = addedShows
+    self.addedMovies = addedMovies
     self.rewatchID = rewatchID
     self.rewatchStatus = rewatchStatus
   }
@@ -275,6 +366,7 @@ func parseRewatchHistoryResponse(_ data: Data, singleEpisode: Bool) throws
   return RewatchHistoryAcknowledgement(
     addedEpisodes: addedEpisodes,
     addedShows: (response.added.shows ?? 0) + (response.added.anime ?? 0),
+    addedMovies: response.added.movies ?? 0,
     rewatchID: outcome?.rewatch_id, rewatchStatus: outcome?.rewatch_status)
 }
 
@@ -311,6 +403,7 @@ private struct RewatchHistoryResponse: Decodable {
     let episodes: Int?
     let shows: Int?
     let anime: Int?
+    let movies: Int?
     let statuses: [Status]?
   }
 

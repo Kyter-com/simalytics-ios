@@ -40,6 +40,19 @@ struct RewatchRowModel: Decodable, Sendable {
   }
 }
 
+/// One `/sync/all-items/movies?allow_rewatch=yes&extended=simkl_ids_only` row.
+/// SIMKL completes a movie rewatch as it's logged, so only its id matters.
+struct MovieRewatchRowModel: Decodable, Sendable {
+  let is_rewatch: Bool?
+  let rewatch_id: Int?
+  let rewatch_status: String?
+  let movie: Movie?
+
+  struct Movie: Decodable, Sendable {
+    let ids: RewatchRowModel.IDs?
+  }
+}
+
 /// The plan field of `GET /users/settings`; rewatches need `pro` or `vip`.
 struct SimklUserSettingsModel: Decodable, Sendable {
   struct Account: Decodable, Sendable {

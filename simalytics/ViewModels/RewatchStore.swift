@@ -40,6 +40,15 @@ final class RewatchStore {
     /// Saved sessions of any status per title, for the 50-session cap.
     var tvSessionCounts: [Int: Int] = [:]
     var animeSessionCounts: [Int: Int] = [:]
+    /// Movies only need their rewatch ids, read from the `simkl_ids_only` list.
+    var movies = Cursor()
+    /// Each movie's saved rewatch ids, oldest first.
+    var movieRewatchIDs: [Int: [Int]] = [:]
+
+    enum CodingKeys: String, CodingKey {
+      case accountType, settingsActivity, sessions, tv, anime, tvSessionCounts
+      case animeSessionCounts, movies, movieRewatchIDs
+    }
 
     var isPlanEligible: Bool { accountType == "pro" || accountType == "vip" }
 
@@ -92,6 +101,11 @@ final class RewatchStore {
     state.cursor(for: kind).baselineAt != nil
   }
 
+  /// Until the first movie pull lands, movie rewatches haven't been counted.
+  var hasCountedMovieRewatches: Bool { state.movies.baselineAt != nil }
+
+  func movieRewatchIDs(simkl: Int) -> [Int] { state.movieRewatchIDs[simkl] ?? [] }
+
   // MARK: - Sync
 
   /// A plan without rewatches also drops the local sessions. They stay on the
@@ -127,7 +141,31 @@ final class RewatchStore {
     save()
   }
 
+  /// Replaces every movie's rewatch ids with a pull that started from `base`.
+  func applyMovieRewatches(
+    _ pulled: [Int: [Int]], cursor: Cursor, base: [Int: [Int]], accessToken: String
+  ) {
+    guard SyncAccount.isActive(accessToken), isTrackingEnabled else { return }
+    state.movieRewatchIDs = MovieRewatches.reconciled(
+      pulled: pulled, base: base, current: state.movieRewatchIDs)
+    state.movies = cursor
+    save()
+  }
+
   // MARK: - Writes
+
+  /// A movie rewatch the user just logged.
+  func recordMovieRewatch(simkl: Int, id: Int) {
+    state.movieRewatchIDs[simkl, default: []].append(id)
+    state.movieRewatchIDs[simkl]?.sort()
+    save()
+  }
+
+  func removeMovieRewatch(simkl: Int, id: Int) {
+    state.movieRewatchIDs[simkl]?.removeAll { $0 == id }
+    if state.movieRewatchIDs[simkl]?.isEmpty == true { state.movieRewatchIDs[simkl] = nil }
+    save()
+  }
 
   /// Shows a confirmed episode write before the follow-up sync lands.
   func record(_ episode: RewatchEpisode, watched: Bool, sessionID: Int) {
@@ -196,6 +234,8 @@ final class RewatchStore {
     state.anime = Cursor()
     state.tvSessionCounts = [:]
     state.animeSessionCounts = [:]
+    state.movies = Cursor()
+    state.movieRewatchIDs = [:]
     save()
   }
 
@@ -216,5 +256,26 @@ final class RewatchStore {
       at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
     guard let data = try? JSONEncoder().encode(state) else { return }
     try? data.write(to: fileURL, options: .atomic)
+  }
+}
+
+/// A cache written by an earlier version may lack newer fields; those start
+/// empty, which only costs a pull, instead of discarding the whole cache.
+extension RewatchStore.State {
+  init(from decoder: Decoder) throws {
+    self.init()
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    accountType = try container.decodeIfPresent(String.self, forKey: .accountType)
+    settingsActivity = try container.decodeIfPresent(String.self, forKey: .settingsActivity)
+    sessions = try container.decodeIfPresent([RewatchSession].self, forKey: .sessions) ?? []
+    tv = try container.decodeIfPresent(RewatchStore.Cursor.self, forKey: .tv) ?? .init()
+    anime = try container.decodeIfPresent(RewatchStore.Cursor.self, forKey: .anime) ?? .init()
+    tvSessionCounts =
+      try container.decodeIfPresent([Int: Int].self, forKey: .tvSessionCounts) ?? [:]
+    animeSessionCounts =
+      try container.decodeIfPresent([Int: Int].self, forKey: .animeSessionCounts) ?? [:]
+    movies = try container.decodeIfPresent(RewatchStore.Cursor.self, forKey: .movies) ?? .init()
+    movieRewatchIDs =
+      try container.decodeIfPresent([Int: [Int]].self, forKey: .movieRewatchIDs) ?? [:]
   }
 }

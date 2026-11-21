@@ -167,6 +167,8 @@ struct MovieDetailView: View {
           addMemo: { showingMemoSheet = true },
           whereToWatch: { showingJustWatchSheet = true })
 
+        MovieRewatchCard(simkl: simkl_id, title: movieDetails?.title, status: watchlistStatus)
+
         CastRow(cast: cast)
 
         Recommendations(recommendations: movieDetails?.users_recommendations)

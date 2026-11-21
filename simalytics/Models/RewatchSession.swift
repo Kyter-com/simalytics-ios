@@ -316,3 +316,37 @@ extension RewatchSession {
       date: candidate.date)
   }
 }
+
+// MARK: - Movie rewatches
+
+/// SIMKL completes a movie rewatch as soon as it's logged, so a movie only
+/// needs its saved rewatch ids: how many, and which is the latest.
+enum MovieRewatches {
+  /// Each movie's rewatch ids, oldest first, from a `simkl_ids_only` list.
+  /// Nil when SIMKL didn't apply `allow_rewatch`, since the rewatches are then
+  /// unknown rather than gone.
+  static func ids(from rows: [MovieRewatchRowModel]) throws -> [Int: [Int]]? {
+    guard rows.isEmpty || rows.contains(where: { $0.is_rewatch != nil }) else { return nil }
+    var ids: [Int: [Int]] = [:]
+    for row in rows where row.is_rewatch == true {
+      guard let simkl = row.movie?.ids?.simkl, simkl > 0, let id = row.rewatch_id, id > 0 else {
+        throw SimklMutationError.invalidResponse
+      }
+      ids[simkl, default: []].append(id)
+    }
+    return ids.mapValues { $0.sorted() }
+  }
+
+  /// Lands a pull that started from `base` on top of `current`: a movie whose
+  /// rewatches changed locally meanwhile keeps the local copy until the sync
+  /// its write queued.
+  static func reconciled(pulled: [Int: [Int]], base: [Int: [Int]], current: [Int: [Int]])
+    -> [Int: [Int]]
+  {
+    var result = pulled
+    for simkl in Set(base.keys).union(current.keys) where base[simkl] != current[simkl] {
+      result[simkl] = current[simkl]
+    }
+    return result.filter { !$0.value.isEmpty }
+  }
+}
