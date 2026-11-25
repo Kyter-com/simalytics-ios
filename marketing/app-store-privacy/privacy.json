@@ -54,6 +54,15 @@
       "dataProtections": [
         "DATA_LINKED_TO_YOU"
       ]
+    },
+    {
+      "category": "SEARCH_HISTORY",
+      "purposes": [
+        "APP_FUNCTIONALITY"
+      ],
+      "dataProtections": [
+        "DATA_LINKED_TO_YOU"
+      ]
     }
   ]
 }
