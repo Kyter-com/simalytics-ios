@@ -56,7 +56,6 @@ private func ensureLastSyncRecord(_ container: ModelContainer) async throws {
 }
 
 func syncLatestActivities(
-  _ accessToken: String,
   modelContainer: ModelContainer,
   forceRefresh: Bool = false
 ) async {
@@ -66,17 +65,25 @@ func syncLatestActivities(
     // mark-watched) is a no-op. See ScreenshotMode.
     if ScreenshotMode.isActive { return }
   #endif
-  // A caller that captured a token before sign-out must not resync that account.
-  guard SyncAccount.isActive(accessToken) else { return }
+  // Nothing to do while signed out, waiting to reconnect, or out of Simkl's
+  // daily allowance.
+  guard await SimklAPI.session.syncAccountID() != nil else { return }
   var runForceRefresh = forceRefresh
   guard await syncLatestActivitiesGate.begin(forceRefresh: forceRefresh) else { return }
 
   while true {
+    // Each run writes for the account that's current when it starts. Signing
+    // out or switching accounts stops it at its next check, and the run the new
+    // account queued then starts here for that account.
+    guard let account = await SimklAPI.session.syncAccountID() else {
+      _ = await syncLatestActivitiesGate.finishCurrentRun(discardPending: true)
+      break
+    }
     let syncStartedAt = Date()
     addSyncLifecycleBreadcrumb(message: "Sync started", forceRefresh: runForceRefresh)
-    let outcome = await SyncFailureScope.perform(accessToken: accessToken) {
+    let outcome = await SyncFailureScope.perform(account: account) {
       await runSyncLatestActivities(
-        accessToken, modelContainer: modelContainer, forceRefresh: runForceRefresh)
+        account, modelContainer: modelContainer, forceRefresh: runForceRefresh)
     }
     addSyncLifecycleBreadcrumb(
       message: outcome == .succeeded ? "Sync completed" : "Sync interrupted",
@@ -84,8 +91,11 @@ func syncLatestActivities(
       duration: Date().timeIntervalSince(syncStartedAt)
     )
 
+    // A run cancelled because the account changed must not drop the run the
+    // new account queued meanwhile.
+    let accountChanged = await SimklAPI.session.syncAccountID() != account
     let nextForceRefresh = await syncLatestActivitiesGate.finishCurrentRun(
-      discardPending: outcome.shouldDiscardPendingSync
+      discardPending: outcome.shouldDiscardPendingSync && !accountChanged
     )
     if case .storageFailure(let failure) = outcome {
       await MainActor.run {
@@ -117,7 +127,7 @@ private func addSyncLifecycleBreadcrumb(
 }
 
 private func runSyncLatestActivities(
-  _ accessToken: String,
+  _ account: UUID,
   modelContainer: ModelContainer,
   forceRefresh: Bool = false
 ) async {
@@ -128,8 +138,7 @@ private func runSyncLatestActivities(
     let urlComponents = URLComponents(string: "https://api.simkl.com/sync/activities")!
     var request = URLRequest(url: urlComponents.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let result = try JSONDecoder().decode(LastActivitiesModel.self, from: data)
@@ -150,35 +159,34 @@ private func runSyncLatestActivities(
     // guidance. Each call gets a fresh ModelContext so the context stays
     // confined to a single unit of work.
     //
-    // The `step` helper folds the repeated `accessToken + new context`
-    // boilerplate so future edits only have to touch the per-bucket list
+    // The `step` helper folds the repeated new-context boilerplate so
+    // future edits only have to touch the per-bucket list
     // below. Watching summaries also refresh on the six-hour catalog gate,
     // since catalog corrections need not appear in a user-activity delta.
-    func step(_ activity: String?, _ handler: (String, String?, ModelContext) async -> Void) async throws {
+    func step(_ activity: String?, _ handler: (String?, ModelContext) async -> Void) async throws {
       try await SyncFailureScope.step {
-        await handler(accessToken, activity, makeSyncContext(modelContainer))
+        await handler(activity, makeSyncContext(modelContainer))
       }
     }
 
-    try await step(result.movies?.plantowatch) { token, activity, context in
-      await fetchAndStoreMoviesPlanToWatch(token, activity, context)
+    try await step(result.movies?.plantowatch) { activity, context in
+      await fetchAndStoreMoviesPlanToWatch(activity, context)
     }
     try await step(result.movies?.dropped, fetchAndStoreMoviesDropped)
     try await step(result.movies?.completed, fetchAndStoreMoviesCompleted)
-    try await step(result.movies?.removed_from_list) { token, activity, context in
-      await fetchAndStoreMoviesRemovedFromList(token, activity, context)
+    try await step(result.movies?.removed_from_list) { activity, context in
+      await fetchAndStoreMoviesRemovedFromList(activity, context)
     }
     try await step(result.movies?.rated_at, fetchAndStoreMoviesRatedAt)
     try await step(result.tv_shows?.plantowatch, fetchAndStoreTVPlanToWatch)
     try await step(result.tv_shows?.completed, fetchAndStoreTVCompleted)
     try await step(result.tv_shows?.hold, fetchAndStoreTVHold)
     try await step(result.tv_shows?.dropped, fetchAndStoreTVDropped)
-    try await step(result.tv_shows?.watching) { token, activity, ctx in
-      showsRefreshed = await fetchAndStoreTVWatching(
-        token, activity, ctx, forceRefresh: refreshUpNext)
+    try await step(result.tv_shows?.watching) { activity, ctx in
+      showsRefreshed = await fetchAndStoreTVWatching(activity, ctx, forceRefresh: refreshUpNext)
     }
-    try await step(result.tv_shows?.removed_from_list) { token, activity, context in
-      await fetchAndStoreTVRemovedFromList(token, activity, context)
+    try await step(result.tv_shows?.removed_from_list) { activity, context in
+      await fetchAndStoreTVRemovedFromList(activity, context)
     }
     try await step(result.tv_shows?.rated_at, fetchAndStoreTVRatedAt)
     try await step(result.anime?.plantowatch, fetchAndStoreAnimePlanToWatch)
@@ -186,18 +194,17 @@ private func runSyncLatestActivities(
     try await step(result.anime?.completed, fetchAndStoreAnimeCompleted)
     try await step(result.anime?.hold, fetchAndStoreAnimeHold)
     try await step(result.anime?.rated_at, fetchAndStoreAnimeRatedAt)
-    try await step(result.anime?.removed_from_list) { token, activity, context in
-      await fetchAndStoreAnimeRemovedFromList(token, activity, context)
+    try await step(result.anime?.removed_from_list) { activity, context in
+      await fetchAndStoreAnimeRemovedFromList(activity, context)
     }
-    try await step(result.anime?.watching) { token, activity, ctx in
-      animeRefreshed = await fetchAndStoreAnimeWatching(
-        token, activity, ctx, forceRefresh: refreshUpNext)
+    try await step(result.anime?.watching) { activity, ctx in
+      animeRefreshed = await fetchAndStoreAnimeWatching(activity, ctx, forceRefresh: refreshUpNext)
     }
 
     // Rewatch sessions are opt-in and kept outside SwiftData, so they never
     // touch SDLastSync. Writes force `refreshUpNext`, which re-reads them too.
     try await SyncFailureScope.step {
-      await syncRewatchSessions(accessToken, activities: result, refreshUpNext: refreshUpNext)
+      await syncRewatchSessions(account, activities: result, refreshUpNext: refreshUpNext)
     }
 
     // Stale-data refresh (per-id detail endpoints) also writes to SDLastSync,
@@ -205,7 +212,7 @@ private func runSyncLatestActivities(
     // network work parallelizes independently — only the final SDLastSync
     // write needs ordering. Explore's trending data lives in DiscoverStore.
     try await SyncFailureScope.step {
-      await refreshStaleData(accessToken, makeSyncContext(modelContainer))
+      await refreshStaleData(makeSyncContext(modelContainer))
     }
 
     // Trust SIMKL's next_to_watch marker instead of rebuilding it from counts
@@ -229,7 +236,7 @@ private func runSyncLatestActivities(
 }
 
 func fetchAndStoreMoviesPlanToWatch(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext,
+  _ lastActivity: String?, _ context: ModelContext,
   session: URLSession = .shared
 ) async {
   guard let lastActivity = lastActivity else { return }
@@ -264,8 +271,7 @@ func fetchAndStoreMoviesPlanToWatch(
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request, session: session)
     let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
@@ -285,7 +291,7 @@ func fetchAndStoreMoviesPlanToWatch(
   }
 }
 
-func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesDropped(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -317,8 +323,7 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
@@ -337,7 +342,7 @@ func fetchAndStoreMoviesDropped(_ accessToken: String, _ lastActivity: String?, 
   }
 }
 
-func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesCompleted(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -369,8 +374,7 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
@@ -389,7 +393,7 @@ func fetchAndStoreMoviesCompleted(_ accessToken: String, _ lastActivity: String?
   }
 }
 
-func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext, session: URLSession = .shared) async {
+func fetchAndStoreMoviesRemovedFromList(_ lastActivity: String?, _ context: ModelContext, session: URLSession = .shared) async {
   guard let lastActivity = lastActivity else { return }
 
   do {
@@ -409,8 +413,7 @@ func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: S
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request, session: session)
     let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
@@ -438,7 +441,7 @@ func fetchAndStoreMoviesRemovedFromList(_ accessToken: String, _ lastActivity: S
   }
 }
 
-func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreMoviesRatedAt(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -469,8 +472,7 @@ func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, 
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let movies = try decodeSimklLibraryResponse(MoviesModel_movie.self, from: data, key: "movies")
@@ -489,7 +491,7 @@ func fetchAndStoreMoviesRatedAt(_ accessToken: String, _ lastActivity: String?, 
   }
 }
 
-func fetchAndStoreTVPlanToWatch(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreTVPlanToWatch(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -520,8 +522,7 @@ func fetchAndStoreTVPlanToWatch(_ accessToken: String, _ lastActivity: String?, 
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
@@ -541,7 +542,7 @@ func fetchAndStoreTVPlanToWatch(_ accessToken: String, _ lastActivity: String?, 
   }
 }
 
-func fetchAndStoreTVCompleted(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreTVCompleted(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -572,8 +573,7 @@ func fetchAndStoreTVCompleted(_ accessToken: String, _ lastActivity: String?, _ 
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
@@ -592,7 +592,7 @@ func fetchAndStoreTVCompleted(_ accessToken: String, _ lastActivity: String?, _ 
   }
 }
 
-func fetchAndStoreTVHold(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreTVHold(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -623,8 +623,7 @@ func fetchAndStoreTVHold(_ accessToken: String, _ lastActivity: String?, _ conte
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
@@ -643,7 +642,7 @@ func fetchAndStoreTVHold(_ accessToken: String, _ lastActivity: String?, _ conte
   }
 }
 
-func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreTVDropped(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -674,8 +673,7 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
@@ -696,7 +694,6 @@ func fetchAndStoreTVDropped(_ accessToken: String, _ lastActivity: String?, _ co
 
 @discardableResult
 func fetchAndStoreTVWatching(
-  _ accessToken: String,
   _ lastActivity: String?,
   _ context: ModelContext,
   forceRefresh: Bool = false,
@@ -735,8 +732,7 @@ func fetchAndStoreTVWatching(
 
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request, session: session)
     let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
@@ -781,7 +777,7 @@ func fetchAndStoreTVWatching(
 }
 
 func fetchAndStoreTVRemovedFromList(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext,
+  _ lastActivity: String?, _ context: ModelContext,
   session: URLSession = .shared
 ) async {
   guard let lastActivity = lastActivity else { return }
@@ -803,8 +799,7 @@ func fetchAndStoreTVRemovedFromList(
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request, session: session)
     let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
@@ -832,7 +827,7 @@ func fetchAndStoreTVRemovedFromList(
   }
 }
 
-func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreTVRatedAt(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -862,8 +857,7 @@ func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ co
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let shows = try decodeSimklLibraryResponse(TVModel_show.self, from: data, key: "shows")
@@ -882,7 +876,7 @@ func fetchAndStoreTVRatedAt(_ accessToken: String, _ lastActivity: String?, _ co
   }
 }
 
-func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreAnimePlanToWatch(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -913,8 +907,7 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
@@ -934,7 +927,7 @@ func fetchAndStoreAnimePlanToWatch(_ accessToken: String, _ lastActivity: String
   }
 }
 
-func fetchAndStoreAnimeDropped(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreAnimeDropped(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -965,8 +958,7 @@ func fetchAndStoreAnimeDropped(_ accessToken: String, _ lastActivity: String?, _
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
@@ -985,7 +977,7 @@ func fetchAndStoreAnimeDropped(_ accessToken: String, _ lastActivity: String?, _
   }
 }
 
-func fetchAndStoreAnimeCompleted(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreAnimeCompleted(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -1016,8 +1008,7 @@ func fetchAndStoreAnimeCompleted(_ accessToken: String, _ lastActivity: String?,
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
@@ -1036,7 +1027,7 @@ func fetchAndStoreAnimeCompleted(_ accessToken: String, _ lastActivity: String?,
   }
 }
 
-func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreAnimeHold(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -1067,8 +1058,7 @@ func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ co
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
@@ -1089,7 +1079,6 @@ func fetchAndStoreAnimeHold(_ accessToken: String, _ lastActivity: String?, _ co
 
 @discardableResult
 func fetchAndStoreAnimeWatching(
-  _ accessToken: String,
   _ lastActivity: String?,
   _ context: ModelContext,
   forceRefresh: Bool = false,
@@ -1128,8 +1117,7 @@ func fetchAndStoreAnimeWatching(
 
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request, session: session)
     let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
@@ -1171,7 +1159,7 @@ func fetchAndStoreAnimeWatching(
 }
 
 func fetchAndStoreAnimeRemovedFromList(
-  _ accessToken: String, _ lastActivity: String?, _ context: ModelContext,
+  _ lastActivity: String?, _ context: ModelContext,
   session: URLSession = .shared
 ) async {
   guard let lastActivity = lastActivity else { return }
@@ -1193,8 +1181,7 @@ func fetchAndStoreAnimeRemovedFromList(
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request, session: session)
     let items = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")
@@ -1222,7 +1209,7 @@ func fetchAndStoreAnimeRemovedFromList(
   }
 }
 
-func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _ context: ModelContext) async {
+func fetchAndStoreAnimeRatedAt(_ lastActivity: String?, _ context: ModelContext) async {
   guard let lastActivity = lastActivity else { return }
   let formatter = ISO8601DateFormatter()
 
@@ -1252,8 +1239,7 @@ func fetchAndStoreAnimeRatedAt(_ accessToken: String, _ lastActivity: String?, _
     print("\(endpoint.url!)")
     var request = URLRequest(url: endpoint.url!)
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let (data, _) = try await performSimklRequest(request)
     let animes = try decodeSimklLibraryResponse(AnimeModel_record.self, from: data, key: "anime")

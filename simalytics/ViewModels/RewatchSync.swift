@@ -25,7 +25,7 @@ struct RewatchPull: Sendable {
 /// every saved session; that drops deleted sessions and counts the rest.
 /// See https://api.simkl.org/guides/rewatches
 func syncRewatchSessions(
-  _ accessToken: String,
+  _ account: UUID,
   activities: LastActivitiesModel,
   refreshUpNext: Bool,
   store: RewatchStore? = nil,
@@ -43,15 +43,15 @@ func syncRewatchSessions(
       // Settings read the plan when the switch went on; adopt this marker
       // instead of reading the same plan again.
       await store.updatePlan(
-        state.accountType ?? "free", settingsActivity: settingsActivity, accessToken: accessToken)
+        state.accountType ?? "free", settingsActivity: settingsActivity, account: account)
       state = await store.state
     } else if state.accountType == nil
       || (settingsActivity != nil && settingsActivity != state.settingsActivity)
     {
-      let accountType = try await fetchSimklAccountType(accessToken, session: session)
+      let accountType = try await fetchSimklAccountType(session: session)
       try await SyncFailureScope.check()
       await store.updatePlan(
-        accountType, settingsActivity: settingsActivity, accessToken: accessToken)
+        accountType, settingsActivity: settingsActivity, account: account)
       state = await store.state
     }
     guard state.isPlanEligible else {
@@ -66,12 +66,12 @@ func syncRewatchSessions(
       let activity = kind == .tv ? activities.tv_shows?.all : activities.anime?.all
       let base = state.sessions.filter { $0.kind == kind }
       let pull = try await pullRewatchSessions(
-        kind, accessToken: accessToken, activity: activity, cached: base,
+        kind, activity: activity, cached: base,
         cachedCounts: state.sessionCounts(for: kind), cursor: state.cursor(for: kind),
         refreshUpNext: refreshUpNext, session: session, now: now)
       guard let pull else { continue }
       try await SyncFailureScope.check()
-      await store.apply(pull, kind: kind, base: base, accessToken: accessToken)
+      await store.apply(pull, kind: kind, base: base, account: account)
     }
 
     // Movie rewatches are complete as they're logged, so a movie needs only
@@ -81,7 +81,7 @@ func syncRewatchSessions(
     let moviesActivity = activities.movies?.all
     if state.movies.baselineAt == nil
       || (moviesActivity != nil && moviesActivity != state.movies.activity),
-      let pulled = try await fetchMovieRewatchIDs(accessToken: accessToken, session: session)
+      let pulled = try await fetchMovieRewatchIDs(session: session)
     {
       try await SyncFailureScope.check()
       await store.applyMovieRewatches(
@@ -89,7 +89,7 @@ func syncRewatchSessions(
         cursor: RewatchStore.Cursor(
           activity: moviesActivity ?? state.movies.activity,
           baselineAt: state.movies.baselineAt ?? now),
-        base: state.movieRewatchIDs, accessToken: accessToken)
+        base: state.movieRewatchIDs, account: account)
     }
   } catch {
     await SyncFailureScope.report(error)
@@ -97,7 +97,7 @@ func syncRewatchSessions(
 }
 
 /// Every movie's saved rewatch ids. Nil when SIMKL didn't apply `allow_rewatch`.
-func fetchMovieRewatchIDs(accessToken: String, session: URLSession = .shared) async throws
+func fetchMovieRewatchIDs(session: URLSession = .shared) async throws
   -> [Int: [Int]]?
 {
   var request = URLRequest(
@@ -107,7 +107,7 @@ func fetchMovieRewatchIDs(accessToken: String, session: URLSession = .shared) as
         URLQueryItem(name: "allow_rewatch", value: "yes"),
         URLQueryItem(name: "extended", value: "simkl_ids_only"),
       ]))
-  request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+  request.simklAuth = .user
   let (data, _) = try await performSimklRequest(request, session: session)
   return try MovieRewatches.ids(
     from: decodeSimklLibraryResponse(MovieRewatchRowModel.self, from: data, key: "movies"))
@@ -116,7 +116,6 @@ func fetchMovieRewatchIDs(accessToken: String, session: URLSession = .shared) as
 /// Nil when nothing changed: no pull was due and every next episode is known.
 func pullRewatchSessions(
   _ kind: RewatchKind,
-  accessToken: String,
   activity: String?,
   cached: [RewatchSession],
   cachedCounts: [Int: Int],
@@ -137,23 +136,20 @@ func pullRewatchSessions(
     let anchor = cursor.activity.flatMap(formatter.date(from:)) ?? cursor.baselineAt
     let dateFrom =
       needsBaseline ? nil : anchor.map { formatter.string(from: $0.addingTimeInterval(-5 * 60)) }
-    let rows = try await fetchRewatchRows(
-      kind, dateFrom: dateFrom, accessToken: accessToken, session: session)
+    let rows = try await fetchRewatchRows(kind, dateFrom: dateFrom, session: session)
     var sessions = RewatchSession.merged(
       cached: cached, with: try RewatchSession.response(from: rows, kind: kind),
       isFullPull: dateFrom == nil)
 
     try await SyncFailureScope.check()
-    if let membership = try await fetchRewatchMembership(
-      kind, accessToken: accessToken, session: session)
+    if let membership = try await fetchRewatchMembership(kind, session: session)
     {
       let pruned = RewatchSession.pruned(sessions, by: membership)
       sessions = pruned.sessions
       if !pruned.missingIDs.isEmpty, dateFrom != nil {
         // An active session no delta described: read the type in full once.
         let full = try RewatchSession.response(
-          from: try await fetchRewatchRows(
-            kind, dateFrom: nil, accessToken: accessToken, session: session),
+          from: try await fetchRewatchRows(kind, dateFrom: nil, session: session),
           kind: kind)
         sessions = RewatchSession.merged(
           cached: sessions,
@@ -197,25 +193,24 @@ func pullRewatchSessions(
 /// and asks for it to be split by status, so a full pull does that on a 400.
 /// Rewatches only exist on titles with a watch, so Plan to Watch is skipped.
 func fetchRewatchRows(
-  _ kind: RewatchKind, dateFrom: String?, accessToken: String, session: URLSession = .shared
+  _ kind: RewatchKind, dateFrom: String?, session: URLSession = .shared
 ) async throws -> [RewatchRowModel] {
   do {
     return try await fetchRewatchRows(
-      kind, status: nil, dateFrom: dateFrom, accessToken: accessToken, session: session)
+      kind, status: nil, dateFrom: dateFrom, session: session)
   } catch SimklMutationError.httpStatusCode(400, _) where dateFrom == nil {
     var rows: [RewatchRowModel] = []
     for status in ["completed", "watching", "hold", "dropped"] {
       try Task.checkCancellation()
       rows += try await fetchRewatchRows(
-        kind, status: status, dateFrom: nil, accessToken: accessToken, session: session)
+        kind, status: status, dateFrom: nil, session: session)
     }
     return rows
   }
 }
 
 private func fetchRewatchRows(
-  _ kind: RewatchKind, status: String?, dateFrom: String?, accessToken: String,
-  session: URLSession
+  _ kind: RewatchKind, status: String?, dateFrom: String?, session: URLSession
 ) async throws -> [RewatchRowModel] {
   var queryItems = [
     URLQueryItem(name: "allow_rewatch", value: "yes"),
@@ -224,7 +219,7 @@ private func fetchRewatchRows(
   if let dateFrom { queryItems.append(URLQueryItem(name: "date_from", value: dateFrom)) }
   let path = ["sync/all-items", kind.libraryKey, status].compactMap { $0 }.joined(separator: "/")
   var request = URLRequest(url: simklAPIURL(path: path, queryItems: queryItems))
-  request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+  request.simklAuth = .user
   let (data, _) = try await performSimklRequest(request, session: session)
   return try decodeSimklLibraryResponse(RewatchRowModel.self, from: data, key: kind.libraryKey)
 }
@@ -232,7 +227,7 @@ private func fetchRewatchRows(
 /// Every saved session of the type, by id and status only. Nil when SIMKL
 /// didn't apply `allow_rewatch`.
 func fetchRewatchMembership(
-  _ kind: RewatchKind, accessToken: String, session: URLSession = .shared
+  _ kind: RewatchKind, session: URLSession = .shared
 ) async throws -> RewatchMembership? {
   var request = URLRequest(
     url: simklAPIURL(
@@ -241,26 +236,17 @@ func fetchRewatchMembership(
         URLQueryItem(name: "allow_rewatch", value: "yes"),
         URLQueryItem(name: "extended", value: "simkl_ids_only"),
       ]))
-  request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+  request.simklAuth = .user
   let (data, _) = try await performSimklRequest(request, session: session)
   return try RewatchSession.membership(
     from: decodeSimklLibraryResponse(RewatchRowModel.self, from: data, key: kind.libraryKey))
 }
 
 /// `free`, `pro`, or `vip`. A missing plan reads as `free`, which turns rewatches off.
-func fetchSimklAccountType(_ accessToken: String, session: URLSession = .shared) async throws
-  -> String
-{
-  var request = URLRequest(url: simklAPIURL(path: "users/settings"))
-  request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-  let (data, _) = try await performSimklRequest(request, session: session)
-  do {
-    let settings = try JSONDecoder().decode(SimklUserSettingsModel.self, from: data)
-    return settings.account?.type?.lowercased() ?? "free"
-  } catch {
-    throw SimklMutationError.invalidResponse
-  }
+func fetchSimklAccountType(session: URLSession = .shared) async throws -> String {
+  try await fetchSimklUserSettings(session: session).account?.type?.lowercased() ?? "free"
 }
+
 
 private func rewatchCatalog(for rewatch: RewatchSession, session: URLSession) async throws
   -> [RewatchCatalogEpisode]

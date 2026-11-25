@@ -54,12 +54,19 @@ struct SearchView: View {
   }
 
   @ViewBuilder private var searchContent: some View {
-    if auth.simklAccessToken.isEmpty {
+    if !auth.hasAccount {
       ContentUnavailableView {
         Label("Sign in to Simkl", systemImage: "lock.shield")
       } description: {
         Text("Sign in to Simkl to start searching.")
       }
+    } else if !auth.isConnected {
+      // Simkl answers searches only for a signed-in person.
+      VStack {
+        SimklAccountNotice(standalone: true, margins: EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+        Spacer()
+      }
+      .navigationTitle("Search")
     } else {
       Group {
         if searchText.isEmpty {

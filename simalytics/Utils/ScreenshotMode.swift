@@ -17,8 +17,9 @@
 //    SIMALYTICS_SCREENSHOT_POSTER_DIR=<path>  host dir of public-domain poster JPEGs
 //
 //  In screenshot mode:
-//    - Auth is given a non-empty sentinel token so the Explore/Up Next gates open
-//      (no real token, nothing is persisted to the keychain).
+//    - Auth gets an in-memory AUTH V2 credential (`SimklCredential.screenshot`)
+//      whose token is a sentinel, so the signed-in gates open. It never reaches
+//      the network or the keychain.
 //    - The ModelContainer is in-memory and pre-seeded with public-domain fixtures
 //      (see ScreenshotSeedData), so Lists/Up Next render real UI; Explore's
 //      DiscoverStore serves ScreenshotDiscoverFixtures instead of Simkl's files.
@@ -38,7 +39,8 @@
       ProcessInfo.processInfo.environment["SIMALYTICS_SCREENSHOTS"] == "1"
     }
 
-    /// Non-empty placeholder so `auth.simklAccessToken.isEmpty` gates open. It is
+    /// The access token of the screenshot harness's in-memory AUTH V2 credential
+    /// (`SimklCredential.screenshot`), which opens the signed-in gates. It is
     /// never sent to the network (sync is disabled in this mode) and never stored.
     static let sentinelToken = "SIMALYTICS_SCREENSHOT_MODE"
 

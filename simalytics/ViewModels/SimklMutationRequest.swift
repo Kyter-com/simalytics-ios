@@ -11,6 +11,12 @@ import Sentry
 struct SimklServerErrorReason: Equatable, Sendable {
   let code: String?
   let message: String?
+  /// Seconds until a spent daily allowance resets, from `Retry-After`.
+  var retryAfter: TimeInterval? = nil
+
+  /// Simkl's per-user (AUTH V2) or per-app (AUTH V1) daily allowance is spent.
+  /// It resets at midnight US Eastern, so retrying sooner can't help.
+  var isDailyLimit: Bool { code == "daily_limit" }
 }
 
 enum SimklMutationError: Error, Equatable, Sendable, CustomNSError {
@@ -68,8 +74,13 @@ enum SimklMutationError: Error, Equatable, Sendable, CustomNSError {
       return true
     case .invalidEpisode, .episodeNotFound, .mediaNotFound, .invalidRating:
       return false
-    case .httpStatusCode(let statusCode, _):
-      return statusCode == 429 || (500...599).contains(statusCode)
+    case .httpStatusCode(let statusCode, let reason):
+      // Simkl's per-second limit clears in about a second; the daily one only
+      // at midnight US Eastern.
+      if statusCode == 429 { return !(reason?.isDailyLimit ?? false) }
+      // `400 RATE_LIMIT` is a short per-user write lock, not a quota.
+      if statusCode == 400 { return reason?.code == "rate_limited" }
+      return (500...599).contains(statusCode)
     }
   }
 }
@@ -80,29 +91,83 @@ enum SimklMutationResult: Equatable, Sendable {
   case failed(userMessage: String)
 }
 
+/// An api.simkl.com URL. The app's `client_id`, `app-name` and `app-version`
+/// are added when the request is sent, from the credential it carries.
 func simklAPIURL(path: String, queryItems: [URLQueryItem] = []) -> URL {
   var components = URLComponents()
   components.scheme = "https"
   components.host = "api.simkl.com"
   components.path = path.hasPrefix("/") ? path : "/\(path)"
-  components.queryItems = queryItems
-  appendSimklRequiredQueryItems(to: &components)
+  components.queryItems = queryItems.isEmpty ? nil : queryItems
   return components.url!
 }
 
-func prepareSimklRequest(_ request: URLRequest) -> URLRequest {
+/// Identifies the app on an api.simkl.com request: `client_id`, `app-name` and
+/// `app-version`, plus the headers Simkl requires. The client ID always comes
+/// from `client`, replacing any already on the request, because Simkl rejects a
+/// token sent with another registration's client ID.
+func prepareSimklRequest(_ request: URLRequest, client: SimklClient) -> URLRequest {
   var preparedRequest = request
-  if let url = preparedRequest.url,
-    url.host?.lowercased() == "api.simkl.com",
-    var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-  {
-    appendSimklRequiredQueryItems(to: &components)
+  guard let url = preparedRequest.url, url.host?.lowercased() == "api.simkl.com" else {
+    return preparedRequest
+  }
+  if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+    var queryItems = (components.queryItems ?? []).filter {
+      $0.name.caseInsensitiveCompare("client_id") != .orderedSame
+    }
+    queryItems.append(URLQueryItem(name: "client_id", value: client.clientID))
+    appendQueryItemIfMissing(URLQueryItem(name: "app-name", value: SIMKL_APP_NAME), to: &queryItems)
+    appendQueryItemIfMissing(
+      URLQueryItem(name: "app-version", value: SIMKL_APP_VERSION), to: &queryItems)
+    components.queryItems = queryItems
     preparedRequest.url = components.url
-    preparedRequest.cachePolicy = .reloadIgnoringLocalCacheData
+  }
+  preparedRequest.cachePolicy = .reloadIgnoringLocalCacheData
+  configureSimklHeaders(on: &preparedRequest, client: client)
+  return preparedRequest
+}
+
+/// Sends a request through the current `SimklSession`: it attaches the token a
+/// `.user` request needs as it goes out, and when Simkl answers 401 it refreshes
+/// once, shared with any other request that hit the same expiry, and retries.
+///
+/// A `.user` request goes out for one account only: `account` when given, the
+/// running sync's, or whoever is signed in when it's sent.
+func sendSimklRequest(
+  _ request: URLRequest, using transport: URLSession, account: UUID? = nil
+) async throws -> (Data, URLResponse) {
+  let simkl = SimklAPI.session
+  let prepared = try await simkl.prepare(request, account: account ?? SyncFailureScope.account)
+  let (data, response) = try await transport.data(for: prepared.request)
+  let status = (response as? HTTPURLResponse)?.statusCode
+
+  // Only a request that carried the person's token speaks for their allowance.
+  if status == 429, let http = response as? HTTPURLResponse, let token = prepared.token {
+    let reason = parseSimklServerErrorReason(from: data, response: http)
+    if reason?.isDailyLimit == true,
+      await simkl.noteDailyLimit(retryAfter: reason?.retryAfter, token: token)
+    {
+      // A sync that's running stops instead of failing every remaining step.
+      await SyncFailureScope.noteDailyLimit()
+    }
   }
 
-  configureSimklHeaders(on: &preparedRequest)
-  return preparedRequest
+  guard status == 401, let token = prepared.token, prepared.refreshesOnUnauthorized else {
+    return (data, response)
+  }
+  // No token arrived at all: a missing header, which a refresh can't fix.
+  if parseSimklServerErrorReason(from: data)?.code == "user_token_required" {
+    return (data, response)
+  }
+
+  try await simkl.recover(afterUnauthorized: token, account: prepared.account)
+  // Cancelled instead if another account replaced this one meanwhile.
+  let retry = try await simkl.prepare(request, account: prepared.account)
+  let (retryData, retryResponse) = try await transport.data(for: retry.request)
+  if (retryResponse as? HTTPURLResponse)?.statusCode == 401, retry.token != nil {
+    throw SimklAuthError.temporarilyRejected
+  }
+  return (retryData, retryResponse)
 }
 
 func validatedSimklEpisode(
@@ -116,8 +181,10 @@ func validatedSimklEpisode(
 }
 
 extension URLSession {
+  /// Like `data(for:)`, through the Simkl pipeline: right client ID, the
+  /// current token for `.user` requests, and one refresh on an expired token.
   func simklData(for request: URLRequest) async throws -> (Data, URLResponse) {
-    try await data(for: prepareSimklRequest(request))
+    try await sendSimklRequest(request, using: self)
   }
 }
 
@@ -128,10 +195,13 @@ func performSimklRequest(
 ) {
   var attempt = 0
   var retryDelay = Duration.milliseconds(500)
+  // Every attempt goes out for the account this request started with, or not
+  // at all: a retry must never land in an account that replaced it.
+  let account = await simklRequestAccount(for: request)
 
   while true {
     do {
-      let (data, response) = try await session.simklData(for: request)
+      let (data, response) = try await sendSimklRequest(request, using: session, account: account)
       guard let httpResponse = response as? HTTPURLResponse else {
         throw SimklMutationError.invalidResponse
       }
@@ -139,7 +209,7 @@ func performSimklRequest(
       guard (200...299).contains(httpResponse.statusCode) else {
         throw SimklMutationError.httpStatusCode(
           httpResponse.statusCode,
-          reason: parseSimklServerErrorReason(from: data)
+          reason: parseSimklServerErrorReason(from: data, response: httpResponse)
         )
       }
 
@@ -158,11 +228,30 @@ func performSimklRequest(
   }
 }
 
+/// The account a `.user` request made now belongs to: the running sync's, or
+/// whoever is signed in. Nil for requests that carry no token.
+func simklRequestAccount(for request: URLRequest) async -> UUID? {
+  guard request.simklAuth == .user else { return nil }
+  if let account = SyncFailureScope.account { return account }
+  return await SimklAPI.session.currentSnapshot.accountSessionID
+}
+
 func performSimklMutationRequest(_ request: URLRequest, retryCount: Int = 2) async throws {
   _ = try await performSimklRequest(request, retryCount: retryCount)
 }
 
-func simklMutationUserMessage(for error: Error) -> String {
+func simklMutationUserMessage(for error: Error, now: Date = Date()) -> String {
+  if let authError = error as? SimklAuthError {
+    switch authError {
+    case .signedOut:
+      return "Sign in to Simkl in Settings to save changes."
+    case .reconnectRequired:
+      return "Reconnect to Simkl to save changes. Your library on this device is still here."
+    case .temporarilyRejected:
+      return "Simkl didn't accept your sign-in just now. Try again in a moment."
+    }
+  }
+
   if let simklError = error as? SimklMutationError {
     switch simklError {
     case .invalidResponse:
@@ -175,9 +264,19 @@ func simklMutationUserMessage(for error: Error) -> String {
       return "Simkl couldn’t find this title. Refresh your list and try again."
     case .invalidRating:
       return "Choose a rating from 1 to 10, or remove your rating."
-    case .httpStatusCode(let statusCode, _):
+    case .httpStatusCode(let statusCode, let reason):
       if statusCode == 401 {
-        return "Your Simkl session has expired. Please sign in again."
+        return "Simkl didn't accept your sign-in. Try again in a moment."
+      }
+      if statusCode == 403, reason?.code == "insufficient_scope" {
+        return "Simkl isn't letting Simalytics change your library. Reconnect to Simkl and allow access."
+      }
+      if statusCode == 429, let reason, reason.isDailyLimit {
+        let reset = reason.retryAfter.map { now.addingTimeInterval($0) }
+          ?? SimklDailyLimit.nextReset(after: now)
+        // Not "you": on AUTH V1 the allowance is shared by everyone on Simalytics.
+        return
+          "Simkl's daily request limit has been reached. It resets \(SimklDailyLimit.remainingDescription(until: reset, from: now))."
       }
       if statusCode == 429 {
         return "Too many requests to Simkl. Please wait a moment and try again."
@@ -203,6 +302,18 @@ func simklMutationUserMessage(for error: Error) -> String {
   return "Couldn't update your list. Please try again."
 }
 
+func parseSimklServerErrorReason(from data: Data, response: HTTPURLResponse) -> SimklServerErrorReason? {
+  var reason = parseSimklServerErrorReason(from: data)
+  // `Retry-After` is a duration in seconds, sent only with a daily-limit 429.
+  if let header = response.value(forHTTPHeaderField: "Retry-After"),
+    let seconds = TimeInterval(header.trimmingCharacters(in: .whitespaces)), seconds >= 0
+  {
+    reason = reason ?? SimklServerErrorReason(code: nil, message: nil)
+    reason?.retryAfter = seconds
+  }
+  return reason
+}
+
 func parseSimklServerErrorReason(from data: Data) -> SimklServerErrorReason? {
   guard data.count <= 64 * 1024,
     let object = try? JSONSerialization.jsonObject(with: data),
@@ -210,6 +321,9 @@ func parseSimklServerErrorReason(from data: Data) -> SimklServerErrorReason? {
   else { return nil }
 
   let nestedError = root["error"] as? [String: Any]
+  // Simkl's machine-readable identifier is `error` (its `code` echoes the
+  // status). Prefer it when it names a known category.
+  let identifier = sanitizedSimklErrorCode(root["error"] as? String)
   let rawCode =
     stringValue(root["code"])
     ?? stringValue(root["error_code"])
@@ -221,7 +335,7 @@ func parseSimklServerErrorReason(from data: Data) -> SimklServerErrorReason? {
     ?? stringValue(nestedError?["message"])
 
   let reason = SimklServerErrorReason(
-    code: sanitizedSimklErrorCode(rawCode),
+    code: identifier ?? sanitizedSimklErrorCode(rawCode),
     message: classifiedSimklErrorMessage(rawMessage)
   )
   return reason.code == nil && reason.message == nil ? nil : reason
@@ -252,6 +366,17 @@ private func sanitizedSimklErrorCode(_ rawCode: String?) -> String? {
   // Never retain an arbitrary server string, even when it looks code-like:
   // a title or account identifier can also be short and alphanumeric.
   // Normalize only known diagnostic categories to fixed values.
+  switch code {
+  // Sign-in states the request pipeline branches on.
+  case "user_token_required", "invalid_token", "user_token_failed", "insufficient_scope",
+    "oauth2_token_required":
+    return code
+  // A spent daily allowance: per user on AUTH V2, per app on AUTH V1.
+  case "user_limit_exceeded", "app_limit_exceeded":
+    return "daily_limit"
+  default:
+    break
+  }
   if code.contains("auth") || code.contains("token") || code.contains("unauthor") {
     return "authentication_rejected"
   }
@@ -326,6 +451,12 @@ func isSimklCancellationError(_ error: Error) -> Bool {
 /// before a fetch completes) and are not real errors.
 func reportError(_ error: Error) {
   if isSimklCancellationError(error) || isExpectedTransientNetworkError(error) { return }
+  // Expected states, not bugs: signed out, waiting to reconnect, or out of
+  // Simkl's daily allowance. The interface already explains them.
+  if error is SimklAuthError { return }
+  if case .httpStatusCode(429, let reason) = error as? SimklMutationError, reason?.isDailyLimit == true {
+    return
+  }
   SentrySDK.capture(error: error)
 }
 
@@ -365,15 +496,6 @@ private func shouldRetrySimklMutation(_ error: Error) -> Bool {
   return false
 }
 
-private func appendSimklRequiredQueryItems(to components: inout URLComponents) {
-  var queryItems = components.queryItems ?? []
-  appendQueryItemIfMissing(URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID), to: &queryItems)
-  appendQueryItemIfMissing(URLQueryItem(name: "app-name", value: SIMKL_APP_NAME), to: &queryItems)
-  appendQueryItemIfMissing(
-    URLQueryItem(name: "app-version", value: SIMKL_APP_VERSION), to: &queryItems)
-  components.queryItems = queryItems
-}
-
 private func appendQueryItemIfMissing(
   _ queryItem: URLQueryItem, to queryItems: inout [URLQueryItem]
 ) {
@@ -385,9 +507,7 @@ private func appendQueryItemIfMissing(
   queryItems.append(queryItem)
 }
 
-private func configureSimklHeaders(on request: inout URLRequest, accessToken: String? = nil) {
-  guard request.url?.host?.lowercased() == "api.simkl.com" else { return }
-
+private func configureSimklHeaders(on request: inout URLRequest, client: SimklClient) {
   request.setValue(SIMKL_USER_AGENT, forHTTPHeaderField: "User-Agent")
   if request.value(forHTTPHeaderField: "Accept") == nil {
     request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -400,13 +520,6 @@ private func configureSimklHeaders(on request: inout URLRequest, accessToken: St
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
   }
 
-  if request.value(forHTTPHeaderField: "simkl-api-key") == nil {
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-  }
-
-  if let accessToken,
-    !accessToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-  {
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-  }
+  // Always the credential's own client ID, matching the `client_id` parameter.
+  request.setValue(client.clientID, forHTTPHeaderField: "simkl-api-key")
 }

@@ -18,10 +18,21 @@ struct SearchResultsTests {
     let session = session()
     defer { session.invalidateAndCancel() }
     #expect(model.completedRequest == nil)
-    await model.search(request, session: session, debounce: .zero)
+    await withSimklToken("search") {
+      await model.search(request, session: session, debounce: .zero)
+    }
     #expect(model.completedRequest == request)
     #expect(model.errorMessage == nil)
     #expect(model.results.map(\.endpoint_type) == ["tv", "movies", "anime"])
+  }
+
+  @Test("All types come back from one request unless anime is hidden")
+  func searchesAllTypesAtOnce() {
+    #expect(MediaSearchRequest(query: "moon", category: .all, hideAnime: false).endpoints == ["all"])
+    #expect(
+      MediaSearchRequest(query: "moon", category: .all, hideAnime: true).endpoints
+        == ["tv", "movie"])
+    #expect(MediaSearchRequest(query: "moon", category: .anime, hideAnime: true).endpoints.isEmpty)
   }
 
   @Test("Hidden anime is not requested or returned")
@@ -29,9 +40,11 @@ struct SearchResultsTests {
     let model = SearchResultsViewModel()
     let session = session()
     defer { session.invalidateAndCancel() }
-    await model.search(
-      MediaSearchRequest(query: "moon", category: .all, hideAnime: true), session: session,
-      debounce: .zero)
+    await withSimklToken("search") {
+      await model.search(
+        MediaSearchRequest(query: "moon", category: .all, hideAnime: true), session: session,
+        debounce: .zero)
+    }
     #expect(model.results.map(\.endpoint_type) == ["tv", "movies"])
   }
 
@@ -43,7 +56,9 @@ struct SearchResultsTests {
     let session = session()
     defer { session.invalidateAndCancel() }
     let request = MediaSearchRequest(query: query, category: .movie, hideAnime: false)
-    await model.search(request, session: session, debounce: .zero)
+    await withSimklToken("search") {
+      await model.search(request, session: session, debounce: .zero)
+    }
     #expect(model.results.isEmpty)
     #expect(model.completedRequest == request)
     #expect((model.errorMessage == nil) == (query == "empty"))
@@ -55,11 +70,15 @@ struct SearchResultsTests {
     let session = session()
     defer { session.invalidateAndCancel() }
     let first = MediaSearchRequest(query: "moon", category: .tv, hideAnime: false)
-    await model.search(first, session: session, debounce: .zero)
+    await withSimklToken("search") {
+      await model.search(first, session: session, debounce: .zero)
+    }
     let pending = Task {
-      await model.search(
-        MediaSearchRequest(query: "moons", category: .tv, hideAnime: false), session: session,
-        debounce: .seconds(30))
+      await withSimklToken("search") {
+        await model.search(
+          MediaSearchRequest(query: "moons", category: .tv, hideAnime: false), session: session,
+          debounce: .seconds(30))
+      }
     }
     try await Task.sleep(for: .milliseconds(50))
     #expect(model.results.count == 1)
@@ -76,16 +95,20 @@ struct SearchResultsTests {
     let session = session()
     defer { session.invalidateAndCancel() }
     let cancelled = Task {
-      await model.search(
-        MediaSearchRequest(query: "cancelled", category: .all, hideAnime: false), session: session,
-        debounce: .seconds(30))
+      await withSimklToken("search") {
+        await model.search(
+          MediaSearchRequest(query: "cancelled", category: .all, hideAnime: false),
+          session: session, debounce: .seconds(30))
+      }
     }
     cancelled.cancel()
     await cancelled.value
     #expect(model.completedRequest == nil)
     #expect(model.errorMessage == nil)
     let request = MediaSearchRequest(query: "moon", category: .tv, hideAnime: false)
-    await model.search(request, session: session, debounce: .zero)
+    await withSimklToken("search") {
+      await model.search(request, session: session, debounce: .zero)
+    }
     #expect(model.completedRequest == request)
     #expect(model.results.count == 1)
   }
@@ -102,19 +125,24 @@ private final class SearchFixtureProtocol: URLProtocol, @unchecked Sendable {
       return
     }
     let type = request.url!.lastPathComponent
-    let endpoint = type == "movie" ? "movies" : type
+    // `all` mixes types in one list; the others name theirs (`movie` reports `movies`).
+    let endpoints = type == "all" ? ["tv", "movies", "anime"] : [type == "movie" ? "movies" : type]
     let body: String
     switch query {
     case "empty": body = "[]"
     case "malformed": body = "{}"
     default:
-      body = """
-        [{"title":"Moon","year":2020,"endpoint_type":"\(endpoint)","ids":{"simkl_id":42}}]
-        """
+      body =
+        "["
+        + endpoints.map {
+          #"{"title":"Moon","year":2020,"endpoint_type":"\#($0)","ids":{"simkl_id":42}}"#
+        }.joined(separator: ",") + "]"
     }
+    // Search must carry the signed-in person's token, which AUTH V2 requires.
+    let signed = request.value(forHTTPHeaderField: "Authorization") == "Bearer search"
     let response = HTTPURLResponse(
-      url: request.url!, statusCode: query == "unauthorized" ? 401 : 200, httpVersion: nil,
-      headerFields: nil)!
+      url: request.url!, statusCode: query == "unauthorized" || !signed ? 401 : 200,
+      httpVersion: nil, headerFields: nil)!
     client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
     client?.urlProtocol(self, didLoad: Data(body.utf8))
     client?.urlProtocolDidFinishLoading(self)

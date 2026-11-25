@@ -6,14 +6,13 @@
 //
 
 import AuthenticationServices
-import Sentry
-import SimpleKeychain
 import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
   @Environment(Auth.self) private var auth
   @Environment(\.webAuthenticationSession) private var webAuthenticationSession
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @AppStorage("blurEpisodeImages") private var blurImages = false
   @AppStorage("useFiveStarRating") private var useFiveStarRating = false
   @AppStorage("hideAnime") private var hideAnime = false
@@ -21,43 +20,48 @@ struct SettingsView: View {
   @AppStorage(RewatchStore.preferenceKey) private var trackRewatches = false
   @State private var showResetConfirmation = false
   @State private var showSignOutConfirmation = false
-  @State private var showErrorAlert = false
   @State private var isCheckingRewatchPlan = false
   @State private var showRewatchPlanRequired = false
   @State private var rewatchPlanError: String?
   @Environment(GlobalLoadingIndicator.self) private var globalLoadingIndicator
   @Environment(\.modelContext) private var modelContext
 
-  func clearLocalSwiftData() {
-    func clearAll<T: PersistentModel>(_ type: T.Type) {
-      if let results = try? modelContext.fetch(FetchDescriptor<T>()) {
-        for item in results {
-          modelContext.delete(item)
-        }
-      }
-    }
-
-    clearAll(V1.SDLastSync.self)
-    clearAll(V1.SDMovies.self)
-    clearAll(V1.SDShows.self)
-    clearAll(V1.SDAnimes.self)
-    clearAll(V1.TrendingShows.self)
-    clearAll(V1.TrendingMovies.self)
-    clearAll(V1.TrendingAnimes.self)
-
-    try? modelContext.save()
+  /// Sign Out and Reset & Sign Out both discard this device's library copy.
+  /// Signing out first stops any running sync from restoring it.
+  private func signOut() {
+    Task { await auth.signOut(resetLibrary: { LocalLibrary.reset(modelContext) }) }
   }
 
-  /// Sign Out and Reset & Sign Out both discard this device's library copy.
-  /// Clearing the sync account first stops any running sync from restoring it.
-  private func signOut() {
-    do {
-      try SimpleKeychain().deleteItem(forKey: "simkl-access-token")
-      auth.setAccessToken("")
-      clearLocalSwiftData()
-      RewatchStore.shared.reset()
-    } catch {
-      reportError(error)
+  /// Signs in, reconnects, or upgrades an AUTH V1 sign-in. The library stays
+  /// when the same Simkl account approves.
+  private func signIn() {
+    Task {
+      await auth.signIn(
+        authenticate: webAuthenticationSession.simklAuthenticate(),
+        resetLibrary: { LocalLibrary.reset(modelContext) })
+    }
+  }
+
+  private var accountStatusText: String {
+    switch auth.status {
+    case .signedOut: "Not Connected"
+    case .connected(.v1, _): "Connected (Legacy)"
+    case .connected: "Connected"
+    case .reconnectRequired: "Reconnect Needed"
+    }
+  }
+
+  private var accountFooter: String? {
+    switch auth.status {
+    case .signedOut:
+      SimklAccountCopy.signInPrivacy
+    case .connected(.v1, _):
+      SimklAccountCopy.upgradeMessage
+        + " Afterward Simalytics may be listed twice in Simkl's Connected Apps; you can remove the older one."
+    case .connected:
+      nil
+    case .reconnectRequired(let reason, _, _):
+      SimklAccountCopy.reconnectMessage(reason)
     }
   }
 
@@ -77,27 +81,27 @@ struct SettingsView: View {
   /// SIMKL only records rewatches for PRO and VIP plans and silently ignores
   /// the rest, so read the plan before turning tracking on.
   private func enableRewatches() async {
-    guard !isCheckingRewatchPlan, !auth.simklAccessToken.isEmpty else { return }
+    guard !isCheckingRewatchPlan, auth.isConnected else { return }
     isCheckingRewatchPlan = true
     defer { isCheckingRewatchPlan = false }
-    let token = auth.simklAccessToken
+    let account = auth.accountSessionID
     do {
-      let accountType = try await fetchSimklAccountType(token)
-      RewatchStore.shared.updatePlan(accountType, settingsActivity: nil, accessToken: token)
+      let accountType = try await fetchSimklAccountType()
+      RewatchStore.shared.updatePlan(accountType, settingsActivity: nil, account: account)
       guard RewatchStore.shared.isPlanEligible else {
         showRewatchPlanRequired = true
         return
       }
       trackRewatches = true
       globalLoadingIndicator.startSync()
-      await syncLatestActivities(token, modelContainer: modelContext.container)
+      await syncLatestActivities(modelContainer: modelContext.container)
       globalLoadingIndicator.stopSync()
     } catch {
       guard !isSimklCancellationError(error) else { return }
       reportError(error)
       // Name Simkl's answer, such as an expired sign-in, instead of blaming the connection.
       rewatchPlanError =
-        error is SimklMutationError
+        error is SimklMutationError || error is SimklAuthError
         ? simklMutationUserMessage(for: error)
         : "Couldn't check your Simkl plan. Check your connection and try again."
     }
@@ -114,108 +118,50 @@ struct SettingsView: View {
                 .foregroundStyle(.blue)
                 .frame(width: 28, height: 28)
 
-              Text("Simkl Status")
-              Spacer()
-              Text(auth.simklAccessToken.isEmpty ? "Not Connected" : "Connected")
-                .foregroundStyle(.secondary)
-              PulseCircle(active: !auth.simklAccessToken.isEmpty)
-            }
-            if auth.simklAccessToken.isEmpty {
-              Button("Sign In") {
-                Task {
-                  do {
-                    var oAuthURLComponents = URLComponents()
-                    oAuthURLComponents.scheme = "https"
-                    oAuthURLComponents.host = "simkl.com"
-                    oAuthURLComponents.path = "/oauth/authorize"
-                    oAuthURLComponents.queryItems = [
-                      URLQueryItem(name: "response_type", value: "code"),
-                      URLQueryItem(name: "redirect_uri", value: "simalytics://"),
-                      URLQueryItem(
-                        name: "client_id",
-                        value: "c387a1e6b5cf2151af039a466c49a6b77891a4134aed1bcb1630dd6b8f0939c9"),
-                    ]
-
-                    let tokenResponse: URL
-                    do {
-                      tokenResponse = try await webAuthenticationSession.authenticate(
-                        using: oAuthURLComponents.url!,
-                        callbackURLScheme: "simalytics"
-                      )
-                    } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
-                      // User cancelled the sheet — not an error worth alerting on.
-                      return
-                    }
-
-                    let queryItems = URLComponents(string: tokenResponse.absoluteString)?.queryItems
-                    let token = queryItems?.filter({ $0.name == "code" }).first?.value ?? ""
-
-                    if token.isEmpty {
-                      SentrySDK.capture(message: "Simkl OAuth redirect missing code")
-                      showErrorAlert = true
-                      return
-                    }
-
-                    var accessTokenURLComponents = URLComponents()
-                    accessTokenURLComponents.scheme = "https"
-                    accessTokenURLComponents.host = "api.simalytics.kyter.com"
-                    accessTokenURLComponents.path = "/oauth"
-
-                    var request = URLRequest(url: accessTokenURLComponents.url!)
-                    request.httpMethod = "POST"
-                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    let body: [String: String] = ["code": token]
-                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
-                    let (data, _) = try await performSimklRequest(request)
-
-                    struct AccessTokenResponse: Decodable {
-                      let access_token: String
-                    }
-                    let accessTokenResponse = try JSONDecoder().decode(
-                      AccessTokenResponse.self, from: data)
-                    let accessToken = accessTokenResponse.access_token
-                    if accessToken.isEmpty {
-                      showErrorAlert = true
-                      return
-                    }
-
-                    let simpleKeychain = SimpleKeychain()
-                    try simpleKeychain.set(accessToken, forKey: "simkl-access-token")
-                    auth.setAccessToken(accessToken)  // Update UI immediately
-
-                    // Run sync in a background task
-                    Task {
-                      globalLoadingIndicator.startSync()
-                      await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
-                      globalLoadingIndicator.stopSync()
-                    }
-                  } catch {
-                    reportError(error)
-                    showErrorAlert = true
+              // At accessibility sizes the status goes under the title; beside
+              // it, both columns are too narrow and words break mid-word.
+              let layout =
+                dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                : AnyLayout(HStackLayout())
+              layout {
+                VStack(alignment: .leading, spacing: 2) {
+                  Text("Simkl Status")
+                  if let name = auth.account?.name, !name.isEmpty {
+                    Text(name)
+                      .font(.footnote)
+                      .foregroundStyle(.secondary)
                   }
                 }
+                if !dynamicTypeSize.isAccessibilitySize { Spacer() }
+                // The dot stays beside the first line when the status wraps.
+                HStack(alignment: .firstTextBaseline) {
+                  Text(accountStatusText)
+                    .foregroundStyle(.secondary)
+                  PulseCircle(active: auth.isConnected)
+                }
               }
-              .frame(maxWidth: .infinity, alignment: .center)
-            } else {
-              Button("Sign Out") {
-                showSignOutConfirmation = true
+            }
+            .accessibilityElement(children: .combine)
+
+            switch auth.status {
+            case .signedOut:
+              signInButton("Sign In")
+            case .connected(let version, _):
+              if version == .v1 {
+                signInButton("Upgrade Sign-In")
               }
-              .foregroundStyle(.red)
-              .frame(maxWidth: .infinity, alignment: .center)
-              .disabled(globalLoadingIndicator.isSyncing)
-              .confirmationDialog(
-                "Sign out of Simkl?", isPresented: $showSignOutConfirmation,
-                titleVisibility: .visible
-              ) {
-                Button("Sign Out", role: .destructive) { signOut() }
-              } message: {
-                Text(
-                  "Downloaded library data will be removed from this device. Your Simkl lists, ratings, and watch history stay on Simkl."
-                )
-              }
+              signOutButton
+            case .reconnectRequired(let reason, _, _):
+              signInButton(reason == .missingWriteAccess ? "Reconnect and Allow Access" : "Reconnect")
+              signOutButton
             }
           } header: {
             Text("Account")
+          } footer: {
+            if let accountFooter {
+              Text(accountFooter)
+            }
           }
 
           Section {
@@ -294,7 +240,7 @@ struct SettingsView: View {
                   .frame(width: 28, height: 28)
               }
             }
-            .disabled(auth.simklAccessToken.isEmpty || isCheckingRewatchPlan)
+            .disabled(!auth.isConnected || isCheckingRewatchPlan)
             .alert("Simkl PRO or VIP Required", isPresented: $showRewatchPlanRequired) {
               Button("OK", role: .cancel) {}
             } message: {
@@ -515,7 +461,7 @@ struct SettingsView: View {
             }
           }
 
-          if !auth.simklAccessToken.isEmpty {
+          if auth.hasAccount {
             Section {
               Button(role: .destructive) {
                 showResetConfirmation = true
@@ -584,11 +530,6 @@ struct SettingsView: View {
             .padding(.vertical, 24)
           }
         }
-        .alert("Error signing in with Simkl", isPresented: $showErrorAlert) {
-          Button("OK", role: .cancel) {}
-        } message: {
-          Text("We've been alerted of the error. Please try again later.")
-        }
       }
       .navigationTitle("Settings")
       .toolbar {
@@ -598,6 +539,40 @@ struct SettingsView: View {
           }
         }
       }
+    }
+  }
+
+  private func signInButton(_ title: String) -> some View {
+    Button {
+      signIn()
+    } label: {
+      if auth.isSigningIn {
+        ProgressView()
+          .accessibilityLabel("Waiting for Simkl")
+      } else {
+        Text(title)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .center)
+    .disabled(auth.isSigningIn)
+  }
+
+  private var signOutButton: some View {
+    Button("Sign Out") {
+      showSignOutConfirmation = true
+    }
+    .foregroundStyle(.red)
+    .frame(maxWidth: .infinity, alignment: .center)
+    .disabled(globalLoadingIndicator.isSyncing || auth.isSigningIn)
+    .confirmationDialog(
+      "Sign out of Simkl?", isPresented: $showSignOutConfirmation,
+      titleVisibility: .visible
+    ) {
+      Button("Sign Out", role: .destructive) { signOut() }
+    } message: {
+      Text(
+        "Downloaded library data will be removed from this device. Your Simkl lists, ratings, and watch history stay on Simkl."
+      )
     }
   }
 }

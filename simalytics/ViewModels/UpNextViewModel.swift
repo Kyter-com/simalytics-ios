@@ -11,8 +11,7 @@ import Sentry
 extension UpNextView {
   @discardableResult
   static func markAsWatched(
-    show: UpNextShowModel_show,
-    accessToken: String
+    show: UpNextShowModel_show
   ) async -> String? {
     do {
       guard
@@ -28,8 +27,7 @@ extension UpNextView {
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
 
       let formatter = ISO8601DateFormatter()
       let dateString = formatter.string(from: Date())
@@ -64,7 +62,7 @@ extension UpNextView {
     }
   }
 
-  static func fetchShows(accessToken: String) async -> [UpNextShowModel_show] {
+  static func fetchShows() async -> [UpNextShowModel_show] {
     do {
       var urlComponents = URLComponents(
         string: "https://api.simkl.com/sync/all-items/shows/watching")!
@@ -77,8 +75,7 @@ extension UpNextView {
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "GET"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
 
       let (data, response) = try await URLSession.shared.simklData(for: request)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else {

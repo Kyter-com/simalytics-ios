@@ -8,40 +8,8 @@
 
 import Kingfisher
 import Sentry
-import SimpleKeychain
 import SwiftData
 import SwiftUI
-
-@Observable @MainActor
-class Auth {
-  var simklAccessToken: String
-  init() {
-    let simpleKeychain = SimpleKeychain()
-    #if DEBUG
-      // App Store screenshot harness (marketing/app-store-screenshots): a sentinel
-      // token opens the Explore / Up Next gates so the seeded public-domain
-      // fixtures render. It is never sent to the network (sync is disabled in this
-      // mode) and never written to the keychain. See ScreenshotMode.
-      if ScreenshotMode.isActive {
-        self.simklAccessToken = ScreenshotMode.sentinelToken
-        return
-      }
-    #endif
-    do {
-      let accessToken = try simpleKeychain.string(forKey: "simkl-access-token")
-      self.simklAccessToken = accessToken
-    } catch {
-      self.simklAccessToken = ""
-    }
-    SyncAccount.update(simklAccessToken)
-  }
-
-  /// Change accounts here so background syncs stop writing for a signed-out one.
-  func setAccessToken(_ accessToken: String) {
-    simklAccessToken = accessToken
-    SyncAccount.update(accessToken)
-  }
-}
 
 @main
 struct SimalyticsApp: App {
@@ -120,6 +88,8 @@ struct SimalyticsApp: App {
         return event
       }
     }
+    // `Auth` was built with the shared session before Sentry started.
+    SimklAuthTelemetry.recordLaunch(.shared)
   }
 
   var body: some Scene {
@@ -131,10 +101,13 @@ struct SimalyticsApp: App {
             .environment(globalLoadingIndicator)
             .modelContainer(modelContainer)
             .task {
-              if !auth.simklAccessToken.isEmpty {
+              // AUTH V1 sign-ins predate the saved account; record it once so
+              // the upgrade to AUTH V2 can keep this library.
+              await auth.backfillAccountIfNeeded()
+              if auth.isConnected {
                 refreshUpNextOnceAfterUpdate(modelContainer: modelContainer)
                 globalLoadingIndicator.startSync()
-                await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContainer)
+                await syncLatestActivities(modelContainer: modelContainer)
                 globalLoadingIndicator.stopSync()
               }
             }

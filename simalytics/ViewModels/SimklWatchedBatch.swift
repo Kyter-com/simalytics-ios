@@ -117,7 +117,6 @@ func decodeSimklWatchedResponse<T: Decodable & Sendable>(
 func simklWatchedBatch<T: Decodable & Sendable>(
   simklIDs: [Int],
   type: String,
-  accessToken: String,
   session: URLSession = .shared
 ) async -> SimklWatchedBatch<T> {
   guard !simklIDs.isEmpty else {
@@ -137,8 +136,7 @@ func simklWatchedBatch<T: Decodable & Sendable>(
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
       let body: [[String: Any]] = chunk.map { ["ids": ["simkl": $0], "type": type] }
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
 

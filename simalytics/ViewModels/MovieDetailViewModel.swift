@@ -19,7 +19,6 @@ extension MovieDetailView {
       var urlComponents = URLComponents(string: "https://api.simkl.com/movies/\(simkl_id)")!
       urlComponents.queryItems = [
         URLQueryItem(name: "extended", value: "full"),
-        URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
       ]
 
       var request = URLRequest(url: urlComponents.url!)
@@ -39,7 +38,7 @@ extension MovieDetailView {
     }
   }
 
-  static func getMovieWatchlist(_ simkl_id: Int, _ accessToken: String) async
+  static func getMovieWatchlist(_ simkl_id: Int) async
     -> MovieWatchlistModel?
   {
     #if DEBUG
@@ -53,8 +52,7 @@ extension MovieDetailView {
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
       let body: [[String: Any]] = [["ids": ["simkl": simkl_id], "type": "movie"]]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
@@ -71,7 +69,7 @@ extension MovieDetailView {
 
 extension MovieWatchlistButton {
   static func updateMovieList(
-    _ simkl_id: Int, _ accessToken: String, _ list: String, session: URLSession = .shared
+    _ simkl_id: Int, _ list: String, session: URLSession = .shared
   ) async -> String? {
     do {
       if list == "nil" {
@@ -79,8 +77,7 @@ extension MovieWatchlistButton {
         var request = URLRequest(url: urlComponents.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.simklAuth = .user
 
         let body: [String: Any] = [
           "movies": [
@@ -101,8 +98,7 @@ extension MovieWatchlistButton {
         var request = URLRequest(url: urlComponents.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.simklAuth = .user
         let body: [String: Any] = [
           "movies": [
             [

@@ -69,7 +69,7 @@ struct ActorDetailView: View {
     .task(id: personID) {
       isLoading = true
       isResolvingFilmography = false
-      let loadedDetails = await ActorDetailView.getActorDetails(auth.simklAccessToken, personID: personID)
+      let loadedDetails = await ActorDetailView.getActorDetails(personID: personID)
       details = loadedDetails
       if let loadedDetails {
         rawCredits = Array(loadedDetails.sortedFilmographyCredits.prefix(80))

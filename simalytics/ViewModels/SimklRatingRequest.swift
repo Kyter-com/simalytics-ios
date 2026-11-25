@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 func setSimklRating(
-  simklID: Int, type: RatingMediaType, rating: Int, accessToken: String,
+  simklID: Int, type: RatingMediaType, rating: Int,
   session: URLSession = .shared
 ) async -> SimklMutationResult {
   guard simklID > 0, (0...10).contains(rating) else {
@@ -13,7 +13,7 @@ func setSimklRating(
       url: simklAPIURL(path: rating == 0 ? "sync/ratings/remove" : "sync/ratings"))
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
     var item: [String: Any] = ["ids": ["simkl": simklID]]
     if rating > 0 { item["rating"] = rating }
     request.httpBody = try JSONSerialization.data(withJSONObject: [type.payloadKey: [item]])

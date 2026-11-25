@@ -9,7 +9,7 @@ import Foundation
 import Sentry
 import SwiftData
 
-func refreshStaleData(_ accessToken: String, _ context: ModelContext) async {
+func refreshStaleData(_ context: ModelContext) async {
   let formatter = ISO8601DateFormatter()
 
   do {

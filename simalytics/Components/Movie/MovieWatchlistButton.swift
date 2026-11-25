@@ -69,7 +69,7 @@ struct MovieWatchlistButton: View {
       latestMutationID = mutationID
       statusUpdateTask?.cancel()
       statusUpdateTask = Task {
-        if let errorMessage = await MovieWatchlistButton.updateMovieList(simkl_id, auth.simklAccessToken, newValue) {
+        if let errorMessage = await MovieWatchlistButton.updateMovieList(simkl_id, newValue) {
           if Task.isCancelled || latestMutationID != mutationID {
             return
           }
@@ -83,7 +83,7 @@ struct MovieWatchlistButton: View {
         if Task.isCancelled || latestMutationID != mutationID {
           return
         }
-        await syncLatestActivities(auth.simklAccessToken, modelContainer: modelContext.container)
+        await syncLatestActivities(modelContainer: modelContext.container)
       }
     }
     .onDisappear {

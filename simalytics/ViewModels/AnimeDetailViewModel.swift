@@ -19,7 +19,6 @@ extension AnimeDetailView {
       var urlComponents = URLComponents(string: "https://api.simkl.com/anime/\(simklID)")!
       urlComponents.queryItems = [
         URLQueryItem(name: "extended", value: "full"),
-        URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
       ]
 
       var request = URLRequest(url: urlComponents.url!)
@@ -43,7 +42,6 @@ extension AnimeDetailView {
 
   @discardableResult
   static func markEpisodeUnwatched(
-    _ accessToken: String,
     _ title: String,
     _ simklId: Int,
     _ season: Int,
@@ -63,8 +61,7 @@ extension AnimeDetailView {
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
 
       let body: [String: Any] = [
         "shows": [
@@ -100,13 +97,13 @@ extension AnimeDetailView {
   // Batched variant for callers (e.g. up-next sync) that need watched data
   // for many anime at once. Thin wrapper around the shared helper so the
   // call site stays clean and TV/anime behaviour can't drift apart.
-  static func getAnimeWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async
+  static func getAnimeWatchlistBatch(_ simklIDs: [Int]) async
     -> SimklWatchedBatch<AnimeWatchlistModel>
   {
-    await simklWatchedBatch(simklIDs: simklIDs, type: "anime", accessToken: accessToken)
+    await simklWatchedBatch(simklIDs: simklIDs, type: "anime")
   }
 
-  static func getAnimeWatchlist(_ simklID: Int, _ accessToken: String) async
+  static func getAnimeWatchlist(_ simklID: Int) async
     -> AnimeWatchlistModel?
   {
     #if DEBUG
@@ -125,8 +122,7 @@ extension AnimeDetailView {
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
       let body: [[String: Any]] = [["ids": ["simkl": simklID], "type": "anime"]]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
@@ -151,7 +147,6 @@ extension AnimeDetailView {
 
   @discardableResult
   static func markEpisodeWatched(
-    _ accessToken: String,
     _ title: String,
     _ simklId: Int,
     _ season: Int,
@@ -171,8 +166,7 @@ extension AnimeDetailView {
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
 
       let formatter = ISO8601DateFormatter()
       let dateString = formatter.string(from: Date())
@@ -299,7 +293,7 @@ extension AnimeDetailView {
 
 extension AnimeWatchlistButton {
   static func updateAnimeList(
-    _ simklID: Int, _ accessToken: String, _ list: String, session: URLSession = .shared
+    _ simklID: Int, _ list: String, session: URLSession = .shared
   ) async
     -> String?
   {
@@ -309,8 +303,7 @@ extension AnimeWatchlistButton {
         var request = URLRequest(url: urlComponents.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.simklAuth = .user
 
         let body: [String: Any] = [
           "shows": [
@@ -331,8 +324,7 @@ extension AnimeWatchlistButton {
         var request = URLRequest(url: urlComponents.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.simklAuth = .user
         let body: [String: Any] = [
           "anime": [
             [

@@ -34,7 +34,7 @@ struct MovieDetailView: View {
 
   private func load() async {
     movieDetails = await MovieDetailView.getMovieDetails(simkl_id)
-    movieWatchlist = await MovieDetailView.getMovieWatchlist(simkl_id, auth.simklAccessToken)
+    movieWatchlist = await MovieDetailView.getMovieWatchlist(simkl_id)
     watchlistStatus = movieWatchlist?.list
 
     if let fanart = movieDetails?.fanart {
@@ -56,7 +56,7 @@ struct MovieDetailView: View {
 
     isLoading = false
     guard movieDetails != nil else { return }
-    cast = await getCast(auth.simklAccessToken, movieDetails?.ids?.tmdb, mediaType: "movie")
+    cast = await getCast(movieDetails?.ids?.tmdb, mediaType: "movie")
   }
 
   @ViewBuilder private var content: some View {
@@ -126,7 +126,7 @@ struct MovieDetailView: View {
             }
           }
         } status: {
-          if !auth.simklAccessToken.isEmpty {
+          if auth.isConnected {
             MovieWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
           }
         }

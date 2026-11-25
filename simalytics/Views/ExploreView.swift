@@ -49,7 +49,7 @@ struct ExploreView: View {
   var body: some View {
     NavigationStack {
       Group {
-        if auth.simklAccessToken.isEmpty {
+        if !auth.hasAccount {
           ContentUnavailableView {
             Label("Sign in to Simkl", systemImage: "lock.shield")
           } description: {
@@ -66,7 +66,7 @@ struct ExploreView: View {
             ProgressView()
           }
         }
-        if !auth.simklAccessToken.isEmpty {
+        if auth.hasAccount {
           ToolbarItem(placement: .topBarTrailing) {
             Menu {
               Toggle("Hide Titles in My Library", systemImage: "eye.slash", isOn: $hidesLibrary)
@@ -93,6 +93,9 @@ struct ExploreView: View {
     return ScrollViewReader { proxy in
       ScrollView {
         LazyVStack(alignment: .leading, spacing: 28) {
+          SimklAccountNotice(
+            standalone: true, margins: EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+
           Picker("Show", selection: filterSelection) {
             ForEach(filters) { filter in
               Text(filter.title).tag(filter)

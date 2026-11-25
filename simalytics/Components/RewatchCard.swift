@@ -27,7 +27,7 @@ struct RewatchCard: View {
   private let rewatches = RewatchStore.shared
 
   private var isTracking: Bool {
-    trackRewatches && rewatches.isPlanEligible && !auth.simklAccessToken.isEmpty
+    trackRewatches && rewatches.isPlanEligible && auth.isConnected
   }
 
   private var session: RewatchSession? {
@@ -188,8 +188,7 @@ struct RewatchCard: View {
     guard !isUpdating, rewatches.hasCountedSessions(kind), !isAtSessionLimit else { return }
     isUpdating = true
     defer { isUpdating = false }
-    let token = auth.simklAccessToken
-    switch await RewatchMutation.start(token, simkl: simkl, kind: kind, title: title) {
+    switch await RewatchMutation.start(simkl: simkl, kind: kind, title: title) {
     case .started(let rewatchID, let reused):
       rewatches.insert(
         RewatchSession(
@@ -198,7 +197,7 @@ struct RewatchCard: View {
       // An existing session keeps its episodes, which only a full read returns.
       if reused { rewatches.requestFullPull(kind) }
       followsRewatch = true
-      resync(token)
+      resync()
     case .failed(let message):
       errorMessage = message
     case .cancelled:
@@ -210,11 +209,10 @@ struct RewatchCard: View {
     guard !isUpdating, let session else { return }
     isUpdating = true
     defer { isUpdating = false }
-    let token = auth.simklAccessToken
-    switch await RewatchMutation.stop(token, session) {
+    switch await RewatchMutation.stop(session) {
     case .succeeded:
       rewatches.removeSession(id: session.id)
-      resync(token)
+      resync()
     case .failed(let message):
       errorMessage = message
     case .cancelled:
@@ -223,10 +221,10 @@ struct RewatchCard: View {
   }
 
   /// Fills in the session's episodes and next episode, and Up Next with it.
-  private func resync(_ token: String) {
+  private func resync() {
     let container = modelContext.container
     invalidateUpNextCache(modelContainer: container)
-    Task { await syncLatestActivities(token, modelContainer: container, forceRefresh: true) }
+    Task { await syncLatestActivities(modelContainer: container, forceRefresh: true) }
   }
 }
 

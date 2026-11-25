@@ -9,14 +9,13 @@ import Foundation
 import Sentry
 import SwiftData
 
-func addMemoToMovie(accessToken: String, simkl: Int, memoText: String, isPrivate: Bool, status: String, modelContainer: ModelContainer) async {
+func addMemoToMovie(simkl: Int, memoText: String, isPrivate: Bool, status: String, modelContainer: ModelContainer) async {
   do {
     let url = URL(string: "https://api.simkl.com/sync/history")!
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let body: [String: Any] = [
       "movies": [
@@ -49,14 +48,13 @@ func addMemoToMovie(accessToken: String, simkl: Int, memoText: String, isPrivate
   }
 }
 
-func addMemoToShow(accessToken: String, simkl: Int, memoText: String, isPrivate: Bool, status: String, modelContainer: ModelContainer) async {
+func addMemoToShow(simkl: Int, memoText: String, isPrivate: Bool, status: String, modelContainer: ModelContainer) async {
   do {
     let url = URL(string: "https://api.simkl.com/sync/history")!
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let body: [String: Any] = [
       "shows": [
@@ -89,14 +87,13 @@ func addMemoToShow(accessToken: String, simkl: Int, memoText: String, isPrivate:
   }
 }
 
-func addMemoToAnime(accessToken: String, simkl: Int, memoText: String, isPrivate: Bool, status: String, modelContainer: ModelContainer) async {
+func addMemoToAnime(simkl: Int, memoText: String, isPrivate: Bool, status: String, modelContainer: ModelContainer) async {
   do {
     let url = URL(string: "https://api.simkl.com/sync/history")!
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
 
     let body: [String: Any] = [
       "anime": [

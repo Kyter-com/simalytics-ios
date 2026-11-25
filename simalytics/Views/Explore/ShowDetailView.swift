@@ -90,7 +90,7 @@ struct ShowDetailView: View {
 
   private func load() async {
     showDetails = await ShowDetailView.getShowDetails(simkl_id)
-    showWatchlist = await ShowDetailView.getShowWatchlist(simkl_id, auth.simklAccessToken)
+    showWatchlist = await ShowDetailView.getShowWatchlist(simkl_id)
     watchlistStatus = showWatchlist?.list
 
     if let fanart = showDetails?.fanart {
@@ -114,7 +114,7 @@ struct ShowDetailView: View {
     isLoading = false
     guard showDetails != nil else { return }
     await loadEpisodes()
-    cast = await getCast(auth.simklAccessToken, showDetails?.ids?.tmdb, mediaType: "tv")
+    cast = await getCast(showDetails?.ids?.tmdb, mediaType: "tv")
   }
 
   @ViewBuilder private var content: some View {
@@ -134,7 +134,7 @@ struct ShowDetailView: View {
           MediaDetailHeader(poster: showDetails?.poster, title: showDetails?.title ?? "show") {
             ShowHeaderInfo(showDetails: $showDetails, showWatchlist: $showWatchlist)
           } status: {
-            if !auth.simklAccessToken.isEmpty {
+            if auth.isConnected {
               ShowWatchlistButton(status: $watchlistStatus, simkl_id: simkl_id)
             }
           }
@@ -188,7 +188,7 @@ struct ShowDetailView: View {
           if let episodeBrowser, !episodeBrowser.groups.isEmpty {
             MediaEpisodeSection(
               model: episodeBrowser, scrollProxy: scrollProxy,
-              canEdit: !auth.simklAccessToken.isEmpty, isRewatch: listedRewatch != nil,
+              canEdit: auth.isConnected, isRewatch: listedRewatch != nil,
               confirmChange: { listedRewatch?.endingConfirmation(unmarking: $0, watched: $1) },
               mutation: mutateEpisode, commit: commitEpisode, reconcile: reconcileEpisodes
             )
@@ -225,7 +225,7 @@ struct ShowDetailView: View {
   }
   private func mutateEpisode(_ episode: EpisodeListItem, watched: Bool) async -> SimklMutationResult
   {
-    guard !auth.simklAccessToken.isEmpty, let season = episode.watchSeason,
+    guard auth.isConnected, let season = episode.watchSeason,
       let number = episode.number
     else { return .failed(userMessage: "Sign in to update this episode.") }
     #if DEBUG
@@ -234,20 +234,20 @@ struct ShowDetailView: View {
     if let rewatch = listedRewatch {
       let key = RewatchEpisode(season: season, episode: number)
       if watched {
-        let logged = await RewatchMutation.markEpisodeWatched(auth.simklAccessToken, rewatch, key)
+        let logged = await RewatchMutation.markEpisodeWatched(rewatch, key)
         if logged.completed { completedRewatchID = rewatch.id }
         return logged.result
       }
-      let removal = await RewatchMutation.markEpisodeUnwatched(auth.simklAccessToken, rewatch, key)
+      let removal = await RewatchMutation.markEpisodeUnwatched(rewatch, key)
       if removal.sessionEnded { rewatches.removeSession(id: rewatch.id) }
       return removal.result
     }
     if watched {
       return await ShowDetailView.markEpisodeWatched(
-        auth.simklAccessToken, showDetails?.title ?? "", simkl_id, season, number)
+        showDetails?.title ?? "", simkl_id, season, number)
     }
     return await ShowDetailView.markEpisodeUnwatched(
-      auth.simklAccessToken, showDetails?.title ?? "", simkl_id, season, number)
+      showDetails?.title ?? "", simkl_id, season, number)
   }
 
   private func commitEpisode(_ episode: EpisodeListItem, watched: Bool) {
@@ -273,15 +273,14 @@ struct ShowDetailView: View {
     #if DEBUG
       if ScreenshotMode.isActive { return nil }
     #endif
-    guard !auth.simklAccessToken.isEmpty else { return nil }
-    let token = auth.simklAccessToken
+    guard auth.isConnected else { return nil }
     let container = modelContext.container
     // Library and Up Next catch up in the background; the episode list only
     // needs this show's watched episodes, so it unlocks after that request.
-    Task { await syncLatestActivities(token, modelContainer: container, forceRefresh: true) }
+    Task { await syncLatestActivities(modelContainer: container, forceRefresh: true) }
     // A rewatch's local copy already holds the change; the sync confirms it.
     if let rewatch = listedRewatch { return rewatch.watchlistSeasons }
-    guard let refreshed = await ShowDetailView.getShowWatchlist(simkl_id, token),
+    guard let refreshed = await ShowDetailView.getShowWatchlist(simkl_id),
       !Task.isCancelled
     else { return nil }
     showWatchlist = refreshed

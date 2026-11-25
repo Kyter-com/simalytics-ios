@@ -19,6 +19,8 @@ struct ListView: View {
   var body: some View {
     NavigationStack {
       List {
+        SimklAccountNoticeSection()
+
         Section(header: Text("Movies")) {
 
           NavigationLink(destination: MovieListView(status: "plantowatch")) {
@@ -325,10 +327,9 @@ struct ListView: View {
         await getCounts()
       }
       .refreshable {
-        if !auth.simklAccessToken.isEmpty {
+        if auth.isConnected {
           globalLoadingIndicator.startSync()
-          await syncLatestActivities(
-            auth.simklAccessToken, modelContainer: modelContext.container)
+          await syncLatestActivities(modelContainer: modelContext.container)
           globalLoadingIndicator.stopSync()
         }
       }

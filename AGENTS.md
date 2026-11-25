@@ -69,6 +69,14 @@ For the step-by-step release (single push, ASC staging, swapping a build in revi
 - Use `ASC_OP_ITEM=<1password-item-id-or-name> npm run release:backfill` to regenerate `docs/apple-release-history.md` from ASC and git.
 - Keep Simalytics commits conventional where practical (`feat:`, `fix:`, `perf:`, `refactor:`, `chore:`).
 
+## Simkl Sign-In
+
+New sign-ins use Simkl AUTH V2 (PKCE, refresh tokens); AUTH V1 sign-ins keep
+working until Simkl retires them (around April 2027). Read `docs/simkl-auth.md`
+before touching `simalytics/Auth/` or request auth. Requests never carry a token
+themselves: mark them `request.simklAuth = .user` and `SimklSession` attaches the
+current token and its matching client ID when they're sent.
+
 ## Observability (Sentry)
 
 Crash reporting via Sentry, org `kyter`, project `simalytics-ios`. dSYMs upload automatically — no manual step in the normal release flow:

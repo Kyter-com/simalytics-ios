@@ -19,7 +19,7 @@ struct MovieRewatchCard: View {
   private let rewatches = RewatchStore.shared
 
   private var isShown: Bool {
-    trackRewatches && rewatches.isPlanEligible && !auth.simklAccessToken.isEmpty
+    trackRewatches && rewatches.isPlanEligible && auth.isConnected
       && status == "completed" && rewatches.hasCountedMovieRewatches
   }
 
@@ -121,11 +121,10 @@ struct MovieRewatchCard: View {
     guard !isUpdating, rewatchIDs.count < RewatchStore.maxSessionsPerTitle else { return }
     isUpdating = true
     defer { isUpdating = false }
-    let token = auth.simklAccessToken
-    switch await RewatchMutation.logMovie(token, simkl: simkl, title: title) {
+    switch await RewatchMutation.logMovie(simkl: simkl, title: title) {
     case .logged(let rewatchID):
       rewatches.recordMovieRewatch(simkl: simkl, id: rewatchID)
-      resync(token)
+      resync()
     case .failed(let message):
       errorMessage = message
     case .cancelled:
@@ -137,12 +136,11 @@ struct MovieRewatchCard: View {
     guard !isUpdating, let latest = rewatchIDs.last else { return }
     isUpdating = true
     defer { isUpdating = false }
-    let token = auth.simklAccessToken
-    switch await RewatchMutation.removeMovieRewatch(token, simkl: simkl, rewatchID: latest) {
+    switch await RewatchMutation.removeMovieRewatch(simkl: simkl, rewatchID: latest) {
     case .removed, .gone:
       // Already deleted, such as on simkl.com, is what the user asked for.
       rewatches.removeMovieRewatch(simkl: simkl, id: latest)
-      resync(token)
+      resync()
     case .failed(let message):
       errorMessage = message
     case .cancelled:
@@ -151,8 +149,8 @@ struct MovieRewatchCard: View {
   }
 
   /// Confirms the write and recounts the movie's rewatches.
-  private func resync(_ token: String) {
+  private func resync() {
     let container = modelContext.container
-    Task { await syncLatestActivities(token, modelContainer: container, forceRefresh: true) }
+    Task { await syncLatestActivities(modelContainer: container, forceRefresh: true) }
   }
 }

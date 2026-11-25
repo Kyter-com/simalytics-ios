@@ -103,20 +103,20 @@ struct JustWatchView: View {
       }
       .task {
         isLoading = true
-        justWatchListings = await getJustWatchListings(auth.simklAccessToken, tmdbId)
+        justWatchListings = await getJustWatchListings(tmdbId)
         isLoading = false
       }
     }
   }
 
-  func getJustWatchListings(_ accessToken: String, _ tmdbId: String?) async -> JustWatchListings? {
+  func getJustWatchListings(_ tmdbId: String?) async -> JustWatchListings? {
     if tmdbId == nil { return nil }
     do {
       let url = URL(string: "https://api.simalytics.kyter.com/tmdb-proxy")!
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
       request.setValue(mediaType, forHTTPHeaderField: "x-type")
       request.setValue(tmdbId!, forHTTPHeaderField: "x-id")
       let (data, response) = try await URLSession.shared.simklData(for: request)

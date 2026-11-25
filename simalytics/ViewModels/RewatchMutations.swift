@@ -57,7 +57,7 @@ enum RewatchMutation {
   /// right away; a reply that adds no movie means it was ignored, such as a
   /// second viewing within 2 days.
   static func logMovie(
-    _ accessToken: String, simkl: Int, title: String?, session: URLSession = .shared
+    simkl: Int, title: String?, session: URLSession = .shared
   ) async -> MovieRewatchLogResult {
     guard simkl > 0 else {
       let error = SimklMutationError.mediaNotFound
@@ -71,7 +71,7 @@ enum RewatchMutation {
         "watched_at": ISO8601DateFormatter().string(from: Date()),
       ]
       if let title { item["title"] = title }
-      let request = try historyRequest(accessToken, key: "movies", item: item)
+      let request = try historyRequest(key: "movies", item: item)
       let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
       let acknowledgement = try parseRewatchHistoryResponse(data, singleEpisode: false)
       guard acknowledgement.addedMovies == 1, let rewatchID = acknowledgement.rewatchID,
@@ -88,7 +88,7 @@ enum RewatchMutation {
 
   /// Deletes one movie rewatch; the first watch is untouched.
   static func removeMovieRewatch(
-    _ accessToken: String, simkl: Int, rewatchID: Int, session: URLSession = .shared
+    simkl: Int, rewatchID: Int, session: URLSession = .shared
   ) async -> MovieRewatchRemovalResult {
     guard simkl > 0, rewatchID > 0 else {
       let error = SimklMutationError.mediaNotFound
@@ -99,7 +99,7 @@ enum RewatchMutation {
     do {
       var request = URLRequest(url: simklAPIURL(path: "sync/history/remove"))
       request.httpMethod = "POST"
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
       request.httpBody = try JSONSerialization.data(withJSONObject: [
         "movies": [["ids": ["simkl": simkl], "rewatch_id": rewatchID]]
       ])
@@ -115,7 +115,7 @@ enum RewatchMutation {
   }
 
   static func markEpisodeWatched(
-    _ accessToken: String, _ rewatch: RewatchSession, _ episode: RewatchEpisode,
+    _ rewatch: RewatchSession, _ episode: RewatchEpisode,
     session: URLSession = .shared
   ) async -> RewatchLogResult {
     guard rewatch.id > 0, rewatch.simkl > 0,
@@ -131,11 +131,11 @@ enum RewatchMutation {
       let episodes: [[String: Any]] = [["number": episode.episode, "watched_at": watchedAt]]
       let seasons: [[String: Any]] = [["number": episode.season, "episodes": episodes]]
       let request = try historyRequest(
-        accessToken, kind: rewatch.kind,
+        kind: rewatch.kind,
         item: item(for: rewatch, ["rewatch_id": rewatch.id, "seasons": seasons]))
       let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
       let acknowledgement = try parseRewatchHistoryResponse(data, singleEpisode: true)
-      try await undoFork(acknowledgement, of: rewatch, accessToken: accessToken, session: session)
+      try await undoFork(acknowledgement, of: rewatch, session: session)
       // Zero means SIMKL ignored it: too soon after the last watch of this
       // episode, or a date that matches the first watch.
       guard acknowledgement.addedEpisodes == 1 else {
@@ -150,7 +150,7 @@ enum RewatchMutation {
 
   /// Removes the episode from this session only; the first watch is untouched.
   static func markEpisodeUnwatched(
-    _ accessToken: String, _ rewatch: RewatchSession, _ episode: RewatchEpisode,
+    _ rewatch: RewatchSession, _ episode: RewatchEpisode,
     session: URLSession = .shared
   ) async -> RewatchRemovalResult {
     guard rewatch.id > 0, rewatch.simkl > 0,
@@ -165,7 +165,7 @@ enum RewatchMutation {
     do {
       var request = URLRequest(url: simklAPIURL(path: "sync/history/remove"))
       request.httpMethod = "POST"
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
       let body: [String: Any] = [
         "shows": [
           [
@@ -190,7 +190,7 @@ enum RewatchMutation {
   /// without episodes is otherwise auto-filled as watched, which is also why
   /// `skip_auto_watching=yes` rides along.
   static func start(
-    _ accessToken: String, simkl: Int, kind: RewatchKind, title: String?,
+    simkl: Int, kind: RewatchKind, title: String?,
     session: URLSession = .shared
   ) async -> RewatchStartResult {
     guard simkl > 0 else {
@@ -204,7 +204,7 @@ enum RewatchMutation {
         "ids": ["simkl": simkl], "is_rewatch": true, "rewatch_status": "active",
       ]
       if let title { item["title"] = title }
-      let request = try historyRequest(accessToken, kind: kind, item: item, skipAutoWatching: true)
+      let request = try historyRequest(kind: kind, item: item, skipAutoWatching: true)
       let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
       let acknowledgement = try parseRewatchHistoryResponse(data, singleEpisode: false)
       guard let rewatchID = acknowledgement.rewatchID, rewatchID > 0,
@@ -221,7 +221,7 @@ enum RewatchMutation {
 
   /// Closes the session. SIMKL keeps its progress, so it stays resumable there.
   static func stop(
-    _ accessToken: String, _ rewatch: RewatchSession, session: URLSession = .shared
+    _ rewatch: RewatchSession, session: URLSession = .shared
   ) async -> SimklMutationResult {
     guard rewatch.id > 0, rewatch.simkl > 0 else {
       let error = SimklMutationError.mediaNotFound
@@ -231,12 +231,12 @@ enum RewatchMutation {
 
     do {
       let request = try historyRequest(
-        accessToken, kind: rewatch.kind,
+        kind: rewatch.kind,
         item: item(for: rewatch, ["rewatch_id": rewatch.id, "rewatch_status": "closed"]),
         skipAutoWatching: true)
       let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
       let acknowledgement = try parseRewatchHistoryResponse(data, singleEpisode: false)
-      try await undoFork(acknowledgement, of: rewatch, accessToken: accessToken, session: session)
+      try await undoFork(acknowledgement, of: rewatch, session: session)
       // Closing a session SIMKL already completed is a no-op that reports `completed`.
       return ["closed", "completed"].contains(acknowledgement.rewatchStatus)
         ? .succeeded : .failed(userMessage: notStoppedMessage)
@@ -252,18 +252,17 @@ enum RewatchMutation {
   /// one is a phantom, so it's deleted and the pinned session is reported gone.
   private static func undoFork(
     _ acknowledgement: RewatchHistoryAcknowledgement, of rewatch: RewatchSession,
-    accessToken: String, session: URLSession
+    session: URLSession
   ) async throws {
     guard let forkedID = acknowledgement.rewatchID, forkedID > 0, forkedID != rewatch.id,
-      let membership = try await fetchRewatchMembership(
-        rewatch.kind, accessToken: accessToken, session: session),
+      let membership = try await fetchRewatchMembership(rewatch.kind, session: session),
       membership.titles[rewatch.id] == nil,
       membership.titles[forkedID] == rewatch.simkl
     else { return }
     do {
       var request = URLRequest(url: simklAPIURL(path: "sync/history/remove"))
       request.httpMethod = "POST"
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
       request.httpBody = try JSONSerialization.data(withJSONObject: [
         "shows": [["ids": ["simkl": rewatch.simkl], "rewatch_id": forkedID]]
       ])
@@ -283,15 +282,14 @@ enum RewatchMutation {
   }
 
   private static func historyRequest(
-    _ accessToken: String, kind: RewatchKind, item: [String: Any], skipAutoWatching: Bool = false
+    kind: RewatchKind, item: [String: Any], skipAutoWatching: Bool = false
   ) throws -> URLRequest {
-    try historyRequest(
-      accessToken, key: kind.libraryKey, item: item, skipAutoWatching: skipAutoWatching)
+    try historyRequest(key: kind.libraryKey, item: item, skipAutoWatching: skipAutoWatching)
   }
 
   /// `key` is the body's list: `shows`, `anime`, or `movies`.
   private static func historyRequest(
-    _ accessToken: String, key: String, item: [String: Any], skipAutoWatching: Bool = false
+    key: String, item: [String: Any], skipAutoWatching: Bool = false
   ) throws -> URLRequest {
     var queryItems = [URLQueryItem(name: "allow_rewatch", value: "yes")]
     if skipAutoWatching {
@@ -299,7 +297,7 @@ enum RewatchMutation {
     }
     var request = URLRequest(url: simklAPIURL(path: "sync/history", queryItems: queryItems))
     request.httpMethod = "POST"
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
     request.httpBody = try JSONSerialization.data(withJSONObject: [key: [item]])
     return request
   }

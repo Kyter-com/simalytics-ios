@@ -15,9 +15,12 @@ struct MediaSearchRequest: Hashable {
   let hideAnime: Bool
   var retry = 0
 
+  /// As few requests as possible, since Simkl counts each against the person's
+  /// daily allowance: `all` covers movies, TV and anime at once. With anime
+  /// hidden, the two typed searches keep a full page of each.
   var endpoints: [String] {
     switch category {
-    case .all: hideAnime ? ["tv", "movie"] : ["tv", "movie", "anime"]
+    case .all: hideAnime ? ["tv", "movie"] : ["all"]
     case .movie: ["movie"]
     case .tv: ["tv"]
     case .anime: hideAnime ? [] : ["anime"]
@@ -53,6 +56,8 @@ final class SearchResultsViewModel {
           matches += try await fetchMediaSearchResults(
             searchText: query, type: endpoint, session: session)
         }
+        // `all` mixes types; respect Hide Anime here, not only in the view.
+        if request.hideAnime { matches.removeAll { $0.endpoint_type == "anime" } }
       }
       try Task.checkCancellation()
       guard generation == currentGeneration else { return }
@@ -64,7 +69,10 @@ final class SearchResultsViewModel {
         generation == currentGeneration
       else { return }
       results = []
-      errorMessage = "Couldn't load search results. Check your connection and try again."
+      errorMessage =
+        error is SimklAuthError || error is SimklMutationError
+        ? simklMutationUserMessage(for: error)
+        : "Couldn't load search results. Check your connection and try again."
       completedRequest = request
     }
   }
@@ -79,10 +87,13 @@ func fetchMediaSearchResults(
     path: "search/\(type)",
     queryItems: [
       URLQueryItem(name: "q", value: query.lowercased()),
-      URLQueryItem(name: "limit", value: "10"),
+      // `all` returns one mixed list, so give it the room three typed searches had.
+      URLQueryItem(name: "limit", value: type == "all" ? "30" : "10"),
     ])
-  let (data, _) = try await performSimklRequest(
-    URLRequest(url: url), retryCount: 0, session: session)
+  var request = URLRequest(url: url)
+  // Search isn't a public catalog lookup: AUTH V2 answers it only with a user token.
+  request.simklAuth = .user
+  let (data, _) = try await performSimklRequest(request, retryCount: 0, session: session)
   try Task.checkCancellation()
   return try JSONDecoder().decode([SearchResultModel].self, from: data)
 }

@@ -29,7 +29,7 @@ struct MediaRatingView: View {
       ) { selected in
         saveRating(Int((useFiveStarRating ? selected * 2 : selected).rounded()))
       }
-      .disabled(isSaving || auth.simklAccessToken.isEmpty)
+      .disabled(isSaving || !auth.isConnected)
 
       if isSaving {
         ProgressView("Saving rating…")
@@ -43,7 +43,7 @@ struct MediaRatingView: View {
             .frame(minHeight: 44)
             .contentShape(.rect)
         }
-        .disabled(auth.simklAccessToken.isEmpty)
+        .disabled(!auth.isConnected)
       }
     }
     .padding(.horizontal)
@@ -56,9 +56,9 @@ struct MediaRatingView: View {
   }
 
   private func saveRating(_ newRating: Int) {
-    guard !isSaving, !auth.simklAccessToken.isEmpty else { return }
+    guard !isSaving, auth.isConnected else { return }
     let previous = rating
-    let token = auth.simklAccessToken
+    let account = auth.accountSessionID
     isSaving = true
     rating = Double(newRating)
     Task {
@@ -69,14 +69,14 @@ struct MediaRatingView: View {
           result = .succeeded
         } else {
           result = await setSimklRating(
-            simklID: simklID, type: type, rating: newRating, accessToken: token)
+            simklID: simklID, type: type, rating: newRating)
         }
       #else
         result = await setSimklRating(
-          simklID: simklID, type: type, rating: newRating, accessToken: token)
+          simklID: simklID, type: type, rating: newRating)
       #endif
-      // A response for a signed-out account must not repopulate its local data.
-      guard auth.simklAccessToken == token else { return }
+      // A response for a previous account must not repopulate local data.
+      guard auth.accountSessionID == account else { return }
       switch result {
       case .succeeded:
         do {
@@ -84,7 +84,7 @@ struct MediaRatingView: View {
         } catch {
           reportError(error)
         }
-        await syncLatestActivities(token, modelContainer: modelContext.container)
+        await syncLatestActivities(modelContainer: modelContext.container)
       case .cancelled:
         rating = previous
       case .failed(let message):

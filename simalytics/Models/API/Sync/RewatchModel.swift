@@ -53,11 +53,3 @@ struct MovieRewatchRowModel: Decodable, Sendable {
   }
 }
 
-/// The plan field of `GET /users/settings`; rewatches need `pro` or `vip`.
-struct SimklUserSettingsModel: Decodable, Sendable {
-  struct Account: Decodable, Sendable {
-    let type: String?
-  }
-
-  let account: Account?
-}

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 // Stateless task delegate used to capture 3xx responses without following them.
 // Required for the /redirect endpoint, which encodes the simkl id in the
@@ -25,13 +26,13 @@ private final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
 }
 
 extension ActorDetailView {
-  static func getActorDetails(_ accessToken: String, personID: Int) async -> TMDBPersonDetails? {
+  static func getActorDetails(personID: Int) async -> TMDBPersonDetails? {
     do {
       let url = URL(string: "https://api.simalytics.kyter.com/tmdb-person")!
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
       request.setValue(String(personID), forHTTPHeaderField: "x-id")
 
       let (data, response) = try await URLSession.shared.simklData(for: request)
@@ -46,6 +47,7 @@ extension ActorDetailView {
 
   static func filmographyItems(from details: TMDBPersonDetails) async -> [ActorFilmographyItem] {
     let credits = Array(details.sortedFilmographyCredits.prefix(80))
+    let searches = TitleSearchBudget(Self.titleSearchesPerFilmography)
     // Bound concurrency so we don't burst 80 simultaneous /redirect calls
     // through Simkl's 10 GET/sec/client_id ceiling. Detail endpoints are
     // documented as parallel-allowed but /redirect isn't on the parallel
@@ -61,7 +63,7 @@ extension ActorDetailView {
           }
         }
         group.addTask {
-          let destination = await resolveDestination(for: credit)
+          let destination = await resolveDestination(for: credit, searches: searches)
           return (index, ActorFilmographyItem(credit: credit, destination: destination))
         }
       }
@@ -76,7 +78,14 @@ extension ActorDetailView {
     }
   }
 
-  private static func resolveDestination(for credit: TMDBPersonCredit) async -> MediaDestination? {
+  /// Title searches count against the person's daily Simkl allowance (500 on
+  /// a free plan), unlike `/redirect`, so a filmography spends only a few, on
+  /// its top credits. Others that `/redirect` can't place aren't linked.
+  static let titleSearchesPerFilmography = 6
+
+  private static func resolveDestination(
+    for credit: TMDBPersonCredit, searches: TitleSearchBudget
+  ) async -> MediaDestination? {
     let lookupType = credit.media_type == "movie" ? "movie" : "show"
     guard var urlComponents = URLComponents(string: "https://api.simkl.com/redirect") else {
       return nil
@@ -86,12 +95,11 @@ extension ActorDetailView {
       URLQueryItem(name: "to", value: "Simkl"),
       URLQueryItem(name: "tmdb", value: String(credit.id)),
       URLQueryItem(name: "type", value: lookupType),
-      URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
     ]
 
     do {
       guard let url = urlComponents.url else { return nil }
-      let request = prepareSimklRequest(URLRequest(url: url))
+      let request = prepareSimklRequest(URLRequest(url: url), client: .anonymous)
 
       // Simkl recommends /redirect over the legacy /search/id endpoint: it returns
       // 301 with the simkl id in the Location URL — no JSON body to parse. We
@@ -101,13 +109,13 @@ extension ActorDetailView {
             http.statusCode == 301,
             let location = http.value(forHTTPHeaderField: "Location"),
             let parsed = parseSimklRedirectLocation(location) else {
-        return await resolveDestinationByTitle(for: credit)
+        return await resolveDestinationByTitle(for: credit, searches: searches)
       }
 
       return mediaDestination(type: parsed.type, simklID: parsed.simklID, fallbackMediaType: credit.media_type)
     } catch {
       reportError(error)
-      return await resolveDestinationByTitle(for: credit)
+      return await resolveDestinationByTitle(for: credit, searches: searches)
     }
   }
 
@@ -125,8 +133,13 @@ extension ActorDetailView {
     return (type: type, simklID: simklID)
   }
 
-  private static func resolveDestinationByTitle(for credit: TMDBPersonCredit) async -> MediaDestination? {
+  private static func resolveDestinationByTitle(
+    for credit: TMDBPersonCredit, searches: TitleSearchBudget
+  ) async -> MediaDestination? {
     let searchType = credit.media_type == "movie" ? "movie" : "tv"
+    let key = "\(searchType)|\(credit.displayTitle.lowercased())|\(credit.year ?? "")"
+    if let known = resolvedTitles.withLock({ $0[key] }) { return known }
+    guard searches.take() else { return nil }
     let results =
       (try? await fetchMediaSearchResults(searchText: credit.displayTitle, type: searchType)) ?? []
     let match = results.first { result in
@@ -135,12 +148,18 @@ extension ActorDetailView {
     } ?? results.first
 
     guard let match else { return nil }
-    return mediaDestination(
+    let destination = mediaDestination(
       type: match.endpoint_type,
       simklID: match.ids.simkl_id,
       fallbackMediaType: credit.media_type
     )
+    resolvedTitles.withLock { $0[key] = destination }
+    return destination
   }
+
+  /// Titles already matched by search, so revisiting a filmography is free.
+  private static let resolvedTitles = OSAllocatedUnfairLock<[String: MediaDestination]>(
+    initialState: [:])
 
   private static func mediaDestination(type: String?, simklID: Int, fallbackMediaType: String) -> MediaDestination {
     switch type {
@@ -152,6 +171,21 @@ extension ActorDetailView {
         return .show(simklID)
       default:
         return fallbackMediaType == "movie" ? .movie(simklID) : .show(simklID)
+    }
+  }
+}
+
+/// How many title searches one filmography may still spend.
+final class TitleSearchBudget: Sendable {
+  private let remaining: OSAllocatedUnfairLock<Int>
+
+  init(_ limit: Int) { remaining = OSAllocatedUnfairLock(initialState: limit) }
+
+  func take() -> Bool {
+    remaining.withLock { count in
+      guard count > 0 else { return false }
+      count -= 1
+      return true
     }
   }
 }

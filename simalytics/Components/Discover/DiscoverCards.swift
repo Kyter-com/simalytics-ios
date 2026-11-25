@@ -79,7 +79,7 @@ struct DiscoverItemLink<Content: View>: View {
   /// Plan to Watch only: other lists hold progress, so they're left to the
   /// detail screen.
   @ViewBuilder private var listButton: some View {
-    if !auth.simklAccessToken.isEmpty {
+    if auth.isConnected {
       if lists.updating.contains(item.id) {
         Button("Updating Your List…", systemImage: "clock") {}
           .disabled(true)
@@ -112,12 +112,11 @@ struct DiscoverItemLink<Content: View>: View {
   }
 
   private func change(adding: Bool) {
-    let accessToken = auth.simklAccessToken
     Task {
       let outcome =
         adding
-        ? await lists.addToPlanToWatch(item, accessToken: accessToken)
-        : await lists.removeFromPlanToWatch(item, accessToken: accessToken)
+        ? await lists.addToPlanToWatch(item)
+        : await lists.removeFromPlanToWatch(item)
       switch outcome {
       case .added, .removed:
         changes += 1

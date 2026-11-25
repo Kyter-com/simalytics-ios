@@ -19,7 +19,6 @@ extension ShowDetailView {
       var urlComponents = URLComponents(string: "https://api.simkl.com/tv/\(simklID)")!
       urlComponents.queryItems = [
         URLQueryItem(name: "extended", value: "full"),
-        URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
       ]
 
       var request = URLRequest(url: urlComponents.url!)
@@ -44,13 +43,13 @@ extension ShowDetailView {
   // Batched variant for callers (e.g. up-next sync) that need watched data
   // for many shows at once. Thin wrapper around the shared helper so the
   // call site stays clean and TV/anime behaviour can't drift apart.
-  static func getShowWatchlistBatch(_ simklIDs: [Int], _ accessToken: String) async
+  static func getShowWatchlistBatch(_ simklIDs: [Int]) async
     -> SimklWatchedBatch<ShowWatchlistModel>
   {
-    await simklWatchedBatch(simklIDs: simklIDs, type: "show", accessToken: accessToken)
+    await simklWatchedBatch(simklIDs: simklIDs, type: "show")
   }
 
-  static func getShowWatchlist(_ simklID: Int, _ accessToken: String) async -> ShowWatchlistModel? {
+  static func getShowWatchlist(_ simklID: Int) async -> ShowWatchlistModel? {
     #if DEBUG
       if ScreenshotMode.isActive {
         guard simklID == ScreenshotEpisodeFixtures.showID else { return nil }
@@ -67,8 +66,7 @@ extension ShowDetailView {
       var request = URLRequest(url: urlComponents.url!)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
       let body: [[String: Any]] = [["ids": ["simkl": simklID], "type": "show"]]
       request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
@@ -93,7 +91,6 @@ extension ShowDetailView {
 
   @discardableResult
   static func markEpisodeUnwatched(
-    _ accessToken: String,
     _ title: String,
     _ simklId: Int,
     _ season: Int,
@@ -113,8 +110,7 @@ extension ShowDetailView {
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
 
       let body: [String: Any] = [
         "shows": [
@@ -149,7 +145,6 @@ extension ShowDetailView {
 
   @discardableResult
   static func markEpisodeWatched(
-    _ accessToken: String,
     _ title: String,
     _ simklId: Int,
     _ season: Int,
@@ -169,8 +164,7 @@ extension ShowDetailView {
       var request = URLRequest(url: url)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-      request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+      request.simklAuth = .user
 
       let formatter = ISO8601DateFormatter()
       let dateString = formatter.string(from: Date())
@@ -262,7 +256,7 @@ extension ShowDetailView {
 
 extension ShowWatchlistButton {
   static func updateShowList(
-    _ simklID: Int, _ accessToken: String, _ list: String, session: URLSession = .shared
+    _ simklID: Int, _ list: String, session: URLSession = .shared
   ) async
     -> String?
   {
@@ -272,8 +266,7 @@ extension ShowWatchlistButton {
         var request = URLRequest(url: urlComponents.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.simklAuth = .user
 
         let body: [String: Any] = [
           "shows": [
@@ -294,8 +287,7 @@ extension ShowWatchlistButton {
         var request = URLRequest(url: urlComponents.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(SIMKL_CLIENT_ID, forHTTPHeaderField: "simkl-api-key")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.simklAuth = .user
         let body: [String: Any] = [
           "shows": [
             [

@@ -42,8 +42,12 @@ struct EpisodeHistoryContractTests {
     if scenario == "cancelled" {
       #expect(result == .cancelled)
     } else {
+      // AUTH V1 can't refresh, so Simkl's 401 means reconnecting; the library stays.
       #expect(
-        result == .failed(userMessage: "Your Simkl session has expired. Please sign in again."))
+        result
+          == .failed(
+            userMessage: simklMutationUserMessage(
+              for: SimklAuthError.reconnectRequired(.legacySignInEnded))))
     }
   }
 

@@ -71,17 +71,17 @@ struct MemoView: View {
             Task {
               if simkl_type == "movie" {
                 await addMemoToMovie(
-                  accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText,
+                  simkl: simkl_id, memoText: memoText,
                   isPrivate: privacySelection == "Private",
                   status: item_status, modelContainer: modelContext.container)
               } else if simkl_type == "show" {
                 await addMemoToShow(
-                  accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText,
+                  simkl: simkl_id, memoText: memoText,
                   isPrivate: privacySelection == "Private",
                   status: item_status, modelContainer: modelContext.container)
               } else if simkl_type == "anime" {
                 await addMemoToAnime(
-                  accessToken: auth.simklAccessToken, simkl: simkl_id, memoText: memoText,
+                  simkl: simkl_id, memoText: memoText,
                   isPrivate: privacySelection == "Private",
                   status: item_status, modelContainer: modelContext.container)
               }

@@ -112,7 +112,8 @@ struct UpNextView: View {
   private func markWatched(_ mediaItem: any UpNextMedia) {
     // SIMKL serializes writes per user; allow only one Up Next action at a
     // time, including the following reconciliation, even across different rows.
-    guard updatingIDs.isEmpty else { return }
+    // Without a working sign-in the card above explains how to reconnect.
+    guard updatingIDs.isEmpty, auth.isConnected else { return }
     updatingIDs.insert(mediaItem.upNextID)
     // The write and its resync can take a few seconds; show that work is running.
     globalLoadingIndicator.startSync()
@@ -148,8 +149,7 @@ struct UpNextView: View {
       if let session = mediaItem.rewatch {
         let episode = RewatchEpisode(
           season: episodeSelection.season, episode: episodeSelection.episode)
-        let logged = await RewatchMutation.markEpisodeWatched(
-          auth.simklAccessToken, session, episode)
+        let logged = await RewatchMutation.markEpisodeWatched(session, episode)
         result = logged.result
         if result == .succeeded {
           rewatches.record(episode, watched: true, sessionID: session.id)
@@ -157,7 +157,6 @@ struct UpNextView: View {
         }
       } else if isAnime {
         result = await AnimeDetailView.markEpisodeWatched(
-          auth.simklAccessToken,
           mediaItem.title ?? "",
           mediaItem.simkl,
           episodeSelection.season,
@@ -165,7 +164,6 @@ struct UpNextView: View {
         )
       } else {
         result = await ShowDetailView.markEpisodeWatched(
-          auth.simklAccessToken,
           mediaItem.title ?? "",
           mediaItem.simkl,
           episodeSelection.season,
@@ -180,7 +178,6 @@ struct UpNextView: View {
         return
       }
       await syncLatestActivities(
-        auth.simklAccessToken,
         modelContainer: context.container,
         forceRefresh: true
       )
@@ -194,7 +191,7 @@ struct UpNextView: View {
     } label: {
       Label("Mark Watched", systemImage: "checkmark.circle")
     }
-    .disabled(!updatingIDs.isEmpty)
+    .disabled(!updatingIDs.isEmpty || !auth.isConnected)
     ShareLink(
       item: URL(string: "https://simkl.com/\(mediaItem.type)/\(mediaItem.simkl)")!,
       subject: Text(mediaItem.title ?? ""),
@@ -243,27 +240,33 @@ struct UpNextView: View {
 
   var body: some View {
     NavigationStack {
-      if auth.simklAccessToken.isEmpty {
+      if !auth.hasAccount {
         ContentUnavailableView {
           Label("Sign in to Simkl", systemImage: "lock.shield")
         } description: {
           Text("Sign in to Simkl to view your Up Next items.")
         }
       } else {
+        // The account notice scrolls with the content in every layout. Pinned
+        // above it, the card grows with large text until it covers the list
+        // and pushes its own button out of reach.
         Group {
           if filteredMedia.isEmpty {
-            ContentUnavailableView {
-              Label(
-                searchText.isEmpty ? "Nothing Up Next" : "No Results",
-                systemImage: searchText.isEmpty ? "play.tv" : "magnifyingglass")
-            } description: {
-              Text(
-                searchText.isEmpty
-                  ? "Episodes you are currently watching will appear here."
-                  : "Try searching for another show or episode.")
+            // The card and the empty state share the screen when they fit;
+            // at the largest text sizes they scroll together instead.
+            ViewThatFits(in: .vertical) {
+              VStack(spacing: 0) {
+                SimklAccountNotice(standalone: true, margins: Self.noticeMargins)
+                emptyState
+              }
+              ScrollView {
+                SimklAccountNotice(standalone: true, margins: Self.noticeMargins)
+                emptyState
+              }
             }
           } else if layout == .grid {
             ScrollView {
+              SimklAccountNotice(standalone: true, margins: Self.noticeMargins)
               LazyVGrid(columns: posterGridColumns, spacing: 16) {
                 ForEach(filteredMedia, id: \.upNextID) { mediaItem in
                   MediaDetailLink(sourceID: "upnext-\(mediaItem.upNextID)") {
@@ -281,7 +284,8 @@ struct UpNextView: View {
                   }
                   .buttonStyle(.plain)
                   .upNextGridSwipe(
-                    item: mediaItem, markWatched: markWatched, disabled: !updatingIDs.isEmpty
+                    item: mediaItem, markWatched: markWatched,
+                    disabled: !updatingIDs.isEmpty || !auth.isConnected
                   )
                   .accessibilityAction(named: Text("Mark Watched")) { markWatched(mediaItem) }
                   .contextMenu {
@@ -296,76 +300,79 @@ struct UpNextView: View {
             }
             .upNextSwipeContainer()
           } else {
-            List(filteredMedia, id: \.upNextID) { mediaItem in
-              MediaDetailLink(sourceID: "upnext-\(mediaItem.upNextID)") {
-                destinationView(for: mediaItem)
-              } label: {
-                HStack {
-                  // Keep the placeholder for missing art so every row's text lines up.
-                  CustomKFImage(
-                    imageUrlString: mediaItem.poster.map { "\(SIMKL_CDN_URL)/posters/\($0)_m.jpg" },
-                    memoryCacheOnly: false,
-                    height: 118,
-                    width: 80
-                  )
-
-                  VStack(alignment: .leading) {
-                    if let title = mediaItem.title {
-                      Text(title)
-                        .font(.headline)
-                        .padding(.top, 8)
-                    }
-                    if mediaItem.rewatch != nil {
-                      // Not a Label: List rows give a Label's icon its own column.
-                      HStack(spacing: 4) {
-                        Image(systemName: "arrow.counterclockwise")
-                        Text("Rewatching")
-                      }
-                      .font(.caption)
-                      .foregroundStyle(.tint)
-                      .accessibilityElement(children: .combine)
-                    }
-                    if let title = mediaItem.next_to_watch_info_title {
-                      Text(title)
-                        .font(.subheadline)
-                    }
-                    Spacer()
-                    if let season = mediaItem.next_to_watch_info_season {
-                      Text("Season \(season)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    }
-                    if let episode = mediaItem.next_to_watch_info_episode {
-                      Text("Episode \(episode)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                  }
-                  if updatingIDs.contains(mediaItem.upNextID) {
-                    Spacer()
-                    UpdatingIndicator()
-                  }
-                }
-              }
-              // Attach to the row, not the nested NavigationLink label, so
-              // a full left swipe invokes the first action without another tap.
-              // Only the action disables during updates; the row stays enabled
-              // so detail navigation isn't blocked by the following resync.
-              .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                Button {
-                  markWatched(mediaItem)
+            List {
+              SimklAccountNoticeRow()
+              ForEach(filteredMedia, id: \.upNextID) { mediaItem in
+                MediaDetailLink(sourceID: "upnext-\(mediaItem.upNextID)") {
+                  destinationView(for: mediaItem)
                 } label: {
-                  Label("Watched", systemImage: "checkmark.circle")
+                  HStack {
+                    // Keep the placeholder for missing art so every row's text lines up.
+                    CustomKFImage(
+                      imageUrlString: mediaItem.poster.map { "\(SIMKL_CDN_URL)/posters/\($0)_m.jpg" },
+                      memoryCacheOnly: false,
+                      height: 118,
+                      width: 80
+                    )
+
+                    VStack(alignment: .leading) {
+                      if let title = mediaItem.title {
+                        Text(title)
+                          .font(.headline)
+                          .padding(.top, 8)
+                      }
+                      if mediaItem.rewatch != nil {
+                        // Not a Label: List rows give a Label's icon its own column.
+                        HStack(spacing: 4) {
+                          Image(systemName: "arrow.counterclockwise")
+                          Text("Rewatching")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.tint)
+                        .accessibilityElement(children: .combine)
+                      }
+                      if let title = mediaItem.next_to_watch_info_title {
+                        Text(title)
+                          .font(.subheadline)
+                      }
+                      Spacer()
+                      if let season = mediaItem.next_to_watch_info_season {
+                        Text("Season \(season)")
+                          .font(.subheadline)
+                          .foregroundStyle(.secondary)
+                      }
+                      if let episode = mediaItem.next_to_watch_info_episode {
+                        Text("Episode \(episode)")
+                          .font(.subheadline)
+                          .foregroundStyle(.secondary)
+                      }
+                      Spacer()
+                    }
+                    if updatingIDs.contains(mediaItem.upNextID) {
+                      Spacer()
+                      UpdatingIndicator()
+                    }
+                  }
                 }
-                .tint(.green)
-                .disabled(!updatingIDs.isEmpty)
-              }
-              .accessibilityAction(named: Text("Mark Watched")) { markWatched(mediaItem) }
-              .contextMenu {
-                contextMenu(for: mediaItem)
-              } preview: {
-                UpNextPreviewCard(mediaItem: mediaItem)
+                // Attach to the row, not the nested NavigationLink label, so
+                // a full left swipe invokes the first action without another tap.
+                // Only the action disables during updates; the row stays enabled
+                // so detail navigation isn't blocked by the following resync.
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                  Button {
+                    markWatched(mediaItem)
+                  } label: {
+                    Label("Watched", systemImage: "checkmark.circle")
+                  }
+                  .tint(.green)
+                  .disabled(!updatingIDs.isEmpty || !auth.isConnected)
+                }
+                .accessibilityAction(named: Text("Mark Watched")) { markWatched(mediaItem) }
+                .contextMenu {
+                  contextMenu(for: mediaItem)
+                } preview: {
+                  UpNextPreviewCard(mediaItem: mediaItem)
+                }
               }
             }
             .listStyle(.inset)
@@ -395,6 +402,22 @@ struct UpNextView: View {
       Button("OK", role: .cancel) { mutationError = nil }
     } message: {
       Text(mutationError ?? "Please try again.")
+    }
+  }
+
+  /// Space around the account notice, matching the cards on Explore.
+  private static let noticeMargins = EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
+
+  private var emptyState: some View {
+    ContentUnavailableView {
+      Label(
+        searchText.isEmpty ? "Nothing Up Next" : "No Results",
+        systemImage: searchText.isEmpty ? "play.tv" : "magnifyingglass")
+    } description: {
+      Text(
+        searchText.isEmpty
+          ? "Episodes you are currently watching will appear here."
+          : "Try searching for another show or episode.")
     }
   }
 

@@ -21,14 +21,14 @@ struct TMDBCastMember: Codable, Identifiable {
   let order: Int?
 }
 
-func getCast(_ accessToken: String, _ tmdbId: String?, mediaType: String) async -> [TMDBCastMember] {
+func getCast(_ tmdbId: String?, mediaType: String) async -> [TMDBCastMember] {
   guard let tmdbId else { return [] }
   do {
     let url = URL(string: "https://api.simalytics.kyter.com/tmdb-credits")!
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    request.simklAuth = .user
     request.setValue(mediaType, forHTTPHeaderField: "x-type")
     request.setValue(tmdbId, forHTTPHeaderField: "x-id")
 

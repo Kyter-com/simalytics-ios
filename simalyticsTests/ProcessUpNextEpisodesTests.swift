@@ -297,13 +297,21 @@ struct ProcessUpNextCacheTests {
     #expect(validatedSimklEpisode(season: 2, episode: 4)?.episode == 4)
   }
 
-  @Test("Simkl API URLs include required app metadata")
+  @Test("Simkl API requests carry required app metadata for the credential's client")
   func simklURLMetadata() throws {
     let url = simklAPIURL(path: "search/tv", queryItems: [URLQueryItem(name: "q", value: "world")])
-    let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
-    let names = Set((components.queryItems ?? []).map(\.name))
-    #expect(components.host == "api.simkl.com")
-    #expect(names.isSuperset(of: ["client_id", "app-name", "app-version"]))
+    for client in [SimklClient.v1, .v2] {
+      let request = prepareSimklRequest(URLRequest(url: url), client: client)
+      let sent = try #require(request.url)
+      let components = try #require(URLComponents(url: sent, resolvingAgainstBaseURL: false))
+      let query = Dictionary(
+        uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value) })
+      #expect(components.host == "api.simkl.com")
+      #expect(query["q"] == "world")
+      #expect(query["client_id"] == client.clientID)
+      #expect(query["app-name"] != nil && query["app-version"] != nil)
+      #expect(request.value(forHTTPHeaderField: "simkl-api-key") == client.clientID)
+    }
   }
 }
 

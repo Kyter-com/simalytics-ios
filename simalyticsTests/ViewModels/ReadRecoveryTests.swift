@@ -74,7 +74,8 @@ struct ReadRecoveryTests {
       default: await fetchAndStoreAnimeRemovedFromList(scenario, "new", context, session: session)
       }
     }
-    #expect(outcome == .incomplete)
+    // A rejected sign-in ends the whole attempt instead of repeating the rejection.
+    #expect(outcome == (scenario == "unauthorized" ? .authenticationRequired : .incomplete))
     let fresh = ModelContext(container)
     #expect(try fresh.fetchCount(FetchDescriptor<V1.SDMovies>()) == 1)
     #expect(try fresh.fetchCount(FetchDescriptor<V1.SDShows>()) == 1)

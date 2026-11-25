@@ -35,7 +35,8 @@ enum DiscoverSource: Hashable, Sendable {
     components.host = "data.simkl.in"
     components.path = "/discover/\(path)"
     components.queryItems = [
-      URLQueryItem(name: "client_id", value: SIMKL_CLIENT_ID),
+      // Public files: they never carry a user token, so the app's own V2 ID.
+      URLQueryItem(name: "client_id", value: SimklClient.anonymous.clientID),
       URLQueryItem(name: "app-name", value: SIMKL_APP_NAME),
       URLQueryItem(name: "app-version", value: SIMKL_APP_VERSION),
     ]

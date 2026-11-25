@@ -12,7 +12,9 @@ struct ContentView: View {
   @Environment(Auth.self) private var auth
   @Environment(GlobalLoadingIndicator.self) private var loading
   @Environment(\.modelContext) private var context
+  @Environment(\.scenePhase) private var scenePhase
   @State private var storageFailure: StorageFailure?
+  @State private var showsAccountSwitch = false
   @State private var showStorageFailure = false
   @State private var selectedTab: AppTab = ContentView.initialTab
   @State private var searchFocusTrigger = 0
@@ -83,8 +85,69 @@ struct ContentView: View {
     .onChange(of: hideAnime) {
       if hideAnime && searchCategory == .anime { searchCategory = .all }
     }
-    .onChange(of: auth.simklAccessToken) {
+    .onChange(of: auth.accountSessionID) {
       DiscoverLibrary.shared.accountChanged()
+    }
+    // A completed sign-in, reconnect, or upgrade: bring the library up to date.
+    .onChange(of: auth.connectionGeneration) {
+      Task {
+        loading.startSync()
+        await syncLatestActivities(modelContainer: context.container)
+        loading.stopSync()
+      }
+    }
+    // Simkl's daily allowance resets at midnight US Eastern. Sync a minute after,
+    // whether the app stayed open or comes back later, so the card's "syncing
+    // resumes" holds without a pull to refresh.
+    .task(id: auth.dailyLimitResetsAt) {
+      guard let reset = auth.dailyLimitResetsAt else { return }
+      let delay = reset.timeIntervalSinceNow + 60
+      if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+      guard !Task.isCancelled else { return }
+      // Its own task: the sync clears the limit, which cancels this one.
+      Task {
+        loading.startSync()
+        await syncLatestActivities(modelContainer: context.container)
+        loading.stopSync()
+      }
+    }
+    .onChange(of: scenePhase) {
+      // A Keychain that couldn't be read at launch is readable once unlocked.
+      if scenePhase == .active { Task { await auth.reloadIfNeeded() } }
+    }
+    .alert(
+      auth.signInError?.title ?? "Couldn't Sign In to Simkl",
+      isPresented: Binding(
+        get: { auth.signInError != nil },
+        set: { if !$0 { auth.signInError = nil } }
+      )
+    ) {
+      Button("OK", role: .cancel) { auth.signInError = nil }
+    } message: {
+      Text(auth.signInError?.message ?? "")
+    }
+    .onChange(of: auth.pendingAccountSwitch) { _, pending in
+      if pending != nil { showsAccountSwitch = true }
+    }
+    // The buttons decide; dismissing without one runs the cancel-role button.
+    .confirmationDialog(
+      "Switch Simkl Accounts?",
+      isPresented: $showsAccountSwitch,
+      titleVisibility: .visible,
+      presenting: auth.pendingAccountSwitch
+    ) { pending in
+      Button(SimklAccountCopy.useAccountButton(pending.new), role: .destructive) {
+        guard let pending = auth.takePendingAccountSwitch() else { return }
+        Task {
+          await auth.confirmAccountSwitch(pending, resetLibrary: { LocalLibrary.reset(context) })
+        }
+      }
+      Button(SimklAccountCopy.keepAccountButton(pending.previous), role: .cancel) {
+        guard let pending = auth.takePendingAccountSwitch() else { return }
+        Task { await auth.discardAccountSwitch(pending) }
+      }
+    } message: { pending in
+      Text(SimklAccountCopy.switchMessage(new: pending.new, previous: pending.previous))
     }
     .onReceive(NotificationCenter.default.publisher(for: .syncStorageFailed)) { notification in
       guard let failure = notification.object as? StorageFailure else { return }
@@ -95,9 +158,9 @@ struct ContentView: View {
       _ in
       Button("Try Again") {
         Task {
-          guard !auth.simklAccessToken.isEmpty else { return }
+          guard auth.isConnected else { return }
           loading.startSync()
-          await syncLatestActivities(auth.simklAccessToken, modelContainer: context.container)
+          await syncLatestActivities(modelContainer: context.container)
           loading.stopSync()
         }
       }

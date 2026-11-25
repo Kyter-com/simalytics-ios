@@ -110,8 +110,8 @@ final class RewatchStore {
 
   /// A plan without rewatches also drops the local sessions. They stay on the
   /// user's Simkl account and come back with a full pull after an upgrade.
-  func updatePlan(_ accountType: String, settingsActivity: String?, accessToken: String) {
-    guard SyncAccount.isActive(accessToken) else { return }
+  func updatePlan(_ accountType: String, settingsActivity: String?, account: UUID?) {
+    guard let account, SyncAccount.isActive(account) else { return }
     state.accountType = accountType
     state.settingsActivity = settingsActivity
     if !state.isPlanEligible { clearSessions() }
@@ -122,9 +122,9 @@ final class RewatchStore {
   ///
   /// The account is checked here, on the main actor, so a sign-out that lands
   /// while a pull is in flight can't be undone by its result.
-  func apply(_ pull: RewatchPull, kind: RewatchKind, base: [RewatchSession], accessToken: String) {
+  func apply(_ pull: RewatchPull, kind: RewatchKind, base: [RewatchSession], account: UUID) {
     // Switching tracking off mid-pull also drops what the pull brought back.
-    guard SyncAccount.isActive(accessToken), isTrackingEnabled else { return }
+    guard SyncAccount.isActive(account), isTrackingEnabled else { return }
     let current = state.sessions.filter { $0.kind == kind }
     let sessions = RewatchSession.reconciled(pulled: pull.sessions, base: base, current: current)
     let counts = RewatchSession.reconciledCounts(
@@ -143,9 +143,9 @@ final class RewatchStore {
 
   /// Replaces every movie's rewatch ids with a pull that started from `base`.
   func applyMovieRewatches(
-    _ pulled: [Int: [Int]], cursor: Cursor, base: [Int: [Int]], accessToken: String
+    _ pulled: [Int: [Int]], cursor: Cursor, base: [Int: [Int]], account: UUID
   ) {
-    guard SyncAccount.isActive(accessToken), isTrackingEnabled else { return }
+    guard SyncAccount.isActive(account), isTrackingEnabled else { return }
     state.movieRewatchIDs = MovieRewatches.reconciled(
       pulled: pulled, base: base, current: state.movieRewatchIDs)
     state.movies = cursor

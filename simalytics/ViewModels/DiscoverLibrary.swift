@@ -148,21 +148,21 @@ final class DiscoverLibrary {
   /// Adds a title to Plan to Watch. Simkl is asked first, so a title already
   /// on a list (say, Completed) is never moved.
   func addToPlanToWatch(
-    _ item: DiscoverItem, accessToken: String, session: URLSession = .shared
+    _ item: DiscoverItem, session: URLSession = .shared
   ) async -> Outcome {
-    await change(item, adding: true, accessToken: accessToken, session: session)
+    await change(item, adding: true, session: session)
   }
 
   /// Takes a title off Plan to Watch. Simkl is asked first because removal
   /// also clears history, which a title you've started must keep.
   func removeFromPlanToWatch(
-    _ item: DiscoverItem, accessToken: String, session: URLSession = .shared
+    _ item: DiscoverItem, session: URLSession = .shared
   ) async -> Outcome {
-    await change(item, adding: false, accessToken: accessToken, session: session)
+    await change(item, adding: false, session: session)
   }
 
   private func change(
-    _ item: DiscoverItem, adding: Bool, accessToken: String, session: URLSession
+    _ item: DiscoverItem, adding: Bool, session: URLSession
   ) async -> Outcome {
     guard !updating.contains(item.id) else { return adding ? .added : .removed }
     let previous = pending[item.id]
@@ -174,7 +174,7 @@ final class DiscoverLibrary {
     updating.insert(item.id)
     defer { updating.remove(item.id) }
 
-    guard let current = await Self.list(of: item, accessToken: accessToken, session: session)
+    guard let current = await Self.list(of: item, session: session)
     else {
       pending[item.id] = previous
       return .failed("Couldn’t reach Simkl. Check your connection and try again.")
@@ -184,37 +184,37 @@ final class DiscoverLibrary {
       break
     case (true, .some("plantowatch")):
       // Already there; the sync will bring the local copy up to date.
-      syncSoon(accessToken)
+      syncSoon()
       return .alreadyListed("plantowatch")
     case (false, nil):
-      syncSoon(accessToken)
+      syncSoon()
       return .removed
     case (_, let list?):
       pending[item.id] = previous
-      syncSoon(accessToken)
+      syncSoon()
       return .alreadyListed(list)
     }
 
     if let message = await Self.updateList(
-      item, to: adding ? "plantowatch" : "nil", accessToken: accessToken, session: session)
+      item, to: adding ? "plantowatch" : "nil", session: session)
     {
       pending[item.id] = previous
       return .failed(message)
     }
-    syncSoon(accessToken)
+    syncSoon()
     return adding ? .added : .removed
   }
 
   /// Pulls the change into SwiftData; its notification then reloads entries.
-  private func syncSoon(_ accessToken: String) {
+  private func syncSoon() {
     guard let container else { return }
-    Task { await syncLatestActivities(accessToken, modelContainer: container) }
+    Task { await syncLatestActivities(modelContainer: container) }
   }
 
   /// The list Simkl has a title on: nil inside means none, and nil overall
   /// means Simkl couldn't be asked.
   private static func list(
-    of item: DiscoverItem, accessToken: String, session: URLSession
+    of item: DiscoverItem, session: URLSession
   ) async -> String?? {
     let type =
       switch item.type {
@@ -223,21 +223,21 @@ final class DiscoverLibrary {
       case .anime: "anime"
       }
     let batch: SimklWatchedBatch<WatchedList> = await simklWatchedBatch(
-      simklIDs: [item.simklID], type: type, accessToken: accessToken, session: session)
+      simklIDs: [item.simklID], type: type, session: session)
     guard !batch.hadFailures else { return nil }
     return .some(batch.items.first?.list)
   }
 
   private static func updateList(
-    _ item: DiscoverItem, to list: String, accessToken: String, session: URLSession
+    _ item: DiscoverItem, to list: String, session: URLSession
   ) async -> String? {
     switch item.type {
     case .movies:
-      await MovieWatchlistButton.updateMovieList(item.simklID, accessToken, list, session: session)
+      await MovieWatchlistButton.updateMovieList(item.simklID, list, session: session)
     case .shows:
-      await ShowWatchlistButton.updateShowList(item.simklID, accessToken, list, session: session)
+      await ShowWatchlistButton.updateShowList(item.simklID, list, session: session)
     case .anime:
-      await AnimeWatchlistButton.updateAnimeList(item.simklID, accessToken, list, session: session)
+      await AnimeWatchlistButton.updateAnimeList(item.simklID, list, session: session)
     }
   }
 
